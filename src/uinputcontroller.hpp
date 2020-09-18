@@ -12,14 +12,11 @@
 
 
 class UInputController{
-//private:
-public:
-  struct uinput_user_dev uinput_device;
+private:
   int uinput_version, uinput_rc, uinput_fd;
+  struct uinput_user_dev uinput_device;
 
 public:
-  struct input_event uinput_event;
-
   UInputController() {
     uinput_fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
     uinput_rc = ioctl(uinput_fd, UI_GET_VERSION, &uinput_version);
@@ -93,8 +90,6 @@ public:
 
   }
 
-
-
   ~UInputController() {
     ioctl(uinput_fd, UI_DEV_DESTROY);
 
@@ -109,66 +104,43 @@ public:
     return;
   }
 
-
   void uinput_write_single_joystick(const int &val, const int &cod) {
-
-    uinput_event.type = EV_ABS;
-    uinput_event.code = cod; // BTN_EAST;
-    uinput_event.value = (int)val;
-
-    int ret = write(uinput_fd, &uinput_event, sizeof(uinput_event));
-    if (ret < 0) {
-      #if 0
-      PrintColor::red();
-      printf("ERROR: write in write_single_joystic() returned %i\nMaybe try running with sudo\n", ret);
-      PrintColor::normal();
-      #endif
-    }
+    send_packet(EV_ABS, cod, (int)val);
   }
 
   void uinput_button_down(const int &cod) {
-
     // press button
-    memset(&uinput_event, 0, sizeof(uinput_event));
-    gettimeofday(&uinput_event.time, NULL);
-    uinput_event.type = EV_KEY;
-    uinput_event.code = cod; // BTN_EAST;
-    uinput_event.value = 1;
-    int ret = write(uinput_fd, &uinput_event, sizeof(uinput_event));
-    if (ret < 0) {
-      #if 0
-      PrintColor::red();
-      printf("ERROR: write in button_down() returned %i\nMaybe try running with sudo\n", ret);
-      PrintColor::normal();
-      #endif
-    }
-
-    // if (ret < 0)
-    // {
-    //   red();
-    //   printf("ERROR: write in button_down() send report returned %i\n", ret);
-    //   normal();
-    // }
-
-    // printf("PRessed button %u\n", cod);
+    send_packet(EV_KEY, cod, 1);
   }
 
   void uinput_button_release(const int &cod) {
-    // release button
-    memset(&uinput_event, 0, sizeof(uinput_event));
-    gettimeofday(&uinput_event.time, NULL);
-    uinput_event.type = EV_KEY;
-    uinput_event.code = cod;
-    uinput_event.value = 0;
-    write(uinput_fd, &uinput_event, sizeof(uinput_event));
-
-    // send report
-    uinput_event.type = EV_SYN;
-    uinput_event.code = SYN_REPORT;
-    uinput_event.value = 0;
-    write(uinput_fd, &uinput_event, sizeof(uinput_event));
+    send_packet(EV_KEY, cod, 0);
+    send_report();
   }
-//#endif
+
+  void send_report() {
+    send_packet(EV_SYN, SYN_REPORT, 0);
+  }
+
+
+private:
+  void send_packet(unsigned short type, unsigned short code, int value){
+    struct input_event uinput_event;
+    memset(&uinput_event, 0, sizeof(uinput_event));
+
+    gettimeofday(&uinput_event.time, NULL);
+
+    uinput_event.type = type;
+    uinput_event.code = code;
+    uinput_event.value = value;
+
+    int ret = write(uinput_fd, &uinput_event, sizeof(uinput_event));
+    if (ret < 0) {
+      throw std::ios_base::failure("ERROR: write on virtual controller returned"
+                                   + std::to_string(ret) + "\n"
+                                   "Maybe try running with sudo.\n");
+    }
+  }
   
 };
 

@@ -10,7 +10,6 @@
 #include <fstream>
 #include <iostream>
 #include <linux/input.h>
-#include <linux/uinput.h>
 #include <ratio>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -678,9 +677,6 @@ public:
       b_d_down = left & byte_button_value(d_up);
     }
 
-    memset(&uinput_ctrl->uinput_event, 0, sizeof(uinput_ctrl->uinput_event));
-    gettimeofday(&uinput_ctrl->uinput_event.time, NULL);
-
     if (b_d_left) {
       uinput_ctrl->uinput_write_single_joystick(-1, ABS_HAT0X);
     } else if (b_d_right) {
@@ -697,10 +693,7 @@ public:
     }
 
     // send report
-    uinput_ctrl->uinput_event.type = EV_SYN;
-    uinput_ctrl->uinput_event.code = SYN_REPORT;
-    uinput_ctrl->uinput_event.value = 0;
-    write(uinput_ctrl->uinput_fd, &uinput_ctrl->uinput_event, sizeof(uinput_ctrl->uinput_event));
+    uinput_ctrl->send_report();
   }
 
   void uinput_manage_buttons(const char &left, const char &mid,
@@ -858,10 +851,7 @@ public:
     uinput_ctrl->uinput_write_single_joystick(val, ABS_RZ);
 
     // send report
-    uinput_ctrl->uinput_event.type = EV_SYN;
-    uinput_ctrl->uinput_event.code = SYN_REPORT;
-    uinput_ctrl->uinput_event.value = 0;
-    write(uinput_ctrl->uinput_fd, &uinput_ctrl->uinput_event, sizeof(uinput_ctrl->uinput_event));
+    uinput_ctrl->send_report();
   }
 
   bool calibration_file_exists() {
@@ -896,13 +886,11 @@ public:
     map_sticks(left_x, left_y, right_x, right_y);
 
     // write uinput
-    memset(&uinput_ctrl->uinput_event, 0, sizeof(uinput_ctrl->uinput_event));
 
     // left_x = 0;
     // left_y = 127;
     // right_x = 255;
     // right_y = 200;
-    gettimeofday(&uinput_ctrl->uinput_event.time, NULL);
 
     uinput_ctrl->uinput_write_single_joystick(left_x, ABS_X);
     uinput_ctrl->uinput_write_single_joystick(left_y, ABS_Y);
@@ -916,10 +904,7 @@ public:
 #endif
     uinput_ctrl->uinput_write_single_joystick(right_y, ABS_RY);
     // send report
-    uinput_ctrl->uinput_event.type = EV_SYN;
-    uinput_ctrl->uinput_event.code = SYN_REPORT;
-    uinput_ctrl->uinput_event.value = 0;
-    write(uinput_ctrl->uinput_fd, &uinput_ctrl->uinput_event, sizeof(uinput_ctrl->uinput_event));
+    uinput_ctrl->send_report();
 
     // clear_console();
     // printf("left_x: %i\n", (int)left_x);
