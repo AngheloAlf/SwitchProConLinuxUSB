@@ -290,62 +290,6 @@ public:
   // }
 
   template <size_t length>
-  exchange_array send_command(uint8_t command,
-                              std::array<uint8_t, length> const &data) {
-    std::array<uint8_t, length + 0x9> buffer;
-    buffer.fill(0);
-    buffer[0x0] = 0x80;
-    buffer[0x1] = 0x92;
-    buffer[0x3] = 0x31;
-    buffer[0x8] = command;
-    if (length > 0) {
-      memcpy(buffer.data() + 0x9, data.data(), length);
-    }
-    return exchange(buffer);
-  }
-
-  template <size_t length>
-  exchange_array exchange(std::array<uint8_t, length> const &data,
-                          bool timed = false, int *status = nullptr) {
-
-    if (!controller_ptr) {
-      red();
-      printf("ERROR: controller_ptr is nullptr!\n");
-      normal();
-      return {};
-    }
-
-    if (hid_write(controller_ptr, data.data(), length) < 0) {
-      red();
-      printf(
-          "ERROR: read() returned -1!\nDid you disconnect the controller?\n");
-      normal();
-      throw - 1;
-      return {};
-    }
-
-    std::array<uint8_t, exchange_length> ret;
-    ret.fill(0);
-    if (!timed)
-      hid_read(controller_ptr, ret.data(), exchange_length);
-    else {
-
-      if (hid_read_timeout(controller_ptr, ret.data(), exchange_length, 100) ==
-          0) {
-        // failed to read!
-        if (status) {
-          *status = -1;
-          return {};
-        }
-      }
-    }
-    if (status) {
-      *status = 0;
-    }
-    return ret;
-  }
-
-  template <size_t length>
   exchange_array send_subcommand(uint8_t command, uint8_t subcommand,
                                  std::array<uint8_t, length> const &data) {
     std::array<uint8_t, length + 10> buffer{
@@ -708,43 +652,6 @@ public:
     return inp;
   }
 
-  int try_read_bad_data() {
-
-    if (!controller_ptr) {
-      printf("%sERROR: Controller pointer is nullptr%s\n", KRED, KNRM);
-      return -1;
-    }
-
-    auto dat = send_command(get_input, empty);
-
-    if (detect_useless_data(dat[0])) {
-      return 0;
-    }
-
-    if (detect_bad_data(dat[0], dat[1])) {
-      // print_exchange_array(dat);
-      return -1;
-    }
-
-    return 0;
-  }
-
-  /* Hackishly detects when the controller is trapped in a bad loop.
-  Nothing to do here, need to reopen device :(*/
-  bool detect_bad_data(const uint8_t &dat1, const uint8_t &dat2) {
-    return (dat2 == 0x01 && dat1 == 0x81) ? true : bad_data_detected;
-  }
-
-  /* If this returns true, there is no controller information in this package,
-   * we can skip it*/
-  bool detect_useless_data(const uint8_t &dat) {
-    if (dat == 0x30)
-      n_bad_data_thirty++;
-    if (dat == 0x00)
-      n_bad_data_zero++;
-    return (dat == 0x30 || dat == 0x00);
-  }
-
   void print_exchange_array(exchange_array arr) {
     bool redcol = false;
     if (arr[0] != 0x30)
@@ -770,84 +677,6 @@ public:
     fflush(stdout);
   }
 
-  int read(hid_device *device, uint8_t *data, size_t size) {
-    int ret = hid_read(device, data, size);
-    if (ret < 0) {
-      printf("%sERROR: Couldn't read from device nr. %u%s\n", KRED,
-             n_controller, KNRM);
-    }
-    return ret;
-  }
-
-  int open_device(unsigned short vendor_id, unsigned short product_id,
-                  const wchar_t *serial_number, unsigned short n_controll) {
-    controller_ptr = hid_open(vendor_id, product_id, serial_number);
-    // controller_ptr = hid_open_path("/dev/input/hidraw0");
-    is_opened = true;
-
-
-    //printf("SERIAL NUMBER: %u\n", serial_number);
-    if (!controller_ptr) {
-      return -1;
-    }
-    // hid_device_info *info = hid_open(vendor_id, product_id, serial_number);
-    // std::cout<< "PATH: " << info->path << std::endl;;
-
-    n_controller = n_controll;
-    ven_id = vendor_id;
-    prod_id = product_id;
-
-    // if (false)
-    // { //!exchange(handshake)) { //need std::optional
-    //     red();
-    //     printf("ERROR: exchange handshake failed!\n");
-    //     normal();
-    // }
-
-    // set_non_blocking();
-
-    exchange(switch_baudrate);
-    exchange(handshake);
-
-    // the next part will sometimes fail, then need to reopen device via hidapi
-    int read_failed;
-    exchange(hid_only_mode, true, &read_failed);
-    if (read_failed < 0) {
-      return -2;
-    }
-
-    send_subcommand(0x1, led_command, led_calibration);
-
-    usleep(100 * 1000);
-
-    return 0;
-  }
-
-  void set_non_blocking() {
-    if (hid_set_nonblocking(controller_ptr, 1) < 0) {
-      printf("%sERROR: Couldn't set controller %u to non-blocking%s\n", KRED,
-             n_controller, KNRM);
-    }
-  }
-
-  void set_blocking() {
-    if (hid_set_nonblocking(controller_ptr, 0) < 0) {
-      printf("%sERROR: Couldn't set controller %u to blocking%s\n", KRED,
-             n_controller, KNRM);
-    }
-  }
-
-  void close_device() {
-    if (!is_opened)
-      return;
-    is_opened = false;
-    if (controller_ptr) {
-      hid_close(controller_ptr);
-      PrintColor::blue();
-      // printf("Closed controller nr. %u\n", n_controller);
-      PrintColor::normal();
-    }
-  }
 
   // void blink() {
   //   if (++blink_counter > blink_length) {
@@ -1287,14 +1116,6 @@ public:
   std::array<uint8_t, 20> fifth{{0x0}};
   std::array<uint8_t, 20> sixth{{0x0}};
 
-  uint8_t rumble_counter{0};
-  const std::array<uint8_t, 1> led_calibration{{0xff}};
-  const std::array<uint8_t, 1> led_calibrated{{0x01}};
-  const std::array<uint8_t, 0> empty{{}};
-  const std::array<uint8_t, 2> handshake{{0x80, 0x02}};
-  const std::array<uint8_t, 2> switch_baudrate{{0x80, 0x03}};
-  const std::array<uint8_t, 2> hid_only_mode{{0x80, 0x04}};
-  // const std::array<uint8_t, 4> blink_array{{0x05, 0x10}};//, 0x04, 0x08}};
 
   // uint blink_position = 0;
   // size_t blink_counter = 0;
@@ -1302,18 +1123,11 @@ public:
 
   bool bad_data_detected = false;
 
-  hid_device *controller_ptr;
-
-  unsigned short ven_id;
-  unsigned short prod_id;
-  unsigned short n_controller;
-
   uint n_print_cycle = 1000;
   uint print_cycle_counter = 0;
   uint n_bad_data_zero = 0;
   uint n_bad_data_thirty = 0;
 
-  bool is_opened = false;
   bool calibrated = false;
   bool read_calibration_from_file =
       true; // will be set to false in decalibrate or with flags

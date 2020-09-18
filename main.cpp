@@ -3,7 +3,6 @@
 #include "print_color.hpp"
 
 //#define DEBUG
-#define TEST_BAD_DATA_CYCLES 10
 
 
 void print_help() {
@@ -110,6 +109,7 @@ int main(int argc, char *argv[]) {
         usleep(1000 * 10);
         continue;
       } else {
+        #if 0
         // TEST FOR BAD DATA
         for (size_t i = 0; i < TEST_BAD_DATA_CYCLES; ++i) {
           if (controller.try_read_bad_data() != 0) {
@@ -122,6 +122,7 @@ int main(int argc, char *argv[]) {
             break;
           }
         }
+        #endif
       }
     }
 
