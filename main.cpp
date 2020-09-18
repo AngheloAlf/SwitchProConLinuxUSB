@@ -91,12 +91,6 @@ int main(int argc, char *argv[]) {
   PrintColor::green();
   printf("Opened controller!\n");
 
-  if (controller.uinput_create() < 0) {
-    PrintColor::red();
-    printf("Failed to open uinput device!\n");
-    PrintColor::normal();
-  }
-
   if (!controller.read_calibration_from_file ||
       !controller.calibration_file_exists()) {
     PrintColor::blue();
@@ -107,7 +101,6 @@ int main(int argc, char *argv[]) {
             27, 1, 36, 27, 0);
     PrintColor::normal();
   }
-
 
   try {
     while (true) {
@@ -130,11 +123,6 @@ int main(int argc, char *argv[]) {
     PrintColor::normal();
   }
 
-  // hid_exit;
-  for (short unsigned i = 0; i < MAX_N_CONTROLLERS; ++i) {
-    //controller.close_device();
-    controller.uinput_destroy();
-  }
   printf("\n");
   return 0;
 }

@@ -20,6 +20,7 @@
 #include "config.hpp"
 #include "print_color.hpp"
 #include "hidcontroller.hpp"
+#include "uinputcontroller.hpp"
 
 #define PROCON_DRIVER_VERSION "1.0 alpha2"
 
@@ -80,11 +81,24 @@ public:
       }
     }
     
+    uinput_ctrl = new UInputController();
+    #if 0
+    if (controller.uinput_create() < 0) {
+      PrintColor::red();
+      printf("Failed to open uinput device!\n");
+      PrintColor::normal();
+    }
+    #endif
+
+
   }
 
   ~ProController(){
-    if(hid_ctrl != nullptr){
+    if (hid_ctrl != nullptr) {
       delete hid_ctrl;
+    }
+    if (uinput_ctrl != nullptr) {
+      delete uinput_ctrl;
     }
   }
 
@@ -391,12 +405,6 @@ public:
     // if(print_cycle_counter++ > n_print_cycle) {
     //     timer();
     // }
-    #if 0
-    if (!controller_ptr) {
-      printf("%sERROR: Controller pointer is nullptr%s\n", KRED, KNRM);
-      return -1;
-    }
-    #endif
 
     auto dat = hid_ctrl->send_command(hid_ctrl->get_input, hid_ctrl->empty);
 
@@ -464,12 +472,6 @@ public:
       myReadFile.close();
     }
 
-    #if 0
-    if (!controller_ptr) {
-      printf("%sERROR: Controller pointer is nullptr%s\n", KRED, KNRM);
-      return;
-    }
-    #endif
 
     auto dat = hid_ctrl->send_command(hid_ctrl->get_input, hid_ctrl->empty);
 
@@ -676,29 +678,29 @@ public:
       b_d_down = left & byte_button_value(d_up);
     }
 
-    memset(&uinput_event, 0, sizeof(uinput_event));
-    gettimeofday(&uinput_event.time, NULL);
+    memset(&uinput_ctrl->uinput_event, 0, sizeof(uinput_ctrl->uinput_event));
+    gettimeofday(&uinput_ctrl->uinput_event.time, NULL);
 
     if (b_d_left) {
-      uinput_write_single_joystick(-1, ABS_HAT0X);
+      uinput_ctrl->uinput_write_single_joystick(-1, ABS_HAT0X);
     } else if (b_d_right) {
-      uinput_write_single_joystick(1, ABS_HAT0X);
+      uinput_ctrl->uinput_write_single_joystick(1, ABS_HAT0X);
     } else if (!b_d_left && !b_d_right) {
-      uinput_write_single_joystick(0, ABS_HAT0X);
+      uinput_ctrl->uinput_write_single_joystick(0, ABS_HAT0X);
     }
     if (b_d_down) {
-      uinput_write_single_joystick(-1, ABS_HAT0Y);
+      uinput_ctrl->uinput_write_single_joystick(-1, ABS_HAT0Y);
     } else if (b_d_up) {
-      uinput_write_single_joystick(1, ABS_HAT0Y);
+      uinput_ctrl->uinput_write_single_joystick(1, ABS_HAT0Y);
     } else if (!b_d_down && !b_d_up) {
-      uinput_write_single_joystick(0, ABS_HAT0Y);
+      uinput_ctrl->uinput_write_single_joystick(0, ABS_HAT0Y);
     }
 
     // send report
-    uinput_event.type = EV_SYN;
-    uinput_event.code = SYN_REPORT;
-    uinput_event.value = 0;
-    write(uinput_fd, &uinput_event, sizeof(uinput_event));
+    uinput_ctrl->uinput_event.type = EV_SYN;
+    uinput_ctrl->uinput_event.code = SYN_REPORT;
+    uinput_ctrl->uinput_event.value = 0;
+    write(uinput_ctrl->uinput_fd, &uinput_ctrl->uinput_event, sizeof(uinput_ctrl->uinput_event));
   }
 
   void uinput_manage_buttons(const char &left, const char &mid,
@@ -734,11 +736,11 @@ public:
 
     // press
     if (b_a && !last_a)
-      uinput_button_down(BTN_EAST);
+      uinput_ctrl->uinput_button_down(BTN_EAST);
     if (b_b && !last_b)
-      uinput_button_down(BTN_SOUTH);
+      uinput_ctrl->uinput_button_down(BTN_SOUTH);
     if (b_x && !last_x) {
-      uinput_button_down(BTN_WEST);
+      uinput_ctrl->uinput_button_down(BTN_WEST);
 #ifdef DRIBBLE_MODE // toggle off dribble mode
       if (dribble_mode)
         toggle_dribble_mode();
@@ -748,87 +750,87 @@ public:
     if (b_y && !last_y)
       toggle_dribble_mode();
     if (b_share && !last_share) // replace button by share
-      uinput_button_down(BTN_NORTH);
+      uinput_ctrl->uinput_button_down(BTN_NORTH);
 #else
     if (b_y && !last_y)
-      uinput_button_down(BTN_NORTH);
+      uinput_ctrl->uinput_button_down(BTN_NORTH);
 #endif
 
     // if (b_d_down && !last_d_down)
-    //   uinput_button_down(BTN_DPAD_DOWN);
+    //   uinput_ctrl->uinput_button_down(BTN_DPAD_DOWN);
     // if (b_d_up && !last_d_up)
-    //   uinput_button_down(BTN_DPAD_UP);
+    //   uinput_ctrl->uinput_button_down(BTN_DPAD_UP);
     // if (b_d_left && !last_d_left)
-    //   uinput_button_down(BTN_DPAD_LEFT);
+    //   uinput_ctrl->uinput_button_down(BTN_DPAD_LEFT);
     // if (b_d_right && !last_d_right)
-    //   uinput_button_down(BTN_DPAD_RIGHT);
+    //   uinput_ctrl->uinput_button_down(BTN_DPAD_RIGHT);
     if (b_plus && !last_plus)
-      uinput_button_down(BTN_START);
+      uinput_ctrl->uinput_button_down(BTN_START);
     if (b_minus && !last_minus)
-      uinput_button_down(BTN_SELECT);
+      uinput_ctrl->uinput_button_down(BTN_SELECT);
     if (b_L1 && !last_L1)
-      uinput_button_down(BTN_TL);
+      uinput_ctrl->uinput_button_down(BTN_TL);
     // if (b_L2 && !last_L2)
-    //   uinput_button_down(BTN_TL2);
+    //   uinput_ctrl->uinput_button_down(BTN_TL2);
     if (b_R1 && !last_R1)
-      uinput_button_down(BTN_TR);
+      uinput_ctrl->uinput_button_down(BTN_TR);
     // if (b_R2 && !last_R2)
-    //   uinput_button_down(BTN_TR2);
+    //   uinput_ctrl->uinput_button_down(BTN_TR2);
     if (b_L3 && !last_L3)
-      uinput_button_down(BTN_THUMBL);
+      uinput_ctrl->uinput_button_down(BTN_THUMBL);
     if (b_R3 && !last_R3)
-      uinput_button_down(BTN_THUMBR);
+      uinput_ctrl->uinput_button_down(BTN_THUMBR);
     // if (b_L1 && !last_L1)
-    //   uinput_button_down(BTN_TL);
+    //   uinput_ctrl->uinput_button_down(BTN_TL);
     if (b_home && !last_home)
-      uinput_button_down(BTN_MODE);
+      uinput_ctrl->uinput_button_down(BTN_MODE);
 
     // release
     if (!b_a && last_a)
-      uinput_button_release(BTN_EAST);
+      uinput_ctrl->uinput_button_release(BTN_EAST);
     if (!b_b && last_b)
-      uinput_button_release(BTN_SOUTH);
+      uinput_ctrl->uinput_button_release(BTN_SOUTH);
     if (!b_x && last_x)
-      uinput_button_release(BTN_WEST);
+      uinput_ctrl->uinput_button_release(BTN_WEST);
 
 #ifdef DRIBBLE_MODE
     if (!b_y && last_y)
-      uinput_button_release(BTN_WEST);
+      uinput_ctrl->uinput_button_release(BTN_WEST);
     if (!b_share && last_share)
-      uinput_button_release(BTN_NORTH);
+      uinput_ctrl->uinput_button_release(BTN_NORTH);
 #else
     if (!b_y && last_y)
-      uinput_button_release(BTN_NORTH);
+      uinput_ctrl->uinput_button_release(BTN_NORTH);
 #endif
 
     // if (!b_d_down && last_d_down)
-    //   uinput_button_release(BTN_DPAD_DOWN);
+    //   uinput_ctrl->uinput_button_release(BTN_DPAD_DOWN);
     // if (!b_d_up && last_d_up)
-    //   uinput_button_release(BTN_DPAD_UP);
+    //   uinput_ctrl->uinput_button_release(BTN_DPAD_UP);
     // if (!b_d_left && last_d_left)
-    //   uinput_button_release(BTN_DPAD_LEFT);
+    //   uinput_ctrl->uinput_button_release(BTN_DPAD_LEFT);
     // if (!b_d_right && last_d_right)
-    //   uinput_button_release(BTN_DPAD_RIGHT);
+    //   uinput_ctrl->uinput_button_release(BTN_DPAD_RIGHT);
     if (!b_plus && last_plus)
-      uinput_button_release(BTN_START);
+      uinput_ctrl->uinput_button_release(BTN_START);
     if (!b_minus && last_minus)
-      uinput_button_release(BTN_SELECT);
+      uinput_ctrl->uinput_button_release(BTN_SELECT);
     if (!b_L1 && last_L1)
-      uinput_button_release(BTN_TL);
+      uinput_ctrl->uinput_button_release(BTN_TL);
     // if (!b_L2 && last_L2)
-    //   uinput_button_release(BTN_TL2);
+    //   uinput_ctrl->uinput_button_release(BTN_TL2);
     if (!b_R1 && last_R1)
-      uinput_button_release(BTN_TR);
+      uinput_ctrl->uinput_button_release(BTN_TR);
     // if (!b_R2 && last_R2)
-    //   uinput_button_release(BTN_TR2);
+    //   uinput_ctrl->uinput_button_release(BTN_TR2);
     if (!b_L3 && last_L3)
-      uinput_button_release(BTN_THUMBL);
+      uinput_ctrl->uinput_button_release(BTN_THUMBL);
     if (!b_R3 && last_R3)
-      uinput_button_release(BTN_THUMBR);
+      uinput_ctrl->uinput_button_release(BTN_THUMBR);
     // if (!b_L1 && last_L1)
-    //   uinput_button_release(BTN_TL);
+    //   uinput_ctrl->uinput_button_release(BTN_TL);
     if (!b_home && last_home)
-      uinput_button_release(BTN_MODE);
+      uinput_ctrl->uinput_button_release(BTN_MODE);
 
     // last_d_left = b_d_left;
     // last_d_right = b_d_right;
@@ -851,15 +853,15 @@ public:
 
     // do triggers here as well
     int val = b_L2 ? 255 : 0;
-    uinput_write_single_joystick(val, ABS_Z);
+    uinput_ctrl->uinput_write_single_joystick(val, ABS_Z);
     val = b_R2 ? 255 : 0;
-    uinput_write_single_joystick(val, ABS_RZ);
+    uinput_ctrl->uinput_write_single_joystick(val, ABS_RZ);
 
     // send report
-    uinput_event.type = EV_SYN;
-    uinput_event.code = SYN_REPORT;
-    uinput_event.value = 0;
-    write(uinput_fd, &uinput_event, sizeof(uinput_event));
+    uinput_ctrl->uinput_event.type = EV_SYN;
+    uinput_ctrl->uinput_event.code = SYN_REPORT;
+    uinput_ctrl->uinput_event.value = 0;
+    write(uinput_ctrl->uinput_fd, &uinput_ctrl->uinput_event, sizeof(uinput_ctrl->uinput_event));
   }
 
   bool calibration_file_exists() {
@@ -894,30 +896,30 @@ public:
     map_sticks(left_x, left_y, right_x, right_y);
 
     // write uinput
-    memset(&uinput_event, 0, sizeof(uinput_event));
+    memset(&uinput_ctrl->uinput_event, 0, sizeof(uinput_ctrl->uinput_event));
 
     // left_x = 0;
     // left_y = 127;
     // right_x = 255;
     // right_y = 200;
-    gettimeofday(&uinput_event.time, NULL);
+    gettimeofday(&uinput_ctrl->uinput_event.time, NULL);
 
-    uinput_write_single_joystick(left_x, ABS_X);
-    uinput_write_single_joystick(left_y, ABS_Y);
-    uinput_write_single_joystick(right_x, ABS_RX);
+    uinput_ctrl->uinput_write_single_joystick(left_x, ABS_X);
+    uinput_ctrl->uinput_write_single_joystick(left_y, ABS_Y);
+    uinput_ctrl->uinput_write_single_joystick(right_x, ABS_RX);
 #ifndef DRIBBLE_MODE
-    uinput_write_single_joystick(right_y, ABS_RY);
+    uinput_ctrl->uinput_write_single_joystick(right_y, ABS_RY);
 #else
     if (dribble_mode) {
       right_y = clamp_int(right_y + config.dribble_cam_value - 127);
     }
 #endif
-    uinput_write_single_joystick(right_y, ABS_RY);
+    uinput_ctrl->uinput_write_single_joystick(right_y, ABS_RY);
     // send report
-    uinput_event.type = EV_SYN;
-    uinput_event.code = SYN_REPORT;
-    uinput_event.value = 0;
-    write(uinput_fd, &uinput_event, sizeof(uinput_event));
+    uinput_ctrl->uinput_event.type = EV_SYN;
+    uinput_ctrl->uinput_event.code = SYN_REPORT;
+    uinput_ctrl->uinput_event.value = 0;
+    write(uinput_ctrl->uinput_fd, &uinput_ctrl->uinput_event, sizeof(uinput_ctrl->uinput_event));
 
     // clear_console();
     // printf("left_x: %i\n", (int)left_x);
@@ -926,146 +928,6 @@ public:
     // printf("right_y: %i\n", (int)right_y);
   }
 
-  void uinput_write_single_joystick(const int &val, const int &cod) {
-
-    uinput_event.type = EV_ABS;
-    uinput_event.code = cod; // BTN_EAST;
-    uinput_event.value = (int)val;
-
-    int ret = write(uinput_fd, &uinput_event, sizeof(uinput_event));
-    if (ret < 0) {
-      PrintColor::red();
-      printf("ERROR: write in write_single_joystic() returned %i\nMaybe try running with sudo\n", ret);
-      PrintColor::normal();
-    }
-  }
-
-  void uinput_button_down(const int &cod) {
-
-    // press button
-    memset(&uinput_event, 0, sizeof(uinput_event));
-    gettimeofday(&uinput_event.time, NULL);
-    uinput_event.type = EV_KEY;
-    uinput_event.code = cod; // BTN_EAST;
-    uinput_event.value = 1;
-    int ret = write(uinput_fd, &uinput_event, sizeof(uinput_event));
-    if (ret < 0) {
-      PrintColor::red();
-      printf("ERROR: write in button_down() returned %i\nMaybe try running with sudo\n", ret);
-      PrintColor::normal();
-    }
-
-    // if (ret < 0)
-    // {
-    //   red();
-    //   printf("ERROR: write in button_down() send report returned %i\n", ret);
-    //   normal();
-    // }
-
-    // printf("PRessed button %u\n", cod);
-  }
-
-  void uinput_button_release(const int &cod) {
-    // release button
-    memset(&uinput_event, 0, sizeof(uinput_event));
-    gettimeofday(&uinput_event.time, NULL);
-    uinput_event.type = EV_KEY;
-    uinput_event.code = cod;
-    uinput_event.value = 0;
-    write(uinput_fd, &uinput_event, sizeof(uinput_event));
-
-    // send report
-    uinput_event.type = EV_SYN;
-    uinput_event.code = SYN_REPORT;
-    uinput_event.value = 0;
-    write(uinput_fd, &uinput_event, sizeof(uinput_event));
-  }
-
-  int uinput_create() {
-    uinput_fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
-    uinput_rc = ioctl(uinput_fd, UI_GET_VERSION, &uinput_version);
-
-    memset(&uinput_device, 0, sizeof(uinput_device));
-
-
-    uinput_device.id.bustype = BUS_USB;
-    uinput_device.id.vendor = 0x045e;  // Microsoft
-    uinput_device.id.product = 0x028e; // XBOX 360
-    uinput_device.id.version = 0x110;  // dunno but xboxdrv uses this
-    strncpy(uinput_device.name, "Switch ProController disguised as XBox360",
-            UINPUT_MAX_NAME_SIZE);
-
-
-    // buttons
-    ioctl(uinput_fd, UI_SET_EVBIT, EV_KEY);
-
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_EAST);
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_SOUTH);
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_NORTH);
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_WEST);
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_MODE);
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_TL);
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_TR);
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_THUMBL);
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_THUMBR);
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_START);
-    ioctl(uinput_fd, UI_SET_KEYBIT, BTN_SELECT);
-
-    // joysticks
-    ioctl(uinput_fd, UI_SET_EVBIT, EV_ABS);
-
-    ioctl(uinput_fd, UI_SET_ABSBIT, ABS_X);
-    ioctl(uinput_fd, UI_SET_ABSBIT, ABS_Y);
-    ioctl(uinput_fd, UI_SET_ABSBIT, ABS_RX);
-    ioctl(uinput_fd, UI_SET_ABSBIT, ABS_RY);
-    ioctl(uinput_fd, UI_SET_ABSBIT, ABS_Z);  // L2
-    ioctl(uinput_fd, UI_SET_ABSBIT, ABS_RZ); // R2
-    ioctl(uinput_fd, UI_SET_ABSBIT, ABS_HAT0X);
-    ioctl(uinput_fd, UI_SET_ABSBIT, ABS_HAT0Y);
-
-    uinput_device.absmin[ABS_X] = 0;
-    uinput_device.absmax[ABS_X] = 255;
-    uinput_device.absmin[ABS_Y] = 0;
-    uinput_device.absmax[ABS_Y] = 255;
-    uinput_device.absmin[ABS_RX] = 0;
-    uinput_device.absmax[ABS_RX] = 255;
-    uinput_device.absmin[ABS_RY] = 0;
-    uinput_device.absmax[ABS_RY] = 255;
-    uinput_device.absmin[ABS_Z] = 0;
-    uinput_device.absmax[ABS_Z] = 255;
-    uinput_device.absmin[ABS_RZ] = 0;
-    uinput_device.absmax[ABS_RZ] = 255;
-    uinput_device.absmin[ABS_HAT0X] = -1;
-    uinput_device.absmax[ABS_HAT0X] = 1;
-    uinput_device.absmin[ABS_HAT0Y] = -1;
-    uinput_device.absmax[ABS_HAT0Y] = 1;
-
-    write(uinput_fd, &uinput_device, sizeof(uinput_device));
-
-    if (ioctl(uinput_fd, UI_DEV_CREATE)) {
-      //return -1;
-    }
-
-    PrintColor::green();
-    printf("Created uinput device!\n");
-    PrintColor::normal();
-
-    return 0;
-  }
-
-
-
-  void uinput_destroy() {
-    ioctl(uinput_fd, UI_DEV_DESTROY);
-
-    close(uinput_fd);
-
-    PrintColor::yellow();
-    printf("Destroyed uinput device!\n");
-    PrintColor::normal();
-
-    return;
-  }
 
   std::clock_t last_time;
 
@@ -1124,11 +986,8 @@ public:
 
   Config config;
   HidController *hid_ctrl = nullptr;
+  UInputController *uinput_ctrl = nullptr;
 
-  // uinput
-  struct uinput_user_dev uinput_device;
-  struct input_event uinput_event;
-  int uinput_version, uinput_rc, uinput_fd;
 };
 
 #endif
