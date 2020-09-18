@@ -1,10 +1,11 @@
 #pragma once
-
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <string>
+// #define DRIBBLE_MODE // game-specific hack. does not belong here!
 
+#include <string>
+#include <stdexcept>
 
 
 class Config{
@@ -20,12 +21,14 @@ public:
   bool invert_dy = false;
   bool swap_buttons = false;
 
-  int parse_argvs(int argc, char *argv[]){
+#ifdef DRIBBLE_MODE
+  int dribble_cam_value = 205;
+  bool found_dribble_cam_value = false;
+#endif
+
+  Config(int argc, char *argv[]) {
 
     for (size_t i = 1; i < argc; ++i) {
-      // printf("argv: %d\n",argv[i]);
-      // std::cout << argv[i] << std::endl;
-
       bool option_found = false;
       if (std::string(argv[i]) == "-h" || std::string(argv[i]) == "--help") {
         help = true;
@@ -43,10 +46,7 @@ public:
       if (std::string(argv[i]) == "--invert-axis" ||
           std::string(argv[i]) == "-i") {
         if (i + 1 >= argc) {
-          //ProController::red();
-          printf("Expected axis parameter. use --help for options!\n");
-          //ProController::normal();
-          return -1;
+          throw std::invalid_argument("Expected axis parameter. use --help for options!");
         }
         option_found = true;
         bool valid_axis_name;
@@ -92,16 +92,12 @@ public:
       }
 #endif
       if (!option_found) {
-        /*std::cout << "Unknown option " << argv[i]
-                  << ". For usage, type './procon_driver --help'" << std::endl;*/
-        return -1;
+        throw std::invalid_argument("Unknown option " + std::string(argv[i]) + ". For usage, type './procon_driver --help'");
       }
     }
 
-    return 0;
   }
 
 };
-
 
 #endif

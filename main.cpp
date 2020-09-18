@@ -4,39 +4,25 @@
 //#define DEBUG
 #define TEST_BAD_DATA_CYCLES 10
 
-int main(int argc, char *argv[]) {
+
+void print_help() {
+  printf("Usage: procon_driver [OPTIONS]\nOptions are:\n");
+  printf(" -h --help                   get help on usage at start\n");
+  printf(" -c --calibration            force calibration at start\n");
+  printf(" -s --swap_buttons           Swap A and B buttons and X and Y "
+          "buttons\n");
+  printf(" -i --invert-axis [AXIS]     invert axis, possible axis: lx, ly, "
+          "rx, ry, dx, dy\n");
+  printf("\nIf you are experiencing an error, try running the program as root.");
 
 #ifdef DRIBBLE_MODE
-  int dribble_cam_value;
-  bool found_dribble_cam_value = false;
+  printf(" -d [VALUE]                  pass parameter for dribble cam. Range "
+          "0 to 255\n");
 #endif
+  printf("\n");
+}
 
-  Config config;
-  config.parse_argvs(argc, argv);
-
-  if (config.help) {
-    printf("Usage: procon_driver [OPTIONS]\nOptions are:\n");
-    printf(" -h --help                   get help on usage at start\n");
-    printf(" -c --calibration            force calibration at start\n");
-    printf(" -s --swap_buttons           Swap A and B buttons and X and Y "
-           "buttons\n");
-    printf(" -i --invert-axis [AXIS]     invert axis, possible axis: lx, ly, "
-           "rx, ry, dx, dy\n");
-    printf("\nIf you are experiencing an error, try running the program as root.");
-
-#ifdef DRIBBLE_MODE
-    printf(" -d [VALUE]                  pass parameter for dribble cam. Range "
-           "0 to 255\n");
-#endif
-    printf("\n");
-    return 0;
-  }
-
-  if (config.show_version) {
-    std::cout << "Version is " << PROCON_DRIVER_VERSION << std::endl;
-    return 0;
-  }
-
+void print_header(){
   printf("\n--------------------------------------------------------------------"
          "------\n");
   printf("| ");
@@ -59,6 +45,24 @@ int main(int argc, char *argv[]) {
 // }
 #endif
   fflush(stdout);
+}
+
+int main(int argc, char *argv[]) {
+
+  Config config(argc, argv);
+
+  if (config.help) {
+    print_help();
+    return 0;
+  }
+
+  if (config.show_version) {
+    std::cout << "Version is " << PROCON_DRIVER_VERSION << std::endl;
+    return 0;
+  }
+
+  print_header();
+
   ProController controller(config);
   hid_init();
   hid_device *controller_ptr;
@@ -74,16 +78,6 @@ int main(int argc, char *argv[]) {
   bool opened = false;
   bool bad_data = false;
 
-
-  // pass arguments to controller
-  if (config.force_calibration) {
-    controller.read_calibration_from_file = false;
-  }
-#ifdef DRIBBLE_MODE
-  if (found_dribble_cam_value) {
-    controller.dribble_mode_value = dribble_cam_value;
-  }
-#endif
 
   // OPEN PHASE
   do {

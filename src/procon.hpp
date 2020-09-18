@@ -1,8 +1,6 @@
 #ifndef PROCON_DRIVER_H
 #define PROCON_DRIVER_H
 
-// #define DRIBBLE_MODE // game-specific hack. does not belong here!
-
 #include "hidapi.h"
 #include <array>
 #include <chrono>
@@ -70,6 +68,9 @@ class ProController {
 
 public:
   ProController(Config &cfg): config(cfg){
+    if (config.force_calibration) {
+      read_calibration_from_file = false;
+    }
   }
 
   static const uint8_t bit_position(ProController::BUTTONS button) {
@@ -1126,7 +1127,7 @@ public:
     uinput_write_single_joystick(right_y, ABS_RY);
 #else
     if (dribble_mode) {
-      right_y = clamp_int(right_y + dribble_mode_value - 127);
+      right_y = clamp_int(right_y + config.dribble_cam_value - 127);
     }
 #endif
     uinput_write_single_joystick(right_y, ABS_RY);
@@ -1381,7 +1382,6 @@ public:
   bool last_y = false;
 
   bool dribble_mode = false;
-  int dribble_mode_value = 205;
 
   Config config;
 
