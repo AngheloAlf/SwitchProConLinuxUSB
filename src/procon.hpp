@@ -20,6 +20,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "config.hpp"
+
 #define PROCON_DRIVER_VERSION "1.0 alpha2"
 
 #define KNRM "\x1B[0m"
@@ -67,6 +69,9 @@ class ProController {
   using exchange_array = std::array<uint8_t, exchange_length>;
 
 public:
+  ProController(Config &cfg): config(cfg){
+  }
+
   static const uint8_t bit_position(ProController::BUTTONS button) {
     switch (button) {
     case d_left:
@@ -610,16 +615,16 @@ public:
     uint8_t right_y = stick5;
 
     // invert
-    if (invert_LX) {
+    if (config.invert_lx) {
       left_x = 255 - left_x;
     }
-    if (invert_LY) {
+    if (config.invert_ly) {
       left_y = 255 - left_y;
     }
-    if (invert_RX) {
+    if (config.invert_rx) {
       right_x = 255 - right_x;
     }
-    if (invert_RY) {
+    if (config.invert_ry) {
       right_y = 255 - right_y;
     }
 
@@ -872,7 +877,7 @@ public:
     bool b_d_down;
 
     // invert
-    if (!invert_DX) {
+    if (!config.invert_dx) {
       b_d_left = left & byte_button_value(d_left);
       b_d_right = left & byte_button_value(d_right);
     } else {
@@ -880,7 +885,7 @@ public:
       b_d_right = left & byte_button_value(d_left);
     }
 
-    if (!invert_DY) {
+    if (!config.invert_dy) {
       b_d_up = left & byte_button_value(d_up);
       b_d_down = left & byte_button_value(d_down);
     } else {
@@ -932,7 +937,7 @@ public:
     bool b_minus = mid & byte_button_value(minus);
 
     bool b_a, b_b, b_x, b_y;
-    if (!swap_buttons) {
+    if (!config.swap_buttons) {
       b_a = right & byte_button_value(A);
       b_b = right & byte_button_value(B);
       b_x = right & byte_button_value(X);
@@ -1089,16 +1094,16 @@ public:
     uint8_t right_y = dat5;
 
     // invert
-    if (invert_LX) {
+    if (config.invert_lx) {
       left_x = 255 - left_x;
     }
-    if (invert_LY) {
+    if (config.invert_ly) {
       left_y = 255 - left_y;
     }
-    if (invert_RX) {
+    if (config.invert_rx) {
       right_x = 255 - right_x;
     }
-    if (invert_RY) {
+    if (config.invert_ry) {
       right_y = 255 - right_y;
     }
 
@@ -1378,14 +1383,7 @@ public:
   bool dribble_mode = false;
   int dribble_mode_value = 205;
 
-  bool invert_LX = false;
-  bool invert_LY = false;
-  bool invert_RX = false;
-  bool invert_RY = false;
-  bool invert_DX = false;
-  bool invert_DY = false;
-
-  bool swap_buttons = false;
+  Config config;
 
   // uinput
   struct uinput_user_dev uinput_device;

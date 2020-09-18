@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 // }
 #endif
   fflush(stdout);
-  ProController controller;
+  ProController controller(config);
   hid_init();
   hid_device *controller_ptr;
   hid_device_info *devs =
@@ -79,13 +79,6 @@ int main(int argc, char *argv[]) {
   if (config.force_calibration) {
     controller.read_calibration_from_file = false;
   }
-  controller.invert_LX = config.invert_lx;
-  controller.invert_LY = config.invert_ly;
-  controller.invert_RX = config.invert_rx;
-  controller.invert_RY = config.invert_ry;
-  controller.invert_DX = config.invert_dx;
-  controller.invert_DY = config.invert_dy;
-  controller.swap_buttons = config.swap_buttons;
 #ifdef DRIBBLE_MODE
   if (found_dribble_cam_value) {
     controller.dribble_mode_value = dribble_cam_value;
