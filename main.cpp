@@ -1,102 +1,20 @@
 #include "procon.hpp"
+#include "config.hpp"
 
 //#define DEBUG
 #define TEST_BAD_DATA_CYCLES 10
 
 int main(int argc, char *argv[]) {
-  bool help = false;
-  bool force_calibration = false;
-  bool show_version = false;
-  bool invert_lx = false;
-  bool invert_ly = false;
-  bool invert_rx = false;
-  bool invert_ry = false;
-  bool invert_dx = false;
-  bool invert_dy = false;
-  bool swap_buttons = false;
 
 #ifdef DRIBBLE_MODE
   int dribble_cam_value;
   bool found_dribble_cam_value = false;
 #endif
 
-  for (size_t i = 1; i < argc; ++i) {
-    // printf("argv: %d\n",argv[i]);
-    // std::cout << argv[i] << std::endl;
+  Config config;
+  config.parse_argvs(argc, argv);
 
-    bool option_found = false;
-    if (std::string(argv[i]) == "-h" || std::string(argv[i]) == "--help") {
-      help = true;
-      option_found = true;
-    }
-    if (std::string(argv[i]) == "-c" ||
-        std::string(argv[i]) == "--calibration") {
-      force_calibration = true;
-      option_found = true;
-    }
-    if (std::string(argv[i]) == "--version") {
-      show_version = true;
-      option_found = true;
-    }
-    if (std::string(argv[i]) == "--invert-axis" ||
-        std::string(argv[i]) == "-i") {
-      if (i + 1 >= argc) {
-        ProController::red();
-        printf("Expected axis parameter. use --help for options!\n");
-        ProController::normal();
-        return -1;
-      }
-      option_found = true;
-      bool valid_axis_name;
-      do {
-        valid_axis_name = false;
-        if (std::string(argv[i + 1]) == "lx") {
-          invert_lx = true;
-          valid_axis_name = true;
-        } else if (std::string(argv[i + 1]) == "ly") {
-          invert_ly = true;
-          valid_axis_name = true;
-        } else if (std::string(argv[i + 1]) == "rx") {
-          invert_rx = true;
-          valid_axis_name = true;
-        } else if (std::string(argv[i + 1]) == "ry") {
-          invert_ry = true;
-          valid_axis_name = true;
-        } else if (std::string(argv[i + 1]) == "dx") {
-          invert_dx = true;
-          valid_axis_name = true;
-        } else if (std::string(argv[i + 1]) == "dy") {
-          invert_dy = true;
-          valid_axis_name = true;
-        }
-
-        if (valid_axis_name) {
-          ++i;
-        }
-
-      } while (valid_axis_name && i + 1 < argc);
-    }
-    if (std::string(argv[i]) == "--swap_buttons" ||
-        std::string(argv[i]) == "-s") {
-      option_found = true;
-      swap_buttons = true;
-    }
-#ifdef DRIBBLE_MODE
-    if (std::string(argv[i]) == "-d") {
-      option_found = true;
-      i++;
-      dribble_cam_value = std::stoi(argv[i]);
-      found_dribble_cam_value = true;
-    }
-#endif
-    if (!option_found) {
-      std::cout << "Unknown option " << argv[i]
-                << ". For usage, type './procon_driver --help'" << std::endl;
-      return -1;
-    }
-  }
-
-  if (help) {
+  if (config.help) {
     printf("Usage: procon_driver [OPTIONS]\nOptions are:\n");
     printf(" -h --help                   get help on usage at start\n");
     printf(" -c --calibration            force calibration at start\n");
@@ -114,7 +32,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  if (show_version) {
+  if (config.show_version) {
     std::cout << "Version is " << PROCON_DRIVER_VERSION << std::endl;
     return 0;
   }
@@ -158,16 +76,16 @@ int main(int argc, char *argv[]) {
 
 
   // pass arguments to controller
-  if (force_calibration) {
+  if (config.force_calibration) {
     controller.read_calibration_from_file = false;
   }
-  controller.invert_LX = invert_lx;
-  controller.invert_LY = invert_ly;
-  controller.invert_RX = invert_rx;
-  controller.invert_RY = invert_ry;
-  controller.invert_DX = invert_dx;
-  controller.invert_DY = invert_dy;
-  controller.swap_buttons = swap_buttons;
+  controller.invert_LX = config.invert_lx;
+  controller.invert_LY = config.invert_ly;
+  controller.invert_RX = config.invert_rx;
+  controller.invert_RY = config.invert_ry;
+  controller.invert_DX = config.invert_dx;
+  controller.invert_DY = config.invert_dy;
+  controller.swap_buttons = config.swap_buttons;
 #ifdef DRIBBLE_MODE
   if (found_dribble_cam_value) {
     controller.dribble_mode_value = dribble_cam_value;
