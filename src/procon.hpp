@@ -19,17 +19,10 @@
 #include <unistd.h>
 
 #include "config.hpp"
+#include "print_color.hpp"
 
 #define PROCON_DRIVER_VERSION "1.0 alpha2"
 
-#define KNRM "\x1B[0m"
-#define KRED "\x1B[31m"
-#define KGRN "\x1B[32m"
-#define KYEL "\x1B[33m"
-#define KBLU "\x1B[34m"
-#define KMAG "\x1B[35m"
-#define KCYN "\x1B[36m"
-#define KWHT "\x1B[37m"
 
 #define PROCON_ID 0x2009
 #define NINTENDO_ID 0x057E
@@ -133,9 +126,9 @@ public:
       return 0x00;
       break;
     default:
-      red();
+      PrintColor::red();
       printf("ERROR: Tried to find bitpos of unknown button!\n");
-      normal();
+      PrintColor::normal();
       return 0x00;
       break;
     }
@@ -201,9 +194,9 @@ public:
       return 0x00;
       break;
     default:
-      red();
+      PrintColor::red();
       printf("ERROR: Tried to find bitpos of unknown button!\n");
-      normal();
+      PrintColor::normal();
       return 0x00;
       break;
     }
@@ -269,9 +262,9 @@ public:
       return 0x00;
       break;
     default:
-      red();
+      PrintColor::red();
       printf("ERROR: Tried to find data adress of unknown button!\n");
-      normal();
+      PrintColor::normal();
       return 0x00;
       break;
     }
@@ -527,12 +520,12 @@ public:
         myReadFile.read((char *)&right_y_min, sizeof(uint8_t));
         myReadFile.read((char *)&right_y_max, sizeof(uint8_t));
 
-        green();
+        PrintColor::green();
         printf("Read calibration data from file! ");
-        cyan();
+        PrintColor::cyan();
         printf("Press 'share' and 'home' to calibrate again or start with "
                "--calibrate or -c.\n");
-        normal();
+        PrintColor::normal();
 
         calibrated = true;
         // send_rumble(0,255);
@@ -589,9 +582,9 @@ public:
         calibration_file.write((char *)&right_y_min, sizeof(uint8_t));
         calibration_file.write((char *)&right_y_max, sizeof(uint8_t));
         calibration_file.close();
-        green();
+        PrintColor::green();
         printf("Wrote calibration data to file!\n");
-        normal();
+        PrintColor::normal();
       }
     }
 
@@ -674,13 +667,13 @@ public:
     right_x_max = center;
     calibrated = false;
     send_subcommand(0x1, led_command, led_calibration);
-    magenta();
+    PrintColor::magenta();
     printf("Controller decalibrated!\n");
-    cyan();
+    PrintColor::cyan();
     printf("%c[%d;%dmPerform calibration again and press the square 'share' "
            "button!\n%c[%dm",
            27, 1, 36, 27, 0);
-    normal();
+    PrintColor::normal();
     read_calibration_from_file = false;
     share_button_free = false;
     // usleep(1000*1000);
@@ -755,24 +748,24 @@ public:
   void print_exchange_array(exchange_array arr) {
     bool redcol = false;
     if (arr[0] != 0x30)
-      yellow();
+      PrintColor::yellow();
     else {
-      red();
+      PrintColor::red();
       redcol = true;
     }
     for (size_t i = 0; i < 20; ++i) {
       if (arr[i] == 0x00) {
-        blue();
+        PrintColor::blue();
       } else {
         if (redcol) {
-          red();
+          PrintColor::red();
         } else {
-          yellow();
+          PrintColor::yellow();
         }
       }
       printf("%02X ", arr[i]);
     }
-    normal();
+    PrintColor::normal();
     printf("\n");
     fflush(stdout);
   }
@@ -850,9 +843,9 @@ public:
     is_opened = false;
     if (controller_ptr) {
       hid_close(controller_ptr);
-      blue();
+      PrintColor::blue();
       // printf("Closed controller nr. %u\n", n_controller);
-      normal();
+      PrintColor::normal();
     }
   }
 
@@ -1152,9 +1145,9 @@ public:
 
     int ret = write(uinput_fd, &uinput_event, sizeof(uinput_event));
     if (ret < 0) {
-      red();
+      PrintColor::red();
       printf("ERROR: write in write_single_joystic() returned %i\nMaybe try running with sudo\n", ret);
-      normal();
+      PrintColor::normal();
     }
   }
 
@@ -1168,9 +1161,9 @@ public:
     uinput_event.value = 1;
     int ret = write(uinput_fd, &uinput_event, sizeof(uinput_event));
     if (ret < 0) {
-      red();
+      PrintColor::red();
       printf("ERROR: write in button_down() returned %i\nMaybe try running with sudo\n", ret);
-      normal();
+      PrintColor::normal();
     }
 
     // if (ret < 0)
@@ -1264,9 +1257,9 @@ public:
       //return -1;
     }
 
-    green();
+    PrintColor::green();
     printf("Created uinput device!\n");
-    normal();
+    PrintColor::normal();
 
     return 0;
   }
@@ -1278,41 +1271,13 @@ public:
 
     close(uinput_fd);
 
-    yellow();
+    PrintColor::yellow();
     printf("Destroyed uinput device!\n");
-    normal();
+    PrintColor::normal();
 
     return;
   }
 
-  static const void red() {
-    printf("%s", KRED);
-    fflush(stdout);
-  }
-  static const void normal() {
-    printf("%s", KNRM);
-    fflush(stdout);
-  }
-  static const void blue() {
-    printf("%s", KBLU);
-    fflush(stdout);
-  }
-  static const void yellow() {
-    printf("%s", KYEL);
-    fflush(stdout);
-  }
-  static const void green() {
-    printf("%s", KGRN);
-    fflush(stdout);
-  }
-  static const void magenta() {
-    printf("%s", KMAG);
-    fflush(stdout);
-  }
-  static const void cyan() {
-    printf("%s", KCYN);
-    fflush(stdout);
-  }
   std::clock_t last_time;
 
   std::array<uint8_t, 20> first{{0x0}};

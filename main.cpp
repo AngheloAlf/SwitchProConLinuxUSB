@@ -1,5 +1,6 @@
 #include "procon.hpp"
 #include "config.hpp"
+#include "print_color.hpp"
 
 //#define DEBUG
 #define TEST_BAD_DATA_CYCLES 10
@@ -92,15 +93,15 @@ int main(int argc, char *argv[]) {
         if (!opened) { // read timed out
 
           if (ret == -1) {
-            ProController::red();
+            PrintColor::red();
             printf("Invalid device pointer. Aborting!\n");
-            ProController::normal();
+            PrintColor::normal();
             return -1;
           }
-          ProController::magenta();
+          PrintColor::magenta();
           printf("Failed to open controller, error code %d, trying again...\n",
                  ret);
-          ProController::normal();
+          PrintColor::normal();
           controller.close_device();
           usleep(1000 * 10);
           continue;
@@ -108,9 +109,9 @@ int main(int argc, char *argv[]) {
           // TEST FOR BAD DATA
           for (size_t i = 0; i < TEST_BAD_DATA_CYCLES; ++i) {
             if (controller.try_read_bad_data() != 0) {
-              ProController::magenta();
+              PrintColor::magenta();
               printf("Detected bad data stream. Trying again...\n");
-              ProController::normal();
+              PrintColor::normal();
               controller.close_device();
               bad_data = true;
               usleep(1000 * 10);
@@ -120,33 +121,33 @@ int main(int argc, char *argv[]) {
         }
       }
     } else {
-      ProController::red();
+      PrintColor::red();
       printf("No controller found...\n");
-      ProController::normal();
+      PrintColor::normal();
       return -1;
     }
 
   } while (!opened || bad_data);
 
   if (controller.is_opened) {
-    ProController::green();
+    PrintColor::green();
     printf("Opened controller!\n");
 
     if (controller.uinput_create() < 0) {
-      ProController::red();
+      PrintColor::red();
       printf("Failed to open uinput device!\n");
-      ProController::normal();
+      PrintColor::normal();
     }
 
     if (!controller.read_calibration_from_file ||
         !controller.calibration_file_exists()) {
-      ProController::blue();
+      PrintColor::blue();
       printf("Now entering calibration mode. \n");
-      ProController::cyan();
+      PrintColor::cyan();
       printf("%c[%d;%dmMove both control sticks to their maximum positions (i.e. turn them in a circle once slowly.), then press the "
              "square 'share' button!\n%c[%dm",
              27, 1, 36, 27, 0);
-      ProController::normal();
+      PrintColor::normal();
     }
   }
 
@@ -157,9 +158,9 @@ int main(int argc, char *argv[]) {
       while (!controller.calibrated) {
         controller.calibrate();
       }
-      ProController::green();
+      PrintColor::green();
       printf("Calibrated Controller! Now entering input mode!\n");
-      ProController::normal();
+      PrintColor::normal();
     }
 
     if (controller.is_opened) {
