@@ -66,13 +66,18 @@ int main(int argc, char *argv[]) {
 
   ProController controller(config);
   hid_init();
-  hid_device *controller_ptr;
-  hid_device_info *devs =
+  hid_device_info *iter =
       hid_enumerate(NINTENDO_ID, PROCON_ID); // Don't trust hidapi, returns
                                              // non-matching devices sometimes
                                              // (*const to prevent compiler from
                                              // optimizing away)
-  hid_device_info *iter = devs;
+  if (iter == nullptr) {
+    PrintColor::red();
+    printf("No controller found...\n");
+    PrintColor::normal();
+    return -1;
+  }
+
   unsigned short n_controller = 0;
   bool controller_found = false;
 
@@ -84,47 +89,40 @@ int main(int argc, char *argv[]) {
   do {
     opened = false;
     bad_data = false;
-    if (iter != nullptr) {
-      if (iter->product_id == PROCON_ID && iter->vendor_id == NINTENDO_ID) {
-        // open & test for timeout in read!
-        int ret = controller.open_device(iter->vendor_id, iter->product_id,
-                                         iter->serial_number, n_controller + 1);
-        opened = ret == 0;
-        if (!opened) { // read timed out
+    if (iter->product_id == PROCON_ID && iter->vendor_id == NINTENDO_ID) {
+      // open & test for timeout in read!
+      int ret = controller.open_device(iter->vendor_id, iter->product_id,
+                                        iter->serial_number, n_controller + 1);
+      opened = ret == 0;
+      if (!opened) { // read timed out
 
-          if (ret == -1) {
-            PrintColor::red();
-            printf("Invalid device pointer. Aborting!\n");
-            PrintColor::normal();
-            return -1;
-          }
-          PrintColor::magenta();
-          printf("Failed to open controller, error code %d, trying again...\n",
-                 ret);
+        if (ret == -1) {
+          PrintColor::red();
+          printf("Invalid device pointer. Aborting!\n");
           PrintColor::normal();
-          controller.close_device();
-          usleep(1000 * 10);
-          continue;
-        } else {
-          // TEST FOR BAD DATA
-          for (size_t i = 0; i < TEST_BAD_DATA_CYCLES; ++i) {
-            if (controller.try_read_bad_data() != 0) {
-              PrintColor::magenta();
-              printf("Detected bad data stream. Trying again...\n");
-              PrintColor::normal();
-              controller.close_device();
-              bad_data = true;
-              usleep(1000 * 10);
-              break;
-            }
+          return -1;
+        }
+        PrintColor::magenta();
+        printf("Failed to open controller, error code %d, trying again...\n",
+                ret);
+        PrintColor::normal();
+        controller.close_device();
+        usleep(1000 * 10);
+        continue;
+      } else {
+        // TEST FOR BAD DATA
+        for (size_t i = 0; i < TEST_BAD_DATA_CYCLES; ++i) {
+          if (controller.try_read_bad_data() != 0) {
+            PrintColor::magenta();
+            printf("Detected bad data stream. Trying again...\n");
+            PrintColor::normal();
+            controller.close_device();
+            bad_data = true;
+            usleep(1000 * 10);
+            break;
           }
         }
       }
-    } else {
-      PrintColor::red();
-      printf("No controller found...\n");
-      PrintColor::normal();
-      return -1;
     }
 
   } while (!opened || bad_data);
