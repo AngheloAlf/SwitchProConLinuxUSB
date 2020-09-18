@@ -63,7 +63,6 @@ int main(int argc, char *argv[]) {
 
   print_header();
 
-  ProController controller(config);
   hid_init();
   hid_device_info *iter =
       hid_enumerate(NINTENDO_ID, PROCON_ID); // Don't trust hidapi, returns
@@ -84,93 +83,56 @@ int main(int argc, char *argv[]) {
   bool bad_data = false;
 
 
-  // OPEN PHASE
-  do {
-    opened = false;
-    bad_data = false;
-    if (iter->product_id == PROCON_ID && iter->vendor_id == NINTENDO_ID) {
-      // open & test for timeout in read!
-      int ret = controller.open_device(iter->vendor_id, iter->product_id,
-                                        iter->serial_number, n_controller + 1);
-      opened = ret == 0;
-      if (!opened) { // read timed out
+  ProController controller(n_controller, iter, config);
 
-        if (ret == -1) {
-          PrintColor::red();
-          printf("Invalid device pointer. Aborting!\n");
-          PrintColor::normal();
-          return -1;
-        }
-        PrintColor::magenta();
-        printf("Failed to open controller, error code %d, trying again...\n",
-                ret);
-        PrintColor::normal();
-        controller.close_device();
-        usleep(1000 * 10);
-        continue;
-      } else {
-        #if 0
-        // TEST FOR BAD DATA
-        for (size_t i = 0; i < TEST_BAD_DATA_CYCLES; ++i) {
-          if (controller.try_read_bad_data() != 0) {
-            PrintColor::magenta();
-            printf("Detected bad data stream. Trying again...\n");
-            PrintColor::normal();
-            controller.close_device();
-            bad_data = true;
-            usleep(1000 * 10);
-            break;
-          }
-        }
-        #endif
-      }
-    }
+  hid_free_enumeration(iter);
 
-  } while (!opened || bad_data);
 
-  if (controller.is_opened) {
-    PrintColor::green();
-    printf("Opened controller!\n");
+  PrintColor::green();
+  printf("Opened controller!\n");
 
-    if (controller.uinput_create() < 0) {
-      PrintColor::red();
-      printf("Failed to open uinput device!\n");
-      PrintColor::normal();
-    }
-
-    if (!controller.read_calibration_from_file ||
-        !controller.calibration_file_exists()) {
-      PrintColor::blue();
-      printf("Now entering calibration mode. \n");
-      PrintColor::cyan();
-      printf("%c[%d;%dmMove both control sticks to their maximum positions (i.e. turn them in a circle once slowly.), then press the "
-             "square 'share' button!\n%c[%dm",
-             27, 1, 36, 27, 0);
-      PrintColor::normal();
-    }
+  if (controller.uinput_create() < 0) {
+    PrintColor::red();
+    printf("Failed to open uinput device!\n");
+    PrintColor::normal();
   }
 
-  // controller.u_setup();
+  if (!controller.read_calibration_from_file ||
+      !controller.calibration_file_exists()) {
+    PrintColor::blue();
+    printf("Now entering calibration mode. \n");
+    PrintColor::cyan();
+    printf("%c[%d;%dmMove both control sticks to their maximum positions (i.e. turn them in a circle once slowly.), then press the "
+            "square 'share' button!\n%c[%dm",
+            27, 1, 36, 27, 0);
+    PrintColor::normal();
+  }
 
-  while (true) {
-    if (!controller.calibrated) {
-      while (!controller.calibrated) {
-        controller.calibrate();
+
+  try {
+    while (true) {
+      if (!controller.calibrated) {
+        while (!controller.calibrated) {
+          controller.calibrate();
+        }
+        PrintColor::green();
+        printf("Calibrated Controller! Now entering input mode!\n");
+        PrintColor::normal();
       }
-      PrintColor::green();
-      printf("Calibrated Controller! Now entering input mode!\n");
-      PrintColor::normal();
-    }
 
-    if (controller.is_opened) {
       if (controller.poll_input() < 0)
         return -1;
+      
     }
+  } catch (const std::runtime_error &e) {
+    PrintColor::red();
+    printf("%s\n", e.what());
+    PrintColor::normal();
   }
 
   // hid_exit;
   for (short unsigned i = 0; i < MAX_N_CONTROLLERS; ++i) {
-    controller.close_device();
+    //controller.close_device();
     controller.uinput_destroy();
   }
   printf("\n");

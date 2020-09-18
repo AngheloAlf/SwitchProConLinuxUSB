@@ -1,7 +1,6 @@
 #ifndef PROCON_DRIVER_H
 #define PROCON_DRIVER_H
 
-#include "hidapi.h"
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -20,6 +19,7 @@
 
 #include "config.hpp"
 #include "print_color.hpp"
+#include "hidcontroller.hpp"
 
 #define PROCON_DRIVER_VERSION "1.0 alpha2"
 
@@ -53,16 +53,38 @@ class ProController {
     None
   };
 
-  static constexpr uint8_t led_command{0x30};
-  static constexpr uint8_t get_input{0x1f};
   static constexpr uint8_t center{0x7e};
-  static constexpr size_t exchange_length{0x400};
-  using exchange_array = std::array<uint8_t, exchange_length>;
 
 public:
-  ProController(Config &cfg): config(cfg){
+  ProController(unsigned short n_controller, hid_device_info *device_info, 
+                Config &cfg): config(cfg){
     if (config.force_calibration) {
       read_calibration_from_file = false;
+    }
+
+    bool opened = false;
+    while(!opened){
+      try {
+        hid_ctrl = new HidController(device_info->vendor_id, 
+                                    device_info->product_id,
+                                    device_info->serial_number, n_controller);
+        opened = true;
+      } catch (const std::ios_base::failure &e) {
+        throw;
+      } catch (const std::runtime_error &e) {
+        usleep(1000 * 10);
+        PrintColor::red();
+        printf("%s", e.what());
+        PrintColor::normal();
+        printf("\n");
+      }
+    }
+    
+  }
+
+  ~ProController(){
+    if(hid_ctrl != nullptr){
+      delete hid_ctrl;
     }
   }
 
@@ -289,26 +311,6 @@ public:
   //   n_bad_data_zero = 0;
   // }
 
-  template <size_t length>
-  exchange_array send_subcommand(uint8_t command, uint8_t subcommand,
-                                 std::array<uint8_t, length> const &data) {
-    std::array<uint8_t, length + 10> buffer{
-        static_cast<uint8_t>(rumble_counter++ & 0xF),
-        0x00,
-        0x01,
-        0x40,
-        0x40,
-        0x00,
-        0x01,
-        0x40,
-        0x40,
-        subcommand};
-    if (length > 0) {
-      memcpy(buffer.data() + 10, data.data(), length);
-    }
-    return send_command(command, buffer);
-  }
-
   // void print_sticks(const uint8_t &data0, const uint8_t &data1, const uint8_t
   // &data2,
   //                   const uint8_t &data3, const uint8_t &data4,
@@ -383,46 +385,27 @@ public:
 
   void clear_console() { system("clear"); }
 
-  exchange_array send_rumble(uint8_t large_motor, uint8_t small_motor) {
-    std::array<uint8_t, 9> buf{static_cast<uint8_t>(rumble_counter++ & 0xF),
-                               0x80,
-                               0x00,
-                               0x40,
-                               0x40,
-                               0x80,
-                               0x00,
-                               0x40,
-                               0x40};
-    if (large_motor != 0) {
-      buf[1] = buf[5] = 0x08;
-      buf[2] = buf[6] = large_motor;
-    } else if (small_motor != 0) {
-      buf[1] = buf[5] = 0x10;
-      buf[2] = buf[6] = small_motor;
-    }
-    exchange_array ret = send_command(0x10, buf);
-    print_exchange_array(ret);
-    return ret;
-  }
 
   int poll_input() {
     // print_cycle_counter++;
     // if(print_cycle_counter++ > n_print_cycle) {
     //     timer();
     // }
+    #if 0
     if (!controller_ptr) {
       printf("%sERROR: Controller pointer is nullptr%s\n", KRED, KNRM);
       return -1;
     }
+    #endif
 
-    auto dat = send_command(get_input, empty);
+    auto dat = hid_ctrl->send_command(hid_ctrl->get_input, hid_ctrl->empty);
 
-    if (detect_useless_data(dat[0])) {
+    if (hid_ctrl->detect_useless_data(dat[0])) {
       // printf("detected useless data!\n");
       return 0;
     }
 
-    send_subcommand(0x1, led_command, led_calibrated); // XXX way too often
+    hid_ctrl->send_subcommand(0x1, hid_ctrl->led_command, hid_ctrl->led_calibrated); // XXX way too often
 
     if (dat[0x0e] & byte_button_value(home) &&
         dat[0x0e] & byte_button_value(share)) {
@@ -481,14 +464,16 @@ public:
       myReadFile.close();
     }
 
+    #if 0
     if (!controller_ptr) {
       printf("%sERROR: Controller pointer is nullptr%s\n", KRED, KNRM);
       return;
     }
+    #endif
 
-    auto dat = send_command(get_input, empty);
+    auto dat = hid_ctrl->send_command(hid_ctrl->get_input, hid_ctrl->empty);
 
-    if (detect_useless_data(dat[0])) {
+    if (hid_ctrl->detect_useless_data(dat[0])) {
       // printf("detected useless data!\n");
       return;
     }
@@ -498,7 +483,7 @@ public:
     // dat[0x15]);
     // print_exchange_array(dat);
 
-    send_subcommand(0x1, led_command, led_calibration); // XXX way too often
+    hid_ctrl->send_subcommand(0x1, hid_ctrl->led_command, hid_ctrl->led_calibration); // XXX way too often
     if (!share_button_free) {
       if (!(dat[0x0e] & byte_button_value(share))) {
         share_button_free = true;
@@ -509,7 +494,7 @@ public:
       if (cal) {
         // send_rumble(0,255);
         calibrated = true;
-        send_subcommand(0x1, led_command, led_calibrated);
+        hid_ctrl->send_subcommand(0x1, hid_ctrl->led_command, hid_ctrl->led_calibrated);
         // printf("finished calibration\n");
         // usleep(1000000);
 
@@ -610,7 +595,7 @@ public:
     right_y_min = center;
     right_x_max = center;
     calibrated = false;
-    send_subcommand(0x1, led_command, led_calibration);
+    hid_ctrl->send_subcommand(0x1, hid_ctrl->led_command, hid_ctrl->led_calibration);
     PrintColor::magenta();
     printf("Controller decalibrated!\n");
     PrintColor::cyan();
@@ -650,31 +635,6 @@ public:
       return 255;
     }
     return inp;
-  }
-
-  void print_exchange_array(exchange_array arr) {
-    bool redcol = false;
-    if (arr[0] != 0x30)
-      PrintColor::yellow();
-    else {
-      PrintColor::red();
-      redcol = true;
-    }
-    for (size_t i = 0; i < 20; ++i) {
-      if (arr[i] == 0x00) {
-        PrintColor::blue();
-      } else {
-        if (redcol) {
-          PrintColor::red();
-        } else {
-          PrintColor::yellow();
-        }
-      }
-      printf("%02X ", arr[i]);
-    }
-    PrintColor::normal();
-    printf("\n");
-    fflush(stdout);
   }
 
 
@@ -1163,6 +1123,7 @@ public:
   bool dribble_mode = false;
 
   Config config;
+  HidController *hid_ctrl = nullptr;
 
   // uinput
   struct uinput_user_dev uinput_device;

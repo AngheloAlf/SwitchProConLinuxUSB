@@ -23,7 +23,7 @@ private:
 
   //bool is_opened = false;
 
-
+public:
   uint8_t rumble_counter{0};
   const std::array<uint8_t, 1> led_calibration{{0xff}};
   const std::array<uint8_t, 1> led_calibrated{{0x01}};
@@ -37,11 +37,11 @@ private:
 
   static constexpr uint8_t led_command{0x30};
   static constexpr uint8_t get_input{0x1f};
-  static constexpr uint8_t center{0x7e};
+  //static constexpr uint8_t center{0x7e};
   static constexpr size_t exchange_length{0x400};
   using exchange_array = std::array<uint8_t, exchange_length>;
 
-public:
+//public:
   HidController(unsigned short vendor_id, unsigned short product_id,
                 const wchar_t *serial_number, unsigned short n_controll) {
     controller_ptr = hid_open(vendor_id, product_id, serial_number);
@@ -81,8 +81,7 @@ public:
       //return -2;
     }*/
 
-    /// TODO:
-    ///send_subcommand(0x1, led_command, led_calibration);
+    send_subcommand(0x1, led_command, led_calibration);
 
     usleep(100 * 1000);
 
@@ -118,6 +117,7 @@ public:
   }
 
 
+
   template <size_t length>
   exchange_array send_command(uint8_t command,
                               std::array<uint8_t, length> const &data) {
@@ -131,6 +131,26 @@ public:
       memcpy(buffer.data() + 0x9, data.data(), length);
     }
     return exchange(buffer);
+  }
+
+  template <size_t length>
+  exchange_array send_subcommand(uint8_t command, uint8_t subcommand,
+                                 std::array<uint8_t, length> const &data) {
+    std::array<uint8_t, length + 10> buffer{
+        static_cast<uint8_t>(rumble_counter++ & 0xF),
+        0x00,
+        0x01,
+        0x40,
+        0x40,
+        0x00,
+        0x01,
+        0x40,
+        0x40,
+        subcommand};
+    if (length > 0) {
+      memcpy(buffer.data() + 10, data.data(), length);
+    }
+    return send_command(command, buffer);
   }
 
 
@@ -153,6 +173,54 @@ public:
   }
 
 
+
+  exchange_array send_rumble(uint8_t large_motor, uint8_t small_motor) {
+    std::array<uint8_t, 9> buf{static_cast<uint8_t>(rumble_counter++ & 0xF),
+                               0x80,
+                               0x00,
+                               0x40,
+                               0x40,
+                               0x80,
+                               0x00,
+                               0x40,
+                               0x40};
+    if (large_motor != 0) {
+      buf[1] = buf[5] = 0x08;
+      buf[2] = buf[6] = large_motor;
+    } else if (small_motor != 0) {
+      buf[1] = buf[5] = 0x10;
+      buf[2] = buf[6] = small_motor;
+    }
+    exchange_array ret = send_command(0x10, buf);
+    print_exchange_array(ret);
+    return ret;
+  }
+
+  void print_exchange_array(exchange_array arr) {
+    bool redcol = false;
+    if (arr[0] != 0x30)
+      PrintColor::yellow();
+    else {
+      PrintColor::red();
+      redcol = true;
+    }
+    for (size_t i = 0; i < 20; ++i) {
+      if (arr[i] == 0x00) {
+        PrintColor::blue();
+      } else {
+        if (redcol) {
+          PrintColor::red();
+        } else {
+          PrintColor::yellow();
+        }
+      }
+      printf("%02X ", arr[i]);
+    }
+    PrintColor::normal();
+    printf("\n");
+    fflush(stdout);
+  }
+
 private:
 
   template <size_t length>
@@ -170,8 +238,9 @@ private:
     */
 
     if (hid_write(controller_ptr, data.data(), length) < 0) {
-      throw std::system_error(-1, "ERROR: read() returned -1!\n"
-                                  "Did you disconnect the controller?");
+      throw std::system_error(-1, std::generic_category(), 
+                              "ERROR: read() returned -1!\n"
+                              "Did you disconnect the controller?");
       /*red();
       printf(
           "ERROR: read() returned -1!\nDid you disconnect the controller?\n");
@@ -233,6 +302,7 @@ private:
     return dat2 == 0x01 && dat1 == 0x81;
   }
 
+public:
   /* If this returns true, there is no controller information in this package,
    * we can skip it*/
   bool detect_useless_data(const uint8_t &dat) {
