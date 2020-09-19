@@ -2,13 +2,15 @@
 #ifndef UINPUT_CONTROLLER_H
 #define UINPUT_CONTROLLER_H
 
+#include <linux/uinput.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <cstring>
 #include <cstdint>
 #include <unistd.h>
-#include <linux/uinput.h>
+#include <errno.h>
+#include <system_error>
 
 
 class UInputController{
@@ -19,6 +21,9 @@ private:
 public:
   UInputController() {
     uinput_fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+    if (uinput_fd < 0) {
+      throw std::system_error(errno, std::generic_category(), "Failed to open uinput device!");
+    }
     uinput_rc = ioctl(uinput_fd, UI_GET_VERSION, &uinput_version);
 
     memset(&uinput_device, 0, sizeof(uinput_device));
@@ -76,10 +81,14 @@ public:
     uinput_device.absmin[ABS_HAT0Y] = -1;
     uinput_device.absmax[ABS_HAT0Y] = 1;
 
-    write(uinput_fd, &uinput_device, sizeof(uinput_device));
+    if (write(uinput_fd, &uinput_device, sizeof(uinput_device)) < 0) {
+      close(uinput_fd);
+      throw std::system_error(errno, std::generic_category(), "Failed to open uinput device!");
+    }
 
-    if (ioctl(uinput_fd, UI_DEV_CREATE)) {
-      //return -1;
+    if (ioctl(uinput_fd, UI_DEV_CREATE) < 0) {
+      close(uinput_fd);
+      throw std::system_error(errno, std::generic_category(), "Failed to open uinput device!");
     }
 
     #if 0

@@ -95,8 +95,7 @@ int main(int argc, char *argv[]) {
   PrintColor::green();
   printf("Opened controller!\n");
 
-  if (!controller.read_calibration_from_file ||
-      !controller.calibration_file_exists()) {
+  if (controller.needs_first_calibration()) {
     PrintColor::blue();
     printf("Now entering calibration mode. \n");
     PrintColor::cyan();
@@ -110,8 +109,8 @@ int main(int argc, char *argv[]) {
 
   try {
     while (controller_loop) {
-      if (!controller.calibrated) {
-        while (!controller.calibrated) {
+      if (!controller.is_calibrated()) {
+        while (!controller.is_calibrated()) {
           controller.calibrate();
         }
         PrintColor::green();

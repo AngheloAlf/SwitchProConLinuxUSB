@@ -81,15 +81,6 @@ public:
     }
     
     uinput_ctrl = new UInputController();
-    #if 0
-    if (controller.uinput_create() < 0) {
-      PrintColor::red();
-      printf("Failed to open uinput device!\n");
-      PrintColor::normal();
-    }
-    #endif
-
-
   }
 
   ~ProController(){
@@ -437,22 +428,7 @@ public:
 
   void calibrate() {
     if (read_calibration_from_file) {
-      std::ifstream myReadFile;
-      myReadFile.open("procon_calibration_data",
-                      std::ios::in | std::ios::binary);
-      if (myReadFile) {
-
-        // while (!myReadFile.eof())
-
-        myReadFile.read((char *)&left_x_min, sizeof(uint8_t));
-        myReadFile.read((char *)&left_x_max, sizeof(uint8_t));
-        myReadFile.read((char *)&left_y_min, sizeof(uint8_t));
-        myReadFile.read((char *)&left_y_max, sizeof(uint8_t));
-        myReadFile.read((char *)&right_x_min, sizeof(uint8_t));
-        myReadFile.read((char *)&right_x_max, sizeof(uint8_t));
-        myReadFile.read((char *)&right_y_min, sizeof(uint8_t));
-        myReadFile.read((char *)&right_y_max, sizeof(uint8_t));
-
+      if (read_calibration_file()) {
         PrintColor::green();
         printf("Read calibration data from file! ");
         PrintColor::cyan();
@@ -466,8 +442,6 @@ public:
 
         return;
       }
-
-      myReadFile.close();
     }
 
     hid_ctrl->blink();
@@ -499,18 +473,7 @@ public:
         // usleep(1000000);
 
         // write calibration data to file
-        std::ofstream calibration_file;
-        calibration_file.open("procon_calibration_data",
-                              std::ios::out | std::ios::binary);
-        calibration_file.write((char *)&left_x_min, sizeof(uint8_t));
-        calibration_file.write((char *)&left_x_max, sizeof(uint8_t));
-        calibration_file.write((char *)&left_y_min, sizeof(uint8_t));
-        calibration_file.write((char *)&left_y_max, sizeof(uint8_t));
-        calibration_file.write((char *)&right_x_min, sizeof(uint8_t));
-        calibration_file.write((char *)&right_x_max, sizeof(uint8_t));
-        calibration_file.write((char *)&right_y_min, sizeof(uint8_t));
-        calibration_file.write((char *)&right_y_max, sizeof(uint8_t));
-        calibration_file.close();
+        write_calibration_to_file();
         PrintColor::green();
         printf("Wrote calibration data to file!\n");
         PrintColor::normal();
@@ -842,9 +805,54 @@ public:
     uinput_ctrl->send_report();
   }
 
+  bool is_calibrated() {
+    return calibrated;
+  }
+
+  bool needs_first_calibration() {
+    return !read_calibration_from_file || !calibration_file_exists();
+  }
+
   bool calibration_file_exists() {
-    std::ifstream conf("procon_calibration_data");
+    std::ifstream conf(calibration_filename);
     return conf.good();
+  }
+
+  bool read_calibration_file() {
+    bool file_readed = false;
+    std::ifstream myReadFile;
+    myReadFile.open(calibration_filename,
+                    std::ios::in | std::ios::binary);
+    if (myReadFile) {
+      myReadFile.read((char *)&left_x_min, sizeof(uint8_t));
+      myReadFile.read((char *)&left_x_max, sizeof(uint8_t));
+      myReadFile.read((char *)&left_y_min, sizeof(uint8_t));
+      myReadFile.read((char *)&left_y_max, sizeof(uint8_t));
+      myReadFile.read((char *)&right_x_min, sizeof(uint8_t));
+      myReadFile.read((char *)&right_x_max, sizeof(uint8_t));
+      myReadFile.read((char *)&right_y_min, sizeof(uint8_t));
+      myReadFile.read((char *)&right_y_max, sizeof(uint8_t));
+
+      file_readed = true;
+    }
+
+    myReadFile.close();
+    return file_readed;
+  }
+
+  void write_calibration_to_file(){
+    std::ofstream calibration_file;
+    calibration_file.open(calibration_filename,
+                          std::ios::out | std::ios::binary);
+    calibration_file.write((char *)&left_x_min, sizeof(uint8_t));
+    calibration_file.write((char *)&left_x_max, sizeof(uint8_t));
+    calibration_file.write((char *)&left_y_min, sizeof(uint8_t));
+    calibration_file.write((char *)&left_y_max, sizeof(uint8_t));
+    calibration_file.write((char *)&right_x_min, sizeof(uint8_t));
+    calibration_file.write((char *)&right_x_max, sizeof(uint8_t));
+    calibration_file.write((char *)&right_y_min, sizeof(uint8_t));
+    calibration_file.write((char *)&right_y_max, sizeof(uint8_t));
+    calibration_file.close();
   }
 
   void uinput_manage_joysticks(const char &dat0, const char &dat1,
@@ -901,6 +909,8 @@ public:
     // printf("right_y: %i\n", (int)right_y);
   }
 
+private:
+  const std::string calibration_filename = "procon_calibration_data";
 
   std::array<uint8_t, 20> first{{0x0}};
   std::array<uint8_t, 20> second{{0x0}};
