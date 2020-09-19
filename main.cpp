@@ -2,7 +2,7 @@
 #include "config.hpp"
 #include "print_color.hpp"
 
-#include  <signal.h>
+#include <signal.h>
 
 //#define DEBUG
 
@@ -86,11 +86,6 @@ int main(int argc, char *argv[]) {
   }
 
   unsigned short n_controller = 0;
-  bool controller_found = false;
-
-  bool opened = false;
-  bool bad_data = false;
-
 
   ProController controller(n_controller, iter, config);
 

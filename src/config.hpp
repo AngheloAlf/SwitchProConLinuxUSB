@@ -28,7 +28,7 @@ public:
 
   Config(int argc, char *argv[]) {
 
-    for (size_t i = 1; i < argc; ++i) {
+    for (int i = 1; i < argc; ++i) {
       bool option_found = false;
       if (std::string(argv[i]) == "-h" || std::string(argv[i]) == "--help") {
         help = true;

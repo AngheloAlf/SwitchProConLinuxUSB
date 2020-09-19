@@ -101,7 +101,7 @@ public:
     }
   }
 
-  static const uint8_t bit_position(ProController::BUTTONS button) {
+  static uint8_t bit_position(ProController::BUTTONS button) {
     switch (button) {
     case d_left:
       return 0x04;
@@ -169,7 +169,7 @@ public:
     }
   }
 
-  static const uint8_t byte_button_value(ProController::BUTTONS button) {
+  static uint8_t byte_button_value(ProController::BUTTONS button) {
     switch (button) {
     case d_left:
       return 0x08;
@@ -237,7 +237,7 @@ public:
     }
   }
 
-  static const uint8_t data_address(ProController::BUTTONS button) {
+  static uint8_t data_address(ProController::BUTTONS button) {
     switch (button) {
     case d_left:
       return 0x0f;
@@ -438,7 +438,6 @@ public:
   void calibrate() {
     if (read_calibration_from_file) {
       std::ifstream myReadFile;
-      uint8_t output[8];
       myReadFile.open("procon_calibration_data",
                       std::ios::in | std::ios::binary);
       if (myReadFile) {
@@ -608,7 +607,7 @@ public:
     // usleep(1000*1000);
   }
 
-  const void map_sticks(uint8_t &left_x, uint8_t &left_y, uint8_t &right_x,
+  void map_sticks(uint8_t &left_x, uint8_t &left_y, uint8_t &right_x,
                         uint8_t &right_y) {
     left_x = (uint8_t)(clamp((float)(left_x - left_x_min) /
                              (float)(left_x_max - left_x_min) * 255.f));
@@ -620,7 +619,7 @@ public:
                               (float)(right_y_max - right_y_min) * 255.f));
   }
 
-  static const float clamp(float inp) {
+  static float clamp(float inp) {
     if (inp < 0.5f)
       return 0.5f;
     if (inp > 254.5f) {
@@ -628,7 +627,7 @@ public:
     }
     return inp;
   }
-  static const int clamp_int(int inp) {
+  static int clamp_int(int inp) {
     if (inp < 0)
       return 0;
     if (inp > 255) {
@@ -909,8 +908,6 @@ public:
   std::array<uint8_t, 20> fourth{{0x0}};
   std::array<uint8_t, 20> fifth{{0x0}};
   std::array<uint8_t, 20> sixth{{0x0}};
-
-  bool bad_data_detected = false;
 
   uint n_print_cycle = 1000;
   uint print_cycle_counter = 0;
