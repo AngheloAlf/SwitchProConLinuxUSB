@@ -15,7 +15,7 @@
 
 class HidController{
 private:
-  hid_device *controller_ptr;
+  hid_device *controller_ptr = nullptr;
 
   unsigned short ven_id;
   unsigned short prod_id;
@@ -84,7 +84,7 @@ public:
   }
 
   ~HidController(){
-    if (controller_ptr) {
+    if (controller_ptr != nullptr) {
       hid_close(controller_ptr);
       //PrintColor::blue();
       // printf("Closed controller nr. %u\n", n_controller);

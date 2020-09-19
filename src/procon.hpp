@@ -912,13 +912,6 @@ public:
 private:
   const std::string calibration_filename = "procon_calibration_data";
 
-  std::array<uint8_t, 20> first{{0x0}};
-  std::array<uint8_t, 20> second{{0x0}};
-  std::array<uint8_t, 20> third{{0x0}};
-  std::array<uint8_t, 20> fourth{{0x0}};
-  std::array<uint8_t, 20> fifth{{0x0}};
-  std::array<uint8_t, 20> sixth{{0x0}};
-
   uint n_print_cycle = 1000;
   uint print_cycle_counter = 0;
   uint n_bad_data_zero = 0;

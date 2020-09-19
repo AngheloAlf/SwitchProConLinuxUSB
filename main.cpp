@@ -56,6 +56,43 @@ void print_header(){
   fflush(stdout);
 }
 
+
+void handle_controller(hid_device_info *iter, Config &config) {
+  unsigned short n_controller = 0;
+
+  ProController controller(n_controller, iter, config);
+
+  PrintColor::green();
+  printf("Opened controller!\n");
+
+  if (controller.needs_first_calibration()) {
+    PrintColor::blue();
+    printf("Now entering calibration mode. \n");
+    PrintColor::cyan();
+    printf("%c[%d;%dmMove both control sticks to their maximum positions (i.e. turn them in a circle once slowly.), then press the "
+            "square 'share' button!\n%c[%dm",
+            27, 1, 36, 27, 0);
+    PrintColor::normal();
+  }
+
+  while (controller_loop) {
+    if (!controller.is_calibrated()) {
+      while (!controller.is_calibrated()) {
+        controller.calibrate();
+      }
+      PrintColor::green();
+      printf("Calibrated Controller! Now entering input mode!\n");
+      PrintColor::normal();
+    }
+
+    if (controller.poll_input() < 0)
+      break;
+    
+  }
+
+}
+
+
 int main(int argc, char *argv[]) {
 
   Config config(argc, argv);
@@ -72,7 +109,12 @@ int main(int argc, char *argv[]) {
 
   print_header();
 
-  hid_init();
+  if (hid_init() < 0) {
+    PrintColor::red();
+    printf("Hid init error...\n");
+    PrintColor::normal();
+    return -1;
+  }
   hid_device_info *iter =
       hid_enumerate(NINTENDO_ID, PROCON_ID); // Don't trust hidapi, returns
                                              // non-matching devices sometimes
@@ -85,47 +127,23 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  unsigned short n_controller = 0;
-
-  ProController controller(n_controller, iter, config);
-
-  hid_free_enumeration(iter);
-
-
-  PrintColor::green();
-  printf("Opened controller!\n");
-
-  if (controller.needs_first_calibration()) {
-    PrintColor::blue();
-    printf("Now entering calibration mode. \n");
-    PrintColor::cyan();
-    printf("%c[%d;%dmMove both control sticks to their maximum positions (i.e. turn them in a circle once slowly.), then press the "
-            "square 'share' button!\n%c[%dm",
-            27, 1, 36, 27, 0);
-    PrintColor::normal();
-  }
-
   signal(SIGINT, exit_handler);
 
   try {
-    while (controller_loop) {
-      if (!controller.is_calibrated()) {
-        while (!controller.is_calibrated()) {
-          controller.calibrate();
-        }
-        PrintColor::green();
-        printf("Calibrated Controller! Now entering input mode!\n");
-        PrintColor::normal();
-      }
-
-      if (controller.poll_input() < 0)
-        return -1;
-      
-    }
-  } catch (const std::runtime_error &e) {
+    handle_controller(iter, config);
+  } catch (const std::exception &e) {
     PrintColor::red();
     printf("%s\n", e.what());
     PrintColor::normal();
+  }
+
+  hid_free_enumeration(iter);
+
+  if (hid_exit() < 0) {
+    PrintColor::red();
+    printf("Hid init error...\n");
+    PrintColor::normal();
+    return -1;
   }
 
   printf("\n");
