@@ -117,7 +117,6 @@ int main(int argc, char *argv[]) {
     while (controller_loop) {
       if (!controller.calibrated) {
         while (!controller.calibrated) {
-          controller.hid_ctrl->blink();
           controller.calibrate();
         }
         PrintColor::green();

@@ -21,10 +21,8 @@ private:
   unsigned short prod_id;
   unsigned short n_controller;
 
-public:
   uint8_t rumble_counter{0};
-  const std::array<uint8_t, 1> led_calibration{{0xff}};
-  const std::array<uint8_t, 1> led_calibrated{{0x01}};
+  const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
   const std::array<uint8_t, 0> empty{{}};
   const std::array<uint8_t, 2> handshake{{0x80, 0x02}};
   const std::array<uint8_t, 2> switch_baudrate{{0x80, 0x03}};
@@ -43,7 +41,7 @@ public:
   static constexpr size_t exchange_length{0x400};
   using exchange_array = std::array<uint8_t, exchange_length>;
 
-//public:
+public:
   HidController(unsigned short vendor_id, unsigned short product_id,
                 const wchar_t *serial_number, unsigned short n_controll) {
     controller_ptr = hid_open(vendor_id, product_id, serial_number);
@@ -74,7 +72,6 @@ public:
 
     // the next part will sometimes fail, then need to reopen device via hidapi
     exchange(hid_only_mode, true);
-    send_subcommand(0x1, led_command, led_calibration);
 
     usleep(100 * 1000);
 
@@ -96,39 +93,17 @@ public:
   }
 
 
-  template <size_t length>
-  exchange_array send_command(uint8_t command,
-                              std::array<uint8_t, length> const &data) {
-    std::array<uint8_t, length + 0x9> buffer;
-    buffer.fill(0);
-    buffer[0x0] = 0x80;
-    buffer[0x1] = 0x92;
-    buffer[0x3] = 0x31;
-    buffer[0x8] = command;
-    if (length > 0) {
-      memcpy(buffer.data() + 0x9, data.data(), length);
-    }
-    return exchange(buffer);
+  exchange_array request_input() {
+    return send_command(get_input, empty);
   }
 
-  template <size_t length>
-  exchange_array send_subcommand(uint8_t command, uint8_t subcommand,
-                                 std::array<uint8_t, length> const &data) {
-    std::array<uint8_t, length + 10> buffer{
-        static_cast<uint8_t>(rumble_counter++ & 0xF),
-        0x00,
-        0x01,
-        0x40,
-        0x40,
-        0x00,
-        0x01,
-        0x40,
-        0x40,
-        subcommand};
-    if (length > 0) {
-      memcpy(buffer.data() + 10, data.data(), length);
-    }
-    return send_command(command, buffer);
+  void led(int number = -1){
+    std::array<uint8_t, 1> value {
+      number < 0 ?
+      player_led[n_controller] : 
+      static_cast<uint8_t>(number)};
+    
+    send_subcommand(0x1, led_command, value);
   }
 
   void blink() {
@@ -211,7 +186,7 @@ private:
 
   template <size_t length>
   exchange_array exchange(std::array<uint8_t, length> const &data,
-                          bool timed = false/*, int *status = nullptr*/) {
+                          bool timed = false) {
 
     if (hid_write(controller_ptr, data.data(), length) < 0) {
       throw std::system_error(-1, std::generic_category(), 
@@ -236,6 +211,42 @@ private:
     return ret;
   }
 
+
+
+  template <size_t length>
+  exchange_array send_command(uint8_t command,
+                              std::array<uint8_t, length> const &data) {
+    std::array<uint8_t, length + 0x9> buffer;
+    buffer.fill(0);
+    buffer[0x0] = 0x80;
+    buffer[0x1] = 0x92;
+    buffer[0x3] = 0x31;
+    buffer[0x8] = command;
+    if (length > 0) {
+      memcpy(buffer.data() + 0x9, data.data(), length);
+    }
+    return exchange(buffer);
+  }
+
+  template <size_t length>
+  exchange_array send_subcommand(uint8_t command, uint8_t subcommand,
+                                 std::array<uint8_t, length> const &data) {
+    std::array<uint8_t, length + 10> buffer{
+        static_cast<uint8_t>(rumble_counter++ & 0xF),
+        0x00,
+        0x01,
+        0x40,
+        0x40,
+        0x00,
+        0x01,
+        0x40,
+        0x40,
+        subcommand};
+    if (length > 0) {
+      memcpy(buffer.data() + 10, data.data(), length);
+    }
+    return send_command(command, buffer);
+  }
 
 
   bool try_read_bad_data() {

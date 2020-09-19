@@ -405,14 +405,14 @@ public:
     //     timer();
     // }
 
-    auto dat = hid_ctrl->send_command(hid_ctrl->get_input, hid_ctrl->empty);
+    auto dat = hid_ctrl->request_input();
 
     if (hid_ctrl->detect_useless_data(dat[0])) {
       // printf("detected useless data!\n");
       return 0;
     }
 
-    hid_ctrl->send_subcommand(0x1, hid_ctrl->led_command, hid_ctrl->led_calibrated); // XXX way too often
+    hid_ctrl->led();
 
     if (dat[0x0e] & byte_button_value(home) &&
         dat[0x0e] & byte_button_value(share)) {
@@ -471,8 +471,9 @@ public:
       myReadFile.close();
     }
 
+    hid_ctrl->blink();
 
-    auto dat = hid_ctrl->send_command(hid_ctrl->get_input, hid_ctrl->empty);
+    auto dat = hid_ctrl->request_input();
 
     if (hid_ctrl->detect_useless_data(dat[0])) {
       // printf("detected useless data!\n");
@@ -484,7 +485,6 @@ public:
     // dat[0x15]);
     // print_exchange_array(dat);
 
-    //hid_ctrl->send_subcommand(0x1, hid_ctrl->led_command, hid_ctrl->led_calibration); // XXX way too often
     if (!share_button_free) {
       if (!(dat[0x0e] & byte_button_value(share))) {
         share_button_free = true;
@@ -495,7 +495,7 @@ public:
       if (cal) {
         // send_rumble(0,255);
         calibrated = true;
-        hid_ctrl->send_subcommand(0x1, hid_ctrl->led_command, hid_ctrl->led_calibrated);
+        hid_ctrl->led();
         // printf("finished calibration\n");
         // usleep(1000000);
 
@@ -596,7 +596,6 @@ public:
     right_y_min = center;
     right_x_max = center;
     calibrated = false;
-    hid_ctrl->send_subcommand(0x1, hid_ctrl->led_command, hid_ctrl->led_calibration);
     PrintColor::magenta();
     printf("Controller decalibrated!\n");
     PrintColor::cyan();
