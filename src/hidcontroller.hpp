@@ -21,8 +21,6 @@ private:
   unsigned short prod_id;
   unsigned short n_controller;
 
-  //bool is_opened = false;
-
 public:
   uint8_t rumble_counter{0};
   const std::array<uint8_t, 1> led_calibration{{0xff}};
@@ -31,9 +29,13 @@ public:
   const std::array<uint8_t, 2> handshake{{0x80, 0x02}};
   const std::array<uint8_t, 2> switch_baudrate{{0x80, 0x03}};
   const std::array<uint8_t, 2> hid_only_mode{{0x80, 0x04}};
-  // const std::array<uint8_t, 4> blink_array{{0x05, 0x10}};//, 0x04, 0x08}};
+  // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
+  const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
 
 
+  uint blink_position = 0;
+  size_t blink_counter = 0;
+  const size_t blink_length = 8;
 
   static constexpr uint8_t led_command{0x30};
   static constexpr uint8_t get_input{0x1f};
@@ -46,13 +48,10 @@ public:
                 const wchar_t *serial_number, unsigned short n_controll) {
     controller_ptr = hid_open(vendor_id, product_id, serial_number);
     // controller_ptr = hid_open_path("/dev/input/hidraw0");
-    //is_opened = true;
-
-
+ 
     //printf("SERIAL NUMBER: %u\n", serial_number);
     if (!controller_ptr) {
       throw std::ios_base::failure("Invalid device pointer.");
-      //return -1;
     }
     // hid_device_info *info = hid_open(vendor_id, product_id, serial_number);
     // std::cout<< "PATH: " << info->path << std::endl;;
@@ -74,40 +73,20 @@ public:
     exchange(handshake);
 
     // the next part will sometimes fail, then need to reopen device via hidapi
-    //int read_failed;
-    exchange(hid_only_mode, true/*, &read_failed*/);
-    /*if (read_failed < 0) {
-      throw std::system_error(read_failed, std::generic_category());
-      //return -2;
-    }*/
-
+    exchange(hid_only_mode, true);
     send_subcommand(0x1, led_command, led_calibration);
 
     usleep(100 * 1000);
-
-
 
     // TEST FOR BAD DATA
     for (size_t i = 0; i < TEST_BAD_DATA_CYCLES; ++i) {
       if (try_read_bad_data()) {
         throw std::runtime_error("Detected bad data stream. Trying again...");
-        //PrintColor::magenta();
-        //printf("Detected bad data stream. Trying again...\n");
-        //PrintColor::normal();
-        //controller.close_device();
-        //bad_data = true;
-        //usleep(1000 * 10);
-        //break;
       }
     }
   }
 
   ~HidController(){
-    /*
-    if (!is_opened)
-      return;
-    is_opened = false;
-    */
     if (controller_ptr) {
       hid_close(controller_ptr);
       //PrintColor::blue();
@@ -115,7 +94,6 @@ public:
       //PrintColor::normal();
     }
   }
-
 
 
   template <size_t length>
@@ -153,22 +131,30 @@ public:
     return send_command(command, buffer);
   }
 
+  void blink() {
+    if (++blink_counter > blink_length) {
+      blink_counter = 0;
+      if (++blink_position >= blink_array.size()) {
+        blink_position = 0;
+      }
+    }
+    std::array<uint8_t,1> blink_command{{blink_array[blink_position]}};
+    send_subcommand(0x1, led_command, blink_command);
+  }
 
   void set_non_blocking() {
     if (hid_set_nonblocking(controller_ptr, 1) < 0) {
-      throw std::runtime_error("Couldn't set controller " + std::to_string(n_controller) + " to non-blocking.");
-      /// TODO: change to exception
-      /*printf("%sERROR: Couldn't set controller %u to non-blocking%s\n", KRED,
-             n_controller, KNRM);*/
+      throw std::runtime_error("Couldn't set controller " + 
+                               std::to_string(n_controller) + 
+                               " to non-blocking.");
     }
   }
 
   void set_blocking() {
     if (hid_set_nonblocking(controller_ptr, 0) < 0) {
-      throw std::runtime_error("Couldn't set controller " + std::to_string(n_controller) + " to blocking.");
-      /// TODO: change to exception
-      /*printf("%sERROR: Couldn't set controller %u to blocking%s\n", KRED,
-             n_controller, KNRM);*/
+      throw std::runtime_error("Couldn't set controller " + 
+                               std::to_string(n_controller) + 
+                               " to blocking.");
     }
   }
 
@@ -227,61 +213,32 @@ private:
   exchange_array exchange(std::array<uint8_t, length> const &data,
                           bool timed = false/*, int *status = nullptr*/) {
 
-    /// Constructor already handles this.
-    /*
-    if (!controller_ptr) {
-      red();
-      printf("ERROR: controller_ptr is nullptr!\n");
-      normal();
-      return {};
-    }
-    */
-
     if (hid_write(controller_ptr, data.data(), length) < 0) {
       throw std::system_error(-1, std::generic_category(), 
                               "ERROR: read() returned -1!\n"
                               "Did you disconnect the controller?");
-      /*red();
-      printf(
-          "ERROR: read() returned -1!\nDid you disconnect the controller?\n");
-      normal();
-      throw - 1;
-      return {};*/
     }
 
     std::array<uint8_t, exchange_length> ret;
     ret.fill(0);
-    if (!timed)
-      hid_read(controller_ptr, ret.data(), exchange_length); /// TODO: check return value
-    else {
 
-      if (hid_read_timeout(controller_ptr, ret.data(), exchange_length, 100) ==
-          0) {
-        // failed to read!
-        //if (status) {
-          throw std::system_error(-2, std::generic_category());
-          //*status = -1;
-          //return {};
-        //}
-      }
+    bool successful = false;
+    if (!timed) {
+      successful = hid_read(controller_ptr, ret.data(), exchange_length) >= 0;
+    } else {
+      successful = hid_read_timeout(controller_ptr, ret.data(), exchange_length, 100) != 0;
     }
-    /*if (status) {
-      *status = 0;
-    }*/
+
+    if (!successful) {
+      throw std::system_error(-2, std::generic_category());
+    }
+
     return ret;
   }
 
 
 
   bool try_read_bad_data() {
-
-    /*
-    if (!controller_ptr) {
-      printf("%sERROR: Controller pointer is nullptr%s\n", KRED, KNRM);
-      return -1;
-    }
-    */
-
     auto dat = send_command(get_input, empty);
 
     if (detect_useless_data(dat[0])) {

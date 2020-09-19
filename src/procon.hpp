@@ -484,7 +484,7 @@ public:
     // dat[0x15]);
     // print_exchange_array(dat);
 
-    hid_ctrl->send_subcommand(0x1, hid_ctrl->led_command, hid_ctrl->led_calibration); // XXX way too often
+    //hid_ctrl->send_subcommand(0x1, hid_ctrl->led_command, hid_ctrl->led_calibration); // XXX way too often
     if (!share_button_free) {
       if (!(dat[0x0e] & byte_button_value(share))) {
         share_button_free = true;
@@ -639,16 +639,6 @@ public:
   }
 
 
-  // void blink() {
-  //   if (++blink_counter > blink_length) {
-  //     blink_counter = 0;
-  //     if (++blink_position >= blink_array.size()) {
-  //       blink_position = 0;
-  //     }
-  //   }
-  //   std::array<uint8_t,1> blink_command{{blink_array[blink_position]}};
-  //   send_subcommand(0x1, led_command, blink_command);
-  // }
 
   //-------------------------
   //         UINPUT
@@ -914,19 +904,12 @@ public:
   }
 
 
-  std::clock_t last_time;
-
   std::array<uint8_t, 20> first{{0x0}};
   std::array<uint8_t, 20> second{{0x0}};
   std::array<uint8_t, 20> third{{0x0}};
   std::array<uint8_t, 20> fourth{{0x0}};
   std::array<uint8_t, 20> fifth{{0x0}};
   std::array<uint8_t, 20> sixth{{0x0}};
-
-
-  // uint blink_position = 0;
-  // size_t blink_counter = 0;
-  // const size_t blink_length = 50;
 
   bool bad_data_detected = false;
 

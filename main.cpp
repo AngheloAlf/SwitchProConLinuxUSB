@@ -2,8 +2,17 @@
 #include "config.hpp"
 #include "print_color.hpp"
 
+#include  <signal.h>
+
 //#define DEBUG
 
+bool controller_loop = true;
+void exit_handler(int ignored){
+  controller_loop = false;
+  PrintColor::magenta();
+  printf("\nExiting...\n");
+  PrintColor::normal();
+}
 
 void print_help() {
   printf("Usage: procon_driver [OPTIONS]\nOptions are:\n");
@@ -102,10 +111,13 @@ int main(int argc, char *argv[]) {
     PrintColor::normal();
   }
 
+  signal(SIGINT, exit_handler);
+
   try {
-    while (true) {
+    while (controller_loop) {
       if (!controller.calibrated) {
         while (!controller.calibrated) {
+          controller.hid_ctrl->blink();
           controller.calibrate();
         }
         PrintColor::green();
