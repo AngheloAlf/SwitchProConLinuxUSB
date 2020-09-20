@@ -24,7 +24,7 @@ public:
  
     //printf("SERIAL NUMBER: %u\n", serial_number);
     if (!controller_ptr) {
-      throw std::ios_base::failure("Invalid device pointer.");
+      throw std::ios_base::failure("Can't connect to controller. Invalid device pointer");
     }
     // hid_device_info *info = hid_open(vendor_id, product_id, serial_number);
     // std::cout<< "PATH: " << info->path << std::endl;;

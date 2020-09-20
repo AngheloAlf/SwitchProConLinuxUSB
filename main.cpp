@@ -92,7 +92,6 @@ void handle_controller(hid_device_info *iter, Config &config) {
 
     controller.poll_input();
   }
-
 }
 
 
@@ -141,6 +140,19 @@ int main(int argc, char *argv[]) {
 
   try {
     handle_controller(iter, config);
+  } catch (const std::ios_base::failure &e) {
+    PrintColor::red();
+    printf("%s\n", e.what());
+
+    PrintColor::magenta();
+    printf("\nTry unplugging and plugging the usb to the controller.\n");
+
+    PrintColor::yellow();
+    printf("Exiting...\n");
+    PrintColor::normal();
+
+    hid_free_enumeration(iter);
+    return -3;
   } catch (const std::exception &e) {
     PrintColor::red();
     printf("%s\n", e.what());

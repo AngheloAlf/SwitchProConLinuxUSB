@@ -135,16 +135,12 @@ public:
       return;
     }
 
-    uinput_manage_buttons();
-    uinput_manage_joysticks();
-    uinput_manage_dpad();
+    manage_buttons();
+    manage_joysticks();
+    manage_dpad();
 
     // parser.print();
     return;
-  }
-
-  void toggle_dribble_mode() {
-    dribble_mode = !dribble_mode; 
   }
 
   void calibrate() {
@@ -256,28 +252,25 @@ private:
   //         UINPUT
   //-------------------------
 
-  void uinput_manage_dpad() {
+  void manage_dpad() {
+    int x = 0, y = 0;
     if (dpad_pressed[ProInputParser::d_left]) {
-      uinput_ctrl->write_single_joystick(-1, ABS_HAT0X);
+      x = -1;
     } else if (dpad_pressed[ProInputParser::d_right]) {
-      uinput_ctrl->write_single_joystick(1, ABS_HAT0X);
-    } else if (!dpad_pressed[ProInputParser::d_left] &&
-               !dpad_pressed[ProInputParser::d_right]) {
-      uinput_ctrl->write_single_joystick(0, ABS_HAT0X);
+      x = 1;
     }
     if (dpad_pressed[ProInputParser::d_down]) {
-      uinput_ctrl->write_single_joystick(-1, ABS_HAT0Y);
+      y = -1;
     } else if (dpad_pressed[ProInputParser::d_up]) {
-      uinput_ctrl->write_single_joystick(1, ABS_HAT0Y);
-    } else if (!dpad_pressed[ProInputParser::d_down] &&
-               !dpad_pressed[ProInputParser::d_up]) {
-      uinput_ctrl->write_single_joystick(0, ABS_HAT0Y);
+      y = 1;
     }
 
+    uinput_ctrl->write_single_joystick(y, ABS_HAT0Y);
+    uinput_ctrl->write_single_joystick(x, ABS_HAT0X);
     uinput_ctrl->send_report();
   }
 
-  void uinput_manage_buttons() {
+  void manage_buttons() {
     for (const ProInputParser::BUTTONS &id: xbox_btns_ids) {
       if (buttons_pressed[id] && !last_pressed[id]) {
         if (config.found_dribble_cam_value) {
@@ -321,16 +314,13 @@ private:
     }
 
     // do triggers here as well
-    int val;
-    val = buttons_pressed[ProInputParser::L2] ? 255 : 0;
-    uinput_ctrl->write_single_joystick(val, ABS_Z);
-    val = buttons_pressed[ProInputParser::R2] ? 255 : 0;
-    uinput_ctrl->write_single_joystick(val, ABS_RZ);
+    uinput_ctrl->write_single_joystick(buttons_pressed[ProInputParser::L2]*255, ABS_Z);
+    uinput_ctrl->write_single_joystick(buttons_pressed[ProInputParser::R2]*255, ABS_RZ);
 
     uinput_ctrl->send_report();
   }
 
-  void uinput_manage_joysticks() {
+  void manage_joysticks() {
     if (dribble_mode) {
       axis_values[ProInputParser::axis_ry] = clamp_int(axis_values[ProInputParser::axis_ry] + config.dribble_cam_value - 127);
     }
@@ -411,6 +401,10 @@ private:
       return 255;
     }
     return inp;
+  }
+
+  void toggle_dribble_mode() {
+    dribble_mode = !dribble_mode; 
   }
 
   std::array<int, 14> make_button_map() const {

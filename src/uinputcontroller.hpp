@@ -14,10 +14,6 @@
 
 
 class UInputController{
-private:
-  int uinput_version, uinput_rc, uinput_fd;
-  struct uinput_user_dev uinput_device;
-
 public:
   UInputController() {
     uinput_fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
@@ -26,8 +22,8 @@ public:
     }
     uinput_rc = ioctl(uinput_fd, UI_GET_VERSION, &uinput_version);
 
+    struct uinput_user_dev uinput_device;
     memset(&uinput_device, 0, sizeof(uinput_device));
-
 
     uinput_device.id.bustype = BUS_USB;
     uinput_device.id.vendor = 0x045e;  // Microsoft
@@ -35,7 +31,6 @@ public:
     uinput_device.id.version = 0x110;  // dunno but xboxdrv uses this
     strncpy(uinput_device.name, "Switch ProController disguised as XBox360",
             UINPUT_MAX_NAME_SIZE);
-
 
     // buttons
     ioctl(uinput_fd, UI_SET_EVBIT, EV_KEY);
@@ -52,7 +47,7 @@ public:
     ioctl(uinput_fd, UI_SET_KEYBIT, BTN_START);
     ioctl(uinput_fd, UI_SET_KEYBIT, BTN_SELECT);
 
-    // joysticks
+    // sticks
     ioctl(uinput_fd, UI_SET_EVBIT, EV_ABS);
 
     ioctl(uinput_fd, UI_SET_ABSBIT, ABS_X);
@@ -77,9 +72,9 @@ public:
     uinput_device.absmin[ABS_RZ] = 0;
     uinput_device.absmax[ABS_RZ] = 255;
     uinput_device.absmin[ABS_HAT0X] = -1;
-    uinput_device.absmax[ABS_HAT0X] = 1;
+    uinput_device.absmax[ABS_HAT0X] =  1;
     uinput_device.absmin[ABS_HAT0Y] = -1;
-    uinput_device.absmax[ABS_HAT0Y] = 1;
+    uinput_device.absmax[ABS_HAT0Y] =  1;
 
     if (write(uinput_fd, &uinput_device, sizeof(uinput_device)) < 0) {
       close(uinput_fd);
@@ -90,38 +85,23 @@ public:
       close(uinput_fd);
       throw std::system_error(errno, std::generic_category(), "Failed to open uinput device!");
     }
-
-    #if 0
-    PrintColor::green();
-    printf("Created uinput device!\n");
-    PrintColor::normal();
-    #endif
-
   }
 
   ~UInputController() {
     ioctl(uinput_fd, UI_DEV_DESTROY);
 
     close(uinput_fd);
-
-    #if 0
-    PrintColor::yellow();
-    printf("Destroyed uinput device!\n");
-    PrintColor::normal();
-    #endif
-
-    return;
   }
 
-  void write_single_joystick(const int &val, const int &cod) {
+  void write_single_joystick(int val, int cod) {
     send_packet(EV_ABS, cod, (int)val);
   }
 
-  void button_press(const int &cod) {
+  void button_press(int cod) {
     send_packet(EV_KEY, cod, 1);
   }
 
-  void button_release(const int &cod) {
+  void button_release(int cod) {
     send_packet(EV_KEY, cod, 0);
   }
 
@@ -148,7 +128,8 @@ private:
                                    "Maybe try running with sudo.\n");
     }
   }
-  
+
+  int uinput_version, uinput_rc, uinput_fd;
 };
 
 #endif
