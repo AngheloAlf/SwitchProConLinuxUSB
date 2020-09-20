@@ -113,18 +113,16 @@ public:
     return;
   }
 
-  void uinput_write_single_joystick(const int &val, const int &cod) {
+  void write_single_joystick(const int &val, const int &cod) {
     send_packet(EV_ABS, cod, (int)val);
   }
 
-  void uinput_button_down(const int &cod) {
-    // press button
+  void button_press(const int &cod) {
     send_packet(EV_KEY, cod, 1);
   }
 
-  void uinput_button_release(const int &cod) {
+  void button_release(const int &cod) {
     send_packet(EV_KEY, cod, 0);
-    send_report();
   }
 
   void send_report() {

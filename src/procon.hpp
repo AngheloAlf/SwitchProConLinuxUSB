@@ -163,18 +163,15 @@ public:
     // if(print_cycle_counter++ > n_print_cycle) {
     //     timer();
     // }
+    hid_ctrl->led();
 
     auto dat = hid_ctrl->request_input();
-
     if (hid_ctrl->detect_useless_data(dat[0])) {
       // printf("detected useless data!\n");
       return 0;
     }
 
-    hid_ctrl->led();
-
     ProInputParser input_parser(dat);
-
     if (input_parser.is_button_pressed(ProInputParser::home) &&
         input_parser.is_button_pressed(ProInputParser::share)) {
       decalibrate();
@@ -190,9 +187,9 @@ public:
     return 0;
   }
 
-#ifdef DRIBBLE_MODE
-  void toggle_dribble_mode() { dribble_mode = !dribble_mode; }
-#endif
+  void toggle_dribble_mode() {
+    dribble_mode = !dribble_mode; 
+  }
 
   void calibrate() {
     if (read_calibration_from_file) {
@@ -208,7 +205,6 @@ public:
     hid_ctrl->blink();
 
     auto dat = hid_ctrl->request_input();
-
     if (hid_ctrl->detect_useless_data(dat[0])) {
       // printf("detected useless data!\n");
       return;
@@ -224,47 +220,31 @@ public:
         share_button_free = true;
       }
     } else {
-      bool cal = do_calibrate(parser);
-      if (cal) {
+      if (do_calibrate(parser)) {
         // send_rumble(0,255);
         calibrated = true;
         hid_ctrl->led();
-        // printf("finished calibration\n");
-        // usleep(1000000);
-
-        // write calibration data to file
         write_calibration_to_file();
       }
     }
   }
 
   bool do_calibrate(const ProInputParser &parser) {
-    uint8_t left_x;
-    uint8_t left_y;
-    uint8_t right_x;
-    uint8_t right_y;
+    uint8_t left_x,  left_y;
+    uint8_t right_x, right_y;
     parser.get_joystick_data(left_x, left_y, right_x, right_y);
 
-    // invert
-    if (config.invert_lx) {
-      left_x = 255 - left_x;
-    }
-    if (config.invert_ly) {
-      left_y = 255 - left_y;
-    }
-    if (config.invert_rx) {
-      right_x = 255 - right_x;
-    }
-    if (config.invert_ry) {
-      right_y = 255 - right_y;
-    }
+    if (config.invert_lx) left_x  = 255 - left_x;
+    if (config.invert_ly) left_y  = 255 - left_y;
+    if (config.invert_rx) right_x = 255 - right_x;
+    if (config.invert_ry) right_y = 255 - right_y;
 
-    left_x_min = (left_x < left_x_min) ? left_x : left_x_min;
-    left_y_min = (left_y < left_y_min) ? left_y : left_y_min;
+    left_x_min  = (left_x  < left_x_min)  ? left_x  : left_x_min;
+    left_y_min  = (left_y  < left_y_min)  ? left_y  : left_y_min;
     right_x_min = (right_x < right_x_min) ? right_x : right_x_min;
     right_y_min = (right_y < right_y_min) ? right_y : right_y_min;
-    left_x_max = (left_x > left_x_max) ? left_x : left_x_max;
-    left_y_max = (left_y > left_y_max) ? left_y : left_y_max;
+    left_x_max  = (left_x  > left_x_max)  ? left_x  : left_x_max;
+    left_y_max  = (left_y  > left_y_max)  ? left_y  : left_y_max;
     right_x_max = (right_x > right_x_max) ? right_x : right_x_max;
     right_y_max = (right_y > right_y_max) ? right_y : right_y_max;
 
@@ -393,7 +373,6 @@ public:
     return inp;
   }
 
-
   static std::array<int, 18> make_button_map() {
     std::array<int, 18> map {0};
 
@@ -443,18 +422,18 @@ public:
     }
 
     if (b_d_left) {
-      uinput_ctrl->uinput_write_single_joystick(-1, ABS_HAT0X);
+      uinput_ctrl->write_single_joystick(-1, ABS_HAT0X);
     } else if (b_d_right) {
-      uinput_ctrl->uinput_write_single_joystick(1, ABS_HAT0X);
+      uinput_ctrl->write_single_joystick(1, ABS_HAT0X);
     } else if (!b_d_left && !b_d_right) {
-      uinput_ctrl->uinput_write_single_joystick(0, ABS_HAT0X);
+      uinput_ctrl->write_single_joystick(0, ABS_HAT0X);
     }
     if (b_d_down) {
-      uinput_ctrl->uinput_write_single_joystick(-1, ABS_HAT0Y);
+      uinput_ctrl->write_single_joystick(-1, ABS_HAT0Y);
     } else if (b_d_up) {
-      uinput_ctrl->uinput_write_single_joystick(1, ABS_HAT0Y);
+      uinput_ctrl->write_single_joystick(1, ABS_HAT0Y);
     } else if (!b_d_down && !b_d_up) {
-      uinput_ctrl->uinput_write_single_joystick(0, ABS_HAT0Y);
+      uinput_ctrl->write_single_joystick(0, ABS_HAT0Y);
     }
 
     uinput_ctrl->send_report();
@@ -475,13 +454,13 @@ public:
 
     for (const ProInputParser::BUTTONS &id: xbox_btns_ids) {
       if (buttons_pressed[id] && !last_pressed[id]) {
-        uinput_ctrl->uinput_button_down(btns_map[id]);
+        uinput_ctrl->button_press(btns_map[id]);
       }
     }
     #if 0
     // press
     if (buttons_pressed[ProInputParser::X] && !last_pressed[ProInputParser::X]) {
-      uinput_ctrl->uinput_button_down(BTN_WEST);
+      uinput_ctrl->button_press(BTN_WEST);
 #ifdef DRIBBLE_MODE // toggle off dribble mode
       if (dribble_mode)
         toggle_dribble_mode();
@@ -491,28 +470,27 @@ public:
     if (buttons_pressed[ProInputParser::Y] && !last_pressed[ProInputParser::Y])
       toggle_dribble_mode();
     if (buttons_pressed[ProInputParser::share] && !last_pressed[ProInputParser::share]) // replace button by share
-      uinput_ctrl->uinput_button_down(BTN_NORTH);
+      uinput_ctrl->button_press(BTN_NORTH);
 #else
     if (buttons_pressed[ProInputParser::Y] && !last_pressed[ProInputParser::Y])
-      uinput_ctrl->uinput_button_down(BTN_NORTH);
+      uinput_ctrl->button_press(BTN_NORTH);
 #endif
     #endif
 
-
     for (const ProInputParser::BUTTONS &id: xbox_btns_ids) {
       if (!buttons_pressed[id] && last_pressed[id]) {
-        uinput_ctrl->uinput_button_release(btns_map[id]);
+        uinput_ctrl->button_release(btns_map[id]);
       }
     }
     #if 0
 #ifdef DRIBBLE_MODE
     if (!buttons_pressed[ProInputParser::Y] && last_pressed[ProInputParser::Y])
-      uinput_ctrl->uinput_button_release(BTN_WEST);
+      uinput_ctrl->button_release(BTN_WEST);
     if (!buttons_pressed[ProInputParser::share] && last_pressed[ProInputParser::share])
-      uinput_ctrl->uinput_button_release(BTN_NORTH);
+      uinput_ctrl->button_release(BTN_NORTH);
 #else
     if (!buttons_pressed[ProInputParser::Y] && last_pressed[ProInputParser::Y])
-      uinput_ctrl->uinput_button_release(BTN_NORTH);
+      uinput_ctrl->button_release(BTN_NORTH);
 #endif
     #endif
 
@@ -523,57 +501,36 @@ public:
     // do triggers here as well
     int val;
     val = buttons_pressed[ProInputParser::L2] ? 255 : 0;
-    uinput_ctrl->uinput_write_single_joystick(val, ABS_Z);
+    uinput_ctrl->write_single_joystick(val, ABS_Z);
     val = buttons_pressed[ProInputParser::R2] ? 255 : 0;
-    uinput_ctrl->uinput_write_single_joystick(val, ABS_RZ);
+    uinput_ctrl->write_single_joystick(val, ABS_RZ);
 
     uinput_ctrl->send_report();
   }
 
   void uinput_manage_joysticks(const ProInputParser &parser) {
-    // extract data
-    uint8_t left_x;
-    uint8_t left_y;
-    uint8_t right_x;
-    uint8_t right_y;
+    uint8_t left_x,  left_y;
+    uint8_t right_x, right_y;
     parser.get_joystick_data(left_x, left_y, right_x, right_y);
 
     // invert
-    if (config.invert_lx) {
-      left_x = 255 - left_x;
-    }
-    if (config.invert_ly) {
-      left_y = 255 - left_y;
-    }
-    if (config.invert_rx) {
-      right_x = 255 - right_x;
-    }
-    if (config.invert_ry) {
-      right_y = 255 - right_y;
-    }
+    if (config.invert_lx) left_x  = 255 - left_x;
+    if (config.invert_ly) left_y  = 255 - left_y;
+    if (config.invert_rx) right_x = 255 - right_x;
+    if (config.invert_ry) right_y = 255 - right_y;
 
-    // map data
     map_sticks(left_x, left_y, right_x, right_y);
 
-    // write uinput
-
-    // left_x = 0;
-    // left_y = 127;
-    // right_x = 255;
-    // right_y = 200;
-
-    uinput_ctrl->uinput_write_single_joystick(left_x, ABS_X);
-    uinput_ctrl->uinput_write_single_joystick(left_y, ABS_Y);
-    uinput_ctrl->uinput_write_single_joystick(right_x, ABS_RX);
-#ifndef DRIBBLE_MODE
-    uinput_ctrl->uinput_write_single_joystick(right_y, ABS_RY);
-#else
+    uinput_ctrl->write_single_joystick(left_x, ABS_X);
+    uinput_ctrl->write_single_joystick(left_y, ABS_Y);
+    uinput_ctrl->write_single_joystick(right_x, ABS_RX);
+#ifdef DRIBBLE_MODE
     if (dribble_mode) {
       right_y = clamp_int(right_y + config.dribble_cam_value - 127);
     }
 #endif
-    uinput_ctrl->uinput_write_single_joystick(right_y, ABS_RY);
-    // send report
+    uinput_ctrl->write_single_joystick(right_y, ABS_RY);
+
     uinput_ctrl->send_report();
 
     // clear_console();

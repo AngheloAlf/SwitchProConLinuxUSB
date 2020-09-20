@@ -35,20 +35,20 @@ void print_header(){
   printf("\n--------------------------------------------------------------------"
          "------\n");
   printf("| ");
-  printf("%c[%d;%dmNintendo Switch Pro-Controller USB uinput driver"
-         ".%c[%dm ",
-         27, 1, 32, 27, 0);
-  printf("%c[%d;%dmVersion: ", 27, 1, 36);
+  PrintColor::cyan();
+  printf("Nintendo Switch Pro-Controller USB uinput driver. ");
+  PrintColor::cyan();
+  printf("Version: ");
   printf(PROCON_DRIVER_VERSION);
-  printf("%c[%dm ", 27, 0);
+  PrintColor::normal();
 
-  printf("%s "
-         "|\n-------------------------------------------------------------------"
-         "-------",
-         KNRM);
-  printf("\n\n%s", KNRM);
+  printf("  |\n"
+         "-------------------------------------------------------------------"
+         "-------\n\n");
 #ifdef DRIBBLE_MODE
-  printf("%c[%d;%dmDribble mode enabled!%c[%dm \n\n", 27, 1, 36, 27, 0);
+  PrintColor::cyan();
+  printf("Dribble mode enabled!\n\n");
+  PrintColor::normal();
 // if(found_dribble_cam_value) {
 //   printf("VALUE: %i", dribble_cam_value);
 // }
