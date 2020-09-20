@@ -90,9 +90,7 @@ void handle_controller(hid_device_info *iter, Config &config) {
       PrintColor::normal();
     }
 
-    if (controller.poll_input() < 0)
-      break;
-    
+    controller.poll_input();
   }
 
 }

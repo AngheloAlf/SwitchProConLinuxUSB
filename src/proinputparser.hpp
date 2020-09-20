@@ -31,6 +31,14 @@ public:
     None
   };
 
+  enum AXIS {
+    axis_lx,
+    axis_ly,
+    axis_rx,
+    axis_ry,
+    arix_none,
+  };
+
   ProInputParser(exchange_array data): dat(data) {
 
   }
@@ -40,11 +48,19 @@ public:
     return dat[pos] & byte_button_value(button);
   }
 
-  void get_joystick_data(uint8_t &lx, uint8_t &ly, uint8_t &rx, uint8_t &ry) const {
-    lx = ((dat[0x11] & 0x0F) << 4) | ((dat[0x10] & 0xF0) >> 4);
-    ly = dat[0x12];
-    rx = ((dat[0x14] & 0x0F) << 4) | ((dat[0x13] & 0xF0) >> 4);
-    ry = dat[0x15];
+  uint8_t get_axis_status(AXIS axis) const {
+    switch (axis) {
+    case axis_lx:
+      return ((dat[0x11] & 0x0F) << 4) | ((dat[0x10] & 0xF0) >> 4);
+    case axis_ly:
+      return dat[0x12];
+    case axis_rx:
+      return ((dat[0x14] & 0x0F) << 4) | ((dat[0x13] & 0xF0) >> 4);
+    case axis_ry:
+      return dat[0x15];
+    default:
+      return 0;
+    }
   }
 
   static uint8_t bit_position(BUTTONS button) {

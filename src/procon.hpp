@@ -60,6 +60,7 @@ public:
     uinput_ctrl = new UInputController();
 
     btns_map = make_button_map();
+    axis_map = make_axis_map();
   }
 
   ~ProController(){
@@ -158,7 +159,7 @@ public:
 
   void clear_console() { system("clear"); }
 
-  int poll_input() {
+  void poll_input() {
     // print_cycle_counter++;
     // if(print_cycle_counter++ > n_print_cycle) {
     //     timer();
@@ -168,23 +169,25 @@ public:
     auto dat = hid_ctrl->request_input();
     if (hid_ctrl->detect_useless_data(dat[0])) {
       // printf("detected useless data!\n");
-      return 0;
+      return;
     }
 
     ProInputParser input_parser(dat);
-    if (input_parser.is_button_pressed(ProInputParser::home) &&
-        input_parser.is_button_pressed(ProInputParser::share)) {
+    update_input_state(input_parser);
+
+    if (buttons_pressed[ProInputParser::home] &&
+        buttons_pressed[ProInputParser::share]) {
       decalibrate();
     }
 
-    uinput_manage_buttons(input_parser);
-    uinput_manage_joysticks(input_parser);
-    uinput_manage_dpad(input_parser);
+    uinput_manage_buttons();
+    uinput_manage_joysticks();
+    uinput_manage_dpad();
 
     // print_buttons(input_parser);
     // print_sticks(input_parser);
     // print_exchange_array(dat);
-    return 0;
+    return;
   }
 
   void toggle_dribble_mode() {
@@ -211,6 +214,7 @@ public:
     }
 
     ProInputParser parser(dat);
+    update_input_state(parser);
     // print_buttons(parser);
     // print_sticks(parser);
     // print_exchange_array(dat);
@@ -220,7 +224,7 @@ public:
         share_button_free = true;
       }
     } else {
-      if (do_calibrate(parser)) {
+      if (do_calibrate()) {
         // send_rumble(0,255);
         calibrated = true;
         hid_ctrl->led();
@@ -229,24 +233,15 @@ public:
     }
   }
 
-  bool do_calibrate(const ProInputParser &parser) {
-    uint8_t left_x,  left_y;
-    uint8_t right_x, right_y;
-    parser.get_joystick_data(left_x, left_y, right_x, right_y);
-
-    if (config.invert_lx) left_x  = 255 - left_x;
-    if (config.invert_ly) left_y  = 255 - left_y;
-    if (config.invert_rx) right_x = 255 - right_x;
-    if (config.invert_ry) right_y = 255 - right_y;
-
-    left_x_min  = (left_x  < left_x_min)  ? left_x  : left_x_min;
-    left_y_min  = (left_y  < left_y_min)  ? left_y  : left_y_min;
-    right_x_min = (right_x < right_x_min) ? right_x : right_x_min;
-    right_y_min = (right_y < right_y_min) ? right_y : right_y_min;
-    left_x_max  = (left_x  > left_x_max)  ? left_x  : left_x_max;
-    left_y_max  = (left_y  > left_y_max)  ? left_y  : left_y_max;
-    right_x_max = (right_x > right_x_max) ? right_x : right_x_max;
-    right_y_max = (right_y > right_y_max) ? right_y : right_y_max;
+  bool do_calibrate() {
+    left_x_min  = (axis_values[ProInputParser::axis_lx]  < left_x_min)  ? axis_values[ProInputParser::axis_lx]  : left_x_min;
+    left_y_min  = (axis_values[ProInputParser::axis_ly]  < left_y_min)  ? axis_values[ProInputParser::axis_ly]  : left_y_min;
+    right_x_min = (axis_values[ProInputParser::axis_rx] < right_x_min) ? axis_values[ProInputParser::axis_rx] : right_x_min;
+    right_y_min = (axis_values[ProInputParser::axis_ry] < right_y_min) ? axis_values[ProInputParser::axis_ry] : right_y_min;
+    left_x_max  = (axis_values[ProInputParser::axis_lx]  > left_x_max)  ? axis_values[ProInputParser::axis_lx]  : left_x_max;
+    left_y_max  = (axis_values[ProInputParser::axis_ly]  > left_y_max)  ? axis_values[ProInputParser::axis_ly]  : left_y_max;
+    right_x_max = (axis_values[ProInputParser::axis_rx] > right_x_max) ? axis_values[ProInputParser::axis_rx] : right_x_max;
+    right_y_max = (axis_values[ProInputParser::axis_ry] > right_y_max) ? axis_values[ProInputParser::axis_ry] : right_y_max;
 
     // clear_console();
     // printf("left_x_min: %u\n", left_x_min);
@@ -259,7 +254,7 @@ public:
     // printf("right_y_max: %u\n\n", right_y_max);
     // print_calibration_values();
 
-    return parser.is_button_pressed(ProInputParser::share);
+    return buttons_pressed[ProInputParser::share];
   }
 
   void print_calibration_values() {
@@ -401,57 +396,41 @@ public:
     return map;
   }
 
+  static std::array<int, 4> make_axis_map() {
+    std::array<int, 4> map {0};
+    map[ProInputParser::axis_lx] = ABS_X;
+    map[ProInputParser::axis_ly] = ABS_Y;
+    map[ProInputParser::axis_rx] = ABS_RX;
+    map[ProInputParser::axis_ry] = ABS_RY;
+    return map;
+  }
+
   //-------------------------
   //         UINPUT
   //-------------------------
 
-  void uinput_manage_dpad(const ProInputParser &parser) {
-    bool b_d_left  = parser.is_button_pressed(ProInputParser::d_left);
-    bool b_d_right = parser.is_button_pressed(ProInputParser::d_right);
-    bool b_d_up    = parser.is_button_pressed(ProInputParser::d_up);
-    bool b_d_down  = parser.is_button_pressed(ProInputParser::d_down);
-
-    // invert
-    if (config.invert_dx) {
-      b_d_left  = parser.is_button_pressed(ProInputParser::d_right);
-      b_d_right = parser.is_button_pressed(ProInputParser::d_left);
-    }
-    if (config.invert_dy) {
-      b_d_up    = parser.is_button_pressed(ProInputParser::d_down);
-      b_d_down  = parser.is_button_pressed(ProInputParser::d_up);
-    }
-
-    if (b_d_left) {
+  void uinput_manage_dpad() {
+    if (buttons_pressed[ProInputParser::d_left]) {
       uinput_ctrl->write_single_joystick(-1, ABS_HAT0X);
-    } else if (b_d_right) {
+    } else if (buttons_pressed[ProInputParser::d_right]) {
       uinput_ctrl->write_single_joystick(1, ABS_HAT0X);
-    } else if (!b_d_left && !b_d_right) {
+    } else if (!buttons_pressed[ProInputParser::d_left] &&
+               !buttons_pressed[ProInputParser::d_right]) {
       uinput_ctrl->write_single_joystick(0, ABS_HAT0X);
     }
-    if (b_d_down) {
+    if (buttons_pressed[ProInputParser::d_down]) {
       uinput_ctrl->write_single_joystick(-1, ABS_HAT0Y);
-    } else if (b_d_up) {
+    } else if (buttons_pressed[ProInputParser::d_up]) {
       uinput_ctrl->write_single_joystick(1, ABS_HAT0Y);
-    } else if (!b_d_down && !b_d_up) {
+    } else if (!buttons_pressed[ProInputParser::d_down] &&
+               !buttons_pressed[ProInputParser::d_up]) {
       uinput_ctrl->write_single_joystick(0, ABS_HAT0Y);
     }
 
     uinput_ctrl->send_report();
   }
 
-  void uinput_manage_buttons(const ProInputParser &parser) {
-    std::array<bool, 18> buttons_pressed{false};
-    for (const ProInputParser::BUTTONS &id: btns_ids) {
-      buttons_pressed[id] = parser.is_button_pressed(id);
-    }
-
-    if (config.swap_buttons) {
-      buttons_pressed[ProInputParser::A] = parser.is_button_pressed(ProInputParser::B);
-      buttons_pressed[ProInputParser::B] = parser.is_button_pressed(ProInputParser::A);
-      buttons_pressed[ProInputParser::X] = parser.is_button_pressed(ProInputParser::Y);
-      buttons_pressed[ProInputParser::Y] = parser.is_button_pressed(ProInputParser::X);
-    }
-
+  void uinput_manage_buttons() {
     for (const ProInputParser::BUTTONS &id: xbox_btns_ids) {
       if (buttons_pressed[id] && !last_pressed[id]) {
         if (config.found_dribble_cam_value) {
@@ -494,10 +473,6 @@ public:
       }
     }
 
-    for(const ProInputParser::BUTTONS &id: btns_ids){
-      last_pressed[id] = buttons_pressed[id];
-    }
-
     // do triggers here as well
     int val;
     val = buttons_pressed[ProInputParser::L2] ? 255 : 0;
@@ -508,26 +483,14 @@ public:
     uinput_ctrl->send_report();
   }
 
-  void uinput_manage_joysticks(const ProInputParser &parser) {
-    uint8_t left_x,  left_y;
-    uint8_t right_x, right_y;
-    parser.get_joystick_data(left_x, left_y, right_x, right_y);
-
-    // invert
-    if (config.invert_lx) left_x  = 255 - left_x;
-    if (config.invert_ly) left_y  = 255 - left_y;
-    if (config.invert_rx) right_x = 255 - right_x;
-    if (config.invert_ry) right_y = 255 - right_y;
-
-    map_sticks(left_x, left_y, right_x, right_y);
+  void uinput_manage_joysticks() {
     if (dribble_mode) {
-      right_y = clamp_int(right_y + config.dribble_cam_value - 127);
+      axis_values[ProInputParser::axis_ry] = clamp_int(axis_values[ProInputParser::axis_ry] + config.dribble_cam_value - 127);
     }
 
-    uinput_ctrl->write_single_joystick(left_x, ABS_X);
-    uinput_ctrl->write_single_joystick(left_y, ABS_Y);
-    uinput_ctrl->write_single_joystick(right_x, ABS_RX);
-    uinput_ctrl->write_single_joystick(right_y, ABS_RY);
+    for (const ProInputParser::AXIS &id: axis_ids) {
+      uinput_ctrl->write_single_joystick(axis_values[id], axis_map[id]);
+    }
 
     uinput_ctrl->send_report();
 
@@ -539,6 +502,48 @@ public:
   }
 
 private:
+  void update_input_state(const ProInputParser &parser) {
+    /// Store last state
+    for(const ProInputParser::BUTTONS &id: btns_ids){
+      last_pressed[id] = buttons_pressed[id];
+    }
+
+    /// Buttons
+    for (const ProInputParser::BUTTONS &id: btns_ids) {
+      buttons_pressed[id] = parser.is_button_pressed(id);
+    }
+
+    /// Axis
+    for (const ProInputParser::AXIS &id: axis_ids) {
+      axis_values[id] = parser.get_axis_status(id);
+    }
+
+    if (config.swap_buttons) {
+      buttons_pressed[ProInputParser::A] = parser.is_button_pressed(ProInputParser::B);
+      buttons_pressed[ProInputParser::B] = parser.is_button_pressed(ProInputParser::A);
+      buttons_pressed[ProInputParser::X] = parser.is_button_pressed(ProInputParser::Y);
+      buttons_pressed[ProInputParser::Y] = parser.is_button_pressed(ProInputParser::X);
+    }
+
+    if (config.invert_dx) {
+      buttons_pressed[ProInputParser::d_left]  = parser.is_button_pressed(ProInputParser::d_right);
+      buttons_pressed[ProInputParser::d_right] = parser.is_button_pressed(ProInputParser::d_left);
+    }
+    if (config.invert_dy) {
+      buttons_pressed[ProInputParser::d_up]    = parser.is_button_pressed(ProInputParser::d_down);
+      buttons_pressed[ProInputParser::d_down]  = parser.is_button_pressed(ProInputParser::d_up);
+    }
+
+    // Invert axis
+    if (config.invert_lx) axis_values[ProInputParser::axis_lx] = 255 - axis_values[ProInputParser::axis_lx];
+    if (config.invert_ly) axis_values[ProInputParser::axis_ly] = 255 - axis_values[ProInputParser::axis_ly];
+    if (config.invert_rx) axis_values[ProInputParser::axis_rx] = 255 - axis_values[ProInputParser::axis_rx];
+    if (config.invert_ry) axis_values[ProInputParser::axis_ry] = 255 - axis_values[ProInputParser::axis_ry];
+
+    map_sticks(axis_values[ProInputParser::axis_lx], axis_values[ProInputParser::axis_ly], 
+               axis_values[ProInputParser::axis_rx], axis_values[ProInputParser::axis_ry]);
+  }
+
   const std::string calibration_filename = "procon_calibration_data";
 
   uint n_print_cycle = 1000;
@@ -561,8 +566,18 @@ private:
   uint8_t right_x_max = center;
   uint8_t right_y_max = center;
 
+  std::array<int, 4> axis_map;
+  const std::array<ProInputParser::AXIS, 4> axis_ids{
+    ProInputParser::axis_lx, ProInputParser::axis_ly,
+    ProInputParser::axis_rx, ProInputParser::axis_ry,
+  };
+  std::array<uint8_t, 4> axis_values{center};
+
+
   std::array<int, 18> btns_map;
-  const std::array<ProInputParser::BUTTONS, 14> btns_ids{
+  const std::array<ProInputParser::BUTTONS, 18> btns_ids{
+    ProInputParser::d_left, ProInputParser::d_right,
+    ProInputParser::d_up, ProInputParser::d_down,
     ProInputParser::A, ProInputParser::B,
     ProInputParser::X, ProInputParser::Y,
     ProInputParser::plus, ProInputParser::minus,
@@ -582,6 +597,7 @@ private:
     ProInputParser::d_left, ProInputParser::d_right,
     ProInputParser::d_up, ProInputParser::d_down,
   };
+  std::array<bool, 18> buttons_pressed{false};
   std::array<bool, 18> last_pressed{false};
 
   bool dribble_mode = false;
