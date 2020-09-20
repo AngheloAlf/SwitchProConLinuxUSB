@@ -26,6 +26,11 @@ private:
   const std::array<uint8_t, 0> empty{{}};
   const std::array<uint8_t, 2> handshake{{0x80, 0x02}};
   const std::array<uint8_t, 2> switch_baudrate{{0x80, 0x03}};
+
+  /** 
+   * Forces the Pro Controller to only talk over USB HID without any timeouts. 
+   * This is required for the Pro Controller to not time out and revert to Bluetooth.
+   */
   const std::array<uint8_t, 2> hid_only_mode{{0x80, 0x04}};
   // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
   const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
@@ -38,10 +43,10 @@ private:
   static constexpr uint8_t led_command{0x30};
   static constexpr uint8_t get_input{0x1f};
   //static constexpr uint8_t center{0x7e};
+public:
   static constexpr size_t exchange_length{0x400};
   using exchange_array = std::array<uint8_t, exchange_length>;
 
-public:
   HidController(unsigned short vendor_id, unsigned short product_id,
                 const wchar_t *serial_number, unsigned short n_controll) {
     controller_ptr = hid_open(vendor_id, product_id, serial_number);
@@ -86,12 +91,8 @@ public:
   ~HidController(){
     if (controller_ptr != nullptr) {
       hid_close(controller_ptr);
-      //PrintColor::blue();
-      // printf("Closed controller nr. %u\n", n_controller);
-      //PrintColor::normal();
     }
   }
-
 
   exchange_array request_input() {
     return send_command(get_input, empty);
@@ -133,18 +134,11 @@ public:
     }
   }
 
-
-
   exchange_array send_rumble(uint8_t large_motor, uint8_t small_motor) {
-    std::array<uint8_t, 9> buf{static_cast<uint8_t>(rumble_counter++ & 0xF),
-                               0x80,
-                               0x00,
-                               0x40,
-                               0x40,
-                               0x80,
-                               0x00,
-                               0x40,
-                               0x40};
+    std::array<uint8_t, 9> buf{
+      static_cast<uint8_t>(rumble_counter++ & 0xF),
+      0x80, 0x00, 0x40, 0x40, 0x80, 0x00, 0x40, 0x40};
+
     if (large_motor != 0) {
       buf[1] = buf[5] = 0x08;
       buf[2] = buf[6] = large_motor;
@@ -157,7 +151,7 @@ public:
     return ret;
   }
 
-  void print_exchange_array(exchange_array arr) {
+  static void print_exchange_array(exchange_array arr) {
     bool redcol = false;
     if (arr[0] != 0x30)
       PrintColor::yellow();
@@ -165,7 +159,7 @@ public:
       PrintColor::red();
       redcol = true;
     }
-    for (size_t i = 0; i < 20; ++i) {
+    for (size_t i = 0; i < 0x20; ++i) {
       if (arr[i] == 0x00) {
         PrintColor::blue();
       } else {
@@ -194,7 +188,7 @@ private:
                               "Did you disconnect the controller?");
     }
 
-    std::array<uint8_t, exchange_length> ret;
+    exchange_array ret;
     ret.fill(0);
 
     bool successful = false;
@@ -233,15 +227,9 @@ private:
                                  std::array<uint8_t, length> const &data) {
     std::array<uint8_t, length + 10> buffer{
         static_cast<uint8_t>(rumble_counter++ & 0xF),
-        0x00,
-        0x01,
-        0x40,
-        0x40,
-        0x00,
-        0x01,
-        0x40,
-        0x40,
+        0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40,
         subcommand};
+
     if (length > 0) {
       memcpy(buffer.data() + 10, data.data(), length);
     }
@@ -280,8 +268,6 @@ public:
       n_bad_data_zero++;*/
     return (dat == 0x30 || dat == 0x00);
   }
-
-
 };
 
 #endif

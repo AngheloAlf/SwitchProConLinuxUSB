@@ -20,6 +20,7 @@
 #include "print_color.hpp"
 #include "hidcontroller.hpp"
 #include "uinputcontroller.hpp"
+#include "proinputparser.hpp"
 
 #define PROCON_DRIVER_VERSION "1.0 alpha2"
 
@@ -30,30 +31,6 @@
 #define MAX_N_CONTROLLERS 4
 
 class ProController {
-
-  enum BUTTONS {
-    d_left,
-    d_right,
-    d_up,
-    d_down,
-    A,
-    B,
-    X,
-    Y,
-    plus,
-    minus,
-    home,
-    share,
-    L1,
-    L2,
-    L3,
-    R1,
-    R2,
-    R3,
-    None
-  };
-
-  static constexpr uint8_t center{0x7e};
 
 public:
   ProController(unsigned short n_controller, hid_device_info *device_info, 
@@ -92,210 +69,6 @@ public:
     }
   }
 
-  static uint8_t bit_position(ProController::BUTTONS button) {
-    switch (button) {
-    case d_left:
-      return 0x04;
-      break;
-    case d_right:
-      return 0x03;
-      break;
-    case d_up:
-      return 0x02;
-      break;
-    case d_down:
-      return 0x01;
-      break;
-    case A:
-      return 0x04;
-      break;
-    case B:
-      return 0x03;
-      break;
-    case X:
-      return 0x02;
-      break;
-    case Y:
-      return 0x01;
-      break;
-    case plus:
-      return 0x02;
-      break;
-    case minus:
-      return 0x01;
-      break;
-    case home:
-      return 0x05;
-      break;
-    case share:
-      return 0x06;
-      break;
-    case L1:
-      return 0x07;
-      break;
-    case L2:
-      return 0x08;
-      break;
-    case L3:
-      return 0x04;
-      break;
-    case R1:
-      return 0x07;
-      break;
-    case R2:
-      return 0x08;
-      break;
-    case R3:
-      return 0x03;
-      break;
-    case None:
-      return 0x00;
-      break;
-    default:
-      PrintColor::red();
-      printf("ERROR: Tried to find bitpos of unknown button!\n");
-      PrintColor::normal();
-      return 0x00;
-      break;
-    }
-  }
-
-  static uint8_t byte_button_value(ProController::BUTTONS button) {
-    switch (button) {
-    case d_left:
-      return 0x08;
-      break;
-    case d_right:
-      return 0x04;
-      break;
-    case d_up:
-      return 0x02;
-      break;
-    case d_down:
-      return 0x01;
-      break;
-    case A:
-      return 0x08;
-      break;
-    case B:
-      return 0x04;
-      break;
-    case X:
-      return 0x02;
-      break;
-    case Y:
-      return 0x01;
-      break;
-    case plus:
-      return 0x02;
-      break;
-    case minus:
-      return 0x01;
-      break;
-    case home:
-      return 0x10;
-      break;
-    case share:
-      return 0x20;
-      break;
-    case L1:
-      return 0x40;
-      break;
-    case L2:
-      return 0x80;
-      break;
-    case L3:
-      return 0x08;
-      break;
-    case R1:
-      return 0x40;
-      break;
-    case R2:
-      return 0x80;
-      break;
-    case R3:
-      return 0x04;
-      break;
-    case None:
-      return 0x00;
-      break;
-    default:
-      PrintColor::red();
-      printf("ERROR: Tried to find bitpos of unknown button!\n");
-      PrintColor::normal();
-      return 0x00;
-      break;
-    }
-  }
-
-  static uint8_t data_address(ProController::BUTTONS button) {
-    switch (button) {
-    case d_left:
-      return 0x0f;
-      break;
-    case d_right:
-      return 0x0f;
-      break;
-    case d_up:
-      return 0x0f;
-      break;
-    case d_down:
-      return 0x0f;
-      break;
-    case A:
-      return 0x0d;
-      break;
-    case B:
-      return 0x0d;
-      break;
-    case X:
-      return 0x0d;
-      break;
-    case Y:
-      return 0x0d;
-      break;
-    case plus:
-      return 0x0e;
-      break;
-    case minus:
-      return 0x0e;
-      break;
-    case home:
-      return 0x0e;
-      break;
-    case share:
-      return 0x0e;
-      break;
-    case L1:
-      return 0x0f;
-      break;
-    case L2:
-      return 0x0f;
-      break;
-    case L3:
-      return 0x0e;
-      break;
-    case R1:
-      return 0x0d;
-      break;
-    case R2:
-      return 0x0d;
-      break;
-    case R3:
-      return 0x0e;
-      break;
-    case None:
-      return 0x00;
-      break;
-    default:
-      PrintColor::red();
-      printf("ERROR: Tried to find data adress of unknown button!\n");
-      PrintColor::normal();
-      return 0x00;
-      break;
-    }
-  }
-
   // void timer() {
 
   //   using namespace std;
@@ -315,14 +88,12 @@ public:
   //   n_bad_data_zero = 0;
   // }
 
-  // void print_sticks(const uint8_t &data0, const uint8_t &data1, const uint8_t
-  // &data2,
-  //                   const uint8_t &data3, const uint8_t &data4,
-  //                   const uint8_t &data5) {
-  //   uint8_t left_x = ((data1 & 0x0F) << 4) | ((data0 & 0xF0) >> 4);
-  //   uint8_t left_y = data2;
-  //   uint8_t right_x = ((data4 & 0x0F) << 4) | ((data3 & 0xF0) >> 4);
-  //   uint8_t right_y = data5;
+  // void print_sticks(const ProInputParser &parser) {
+  //   uint8_t left_x;
+  //   uint8_t left_y;
+  //   uint8_t right_x;
+  //   uint8_t right_y;
+  //   parser.get_joystick_data(left_x, left_y, right_x, right_y);
 
   //   map_sticks(left_x, left_y, right_x, right_y);
 
@@ -342,48 +113,44 @@ public:
   //   // return 0;
   // }
 
-  // void print_buttons(const uint8_t &left, const uint8_t &mid, const uint8_t
-  // &right) {
-  //   // uint8_t left = buttons[0];
-  //   // uint8_t mid = buttons[1];
-  //   // uint8_t right = buttons[2];
+  // void print_buttons(const ProInputParser &parser) {
 
-  //   if (left & byte_button_value(d_left))
+  //   if (parser.is_button_pressed(ProInputParser::d_left))
   //     printf("d_left\n");
-  //   if (left & byte_button_value(d_right))
+  //   if (parser.is_button_pressed(ProInputParser::d_right))
   //     printf("d_right\n");
-  //   if (left & byte_button_value(d_up))
+  //   if (parser.is_button_pressed(ProInputParser::d_up))
   //     printf("d_up\n");
-  //   if (left & byte_button_value(d_down))
+  //   if (parser.is_button_pressed(ProInputParser::d_down))
   //     printf("d_down\n");
-  //   if (left & byte_button_value(L1))
+  //   if (parser.is_button_pressed(ProInputParser::L1))
   //     printf("L1\n");
-  //   if (left & byte_button_value(L2))
+  //   if (parser.is_button_pressed(ProInputParser::L2))
   //     printf("L2\n");
-  //   if (mid & byte_button_value(L3))
+  //   if (parser.is_button_pressed(ProInputParser::L3))
   //     printf("L3\n");
-  //   if (mid & byte_button_value(R3))
+  //   if (parser.is_button_pressed(ProInputParser::R3))
   //     printf("R3\n");
-  //   if (mid & byte_button_value(share))
+  //   if (parser.is_button_pressed(ProInputParser::share))
   //     printf("share\n");
-  //   if (mid & byte_button_value(home)) {
+  //   if (parser.is_button_pressed(ProInputParser::home)) {
   //     printf("home\n");
   //   }
-  //   if (mid & byte_button_value(plus))
+  //   if (parser.is_button_pressed(ProInputParser::plus))
   //     printf("plus\n");
-  //   if (mid & byte_button_value(minus))
+  //   if (parser.is_button_pressed(ProInputParser::minus))
   //     printf("minus\n");
-  //   if (right & byte_button_value(A))
+  //   if (parser.is_button_pressed(ProInputParser::A))
   //     printf("A\n");
-  //   if (right & byte_button_value(B))
+  //   if (parser.is_button_pressed(ProInputParser::B))
   //     printf("B\n");
-  //   if (right & byte_button_value(X))
+  //   if (parser.is_button_pressed(ProInputParser::X))
   //     printf("X\n");
-  //   if (right & byte_button_value(Y))
+  //   if (parser.is_button_pressed(ProInputParser::Y))
   //     printf("Y\n");
-  //   if (right & byte_button_value(R1))
+  //   if (parser.is_button_pressed(ProInputParser::R1))
   //     printf("R1\n");
-  //   if (right & byte_button_value(R2))
+  //   if (parser.is_button_pressed(ProInputParser::R2))
   //     printf("R2\n");
   // }
 
@@ -405,19 +172,19 @@ public:
 
     hid_ctrl->led();
 
-    if (dat[0x0e] & byte_button_value(home) &&
-        dat[0x0e] & byte_button_value(share)) {
+    ProInputParser input_parser(dat);
+
+    if (input_parser.is_button_pressed(ProInputParser::home) &&
+        input_parser.is_button_pressed(ProInputParser::share)) {
       decalibrate();
     }
 
-    uinput_manage_buttons(dat[0x0f], dat[0x0e], dat[0x0d]);
-    uinput_manage_joysticks(dat[0x10], dat[0x11], dat[0x12], dat[0x13],
-                            dat[0x14], dat[0x15]);
-    uinput_manage_dpad(dat[0x0f]);
+    uinput_manage_buttons(input_parser);
+    uinput_manage_joysticks(input_parser);
+    uinput_manage_dpad(input_parser);
 
-    // print_buttons(dat[0x0f], dat[0x0e], dat[0x0d]);
-    // print_sticks(dat[0x10], dat[0x11], dat[0x12], dat[0x13], dat[0x14],
-    // dat[0x15]);
+    // print_buttons(input_parser);
+    // print_sticks(input_parser);
     // print_exchange_array(dat);
     return 0;
   }
@@ -429,16 +196,9 @@ public:
   void calibrate() {
     if (read_calibration_from_file) {
       if (read_calibration_file()) {
-        PrintColor::green();
-        printf("Read calibration data from file! ");
-        PrintColor::cyan();
-        printf("Press 'share' and 'home' to calibrate again or start with "
-               "--calibrate or -c.\n");
-        PrintColor::normal();
-
         calibrated = true;
         // send_rumble(0,255);
-        // send_subcommand(0x1, led_command, led_calibrated);
+        // hid_ctrl->led();
 
         return;
       }
@@ -453,18 +213,17 @@ public:
       return;
     }
 
-    // print_buttons(dat[0x0f], dat[0x0e], dat[0x0d]);
-    // print_sticks(dat[0x10], dat[0x11], dat[0x12], dat[0x13], dat[0x14],
-    // dat[0x15]);
+    ProInputParser parser(dat);
+    // print_buttons(parser);
+    // print_sticks(parser);
     // print_exchange_array(dat);
 
     if (!share_button_free) {
-      if (!(dat[0x0e] & byte_button_value(share))) {
+      if (!parser.is_button_pressed(ProInputParser::share)) {
         share_button_free = true;
       }
     } else {
-      bool cal = do_calibrate(dat[0x10], dat[0x11], dat[0x12], dat[0x13],
-                              dat[0x14], dat[0x15], dat[0x0e]);
+      bool cal = do_calibrate(parser);
       if (cal) {
         // send_rumble(0,255);
         calibrated = true;
@@ -474,31 +233,16 @@ public:
 
         // write calibration data to file
         write_calibration_to_file();
-        PrintColor::green();
-        printf("Wrote calibration data to file!\n");
-        PrintColor::normal();
       }
     }
-
-    // std::ofstream out("calibration_data");
-    // if (!out)
-    // {
-    //     return;
-    // }
-
-    // printf("wrote text\n");
-
-    // out.close();
   }
 
-  bool do_calibrate(const uint8_t &stick0, const uint8_t &stick1,
-                    const uint8_t &stick2, const uint8_t &stick3,
-                    const uint8_t &stick4, const uint8_t &stick5,
-                    const uint8_t &mid_buttons) {
-    uint8_t left_x = ((stick1 & 0x0F) << 4) | ((stick0 & 0xF0) >> 4);
-    uint8_t left_y = stick2;
-    uint8_t right_x = ((stick4 & 0x0F) << 4) | ((stick3 & 0xF0) >> 4);
-    uint8_t right_y = stick5;
+  bool do_calibrate(const ProInputParser &parser) {
+    uint8_t left_x;
+    uint8_t left_y;
+    uint8_t right_x;
+    uint8_t right_y;
+    parser.get_joystick_data(left_x, left_y, right_x, right_y);
 
     // invert
     if (config.invert_lx) {
@@ -534,7 +278,7 @@ public:
     // printf("right_y_max: %u\n\n", right_y_max);
     // print_calibration_values();
 
-    return (mid_buttons & byte_button_value(share));
+    return parser.is_button_pressed(ProInputParser::share);
   }
 
   void print_calibration_values() {
@@ -561,9 +305,8 @@ public:
     PrintColor::magenta();
     printf("Controller decalibrated!\n");
     PrintColor::cyan();
-    printf("%c[%d;%dmPerform calibration again and press the square 'share' "
-           "button!\n%c[%dm",
-           27, 1, 36, 27, 0);
+    printf("Perform calibration again and press the square 'share' "
+           "button!\n");
     PrintColor::normal();
     read_calibration_from_file = false;
     share_button_free = false;
@@ -605,7 +348,7 @@ public:
   //         UINPUT
   //-------------------------
 
-  void uinput_manage_dpad(const char &left) {
+  void uinput_manage_dpad(const ProInputParser &parser) {
     bool b_d_left;
     bool b_d_right;
     bool b_d_up;
@@ -613,19 +356,19 @@ public:
 
     // invert
     if (!config.invert_dx) {
-      b_d_left = left & byte_button_value(d_left);
-      b_d_right = left & byte_button_value(d_right);
+      b_d_left  = parser.is_button_pressed(ProInputParser::d_left);
+      b_d_right = parser.is_button_pressed(ProInputParser::d_right);
     } else {
-      b_d_left = left & byte_button_value(d_right);
-      b_d_right = left & byte_button_value(d_left);
+      b_d_left  = parser.is_button_pressed(ProInputParser::d_right);
+      b_d_right = parser.is_button_pressed(ProInputParser::d_left);
     }
 
     if (!config.invert_dy) {
-      b_d_up = left & byte_button_value(d_up);
-      b_d_down = left & byte_button_value(d_down);
+      b_d_up    = parser.is_button_pressed(ProInputParser::d_up);
+      b_d_down  = parser.is_button_pressed(ProInputParser::d_down);
     } else {
-      b_d_up = left & byte_button_value(d_down);
-      b_d_down = left & byte_button_value(d_up);
+      b_d_up    = parser.is_button_pressed(ProInputParser::d_down);
+      b_d_down  = parser.is_button_pressed(ProInputParser::d_up);
     }
 
     if (b_d_left) {
@@ -647,35 +390,34 @@ public:
     uinput_ctrl->send_report();
   }
 
-  void uinput_manage_buttons(const char &left, const char &mid,
-                             const char &right) {
+  void uinput_manage_buttons(const ProInputParser &parser) {
 
-    // bool b_d_left = left & byte_button_value(d_left);
-    // bool b_d_right = left & byte_button_value(d_right);
-    // bool b_d_up = left & byte_button_value(d_up);
-    // bool b_d_down = left & byte_button_value(d_down);
-    bool b_L1 = left & byte_button_value(L1);
-    bool b_L2 = left & byte_button_value(L2);
-    bool b_L3 = mid & byte_button_value(L3);
-    bool b_R1 = right & byte_button_value(R1);
-    bool b_R2 = right & byte_button_value(R2);
-    bool b_R3 = mid & byte_button_value(R3);
-    bool b_share = mid & byte_button_value(share);
-    bool b_home = mid & byte_button_value(home);
-    bool b_plus = mid & byte_button_value(plus);
-    bool b_minus = mid & byte_button_value(minus);
+    // bool b_d_left  = parser.is_button_pressed(ProInputParser::d_left);
+    // bool b_d_right = parser.is_button_pressed(ProInputParser::d_right);
+    // bool b_d_up    = parser.is_button_pressed(ProInputParser::d_up);
+    // bool b_d_down  = parser.is_button_pressed(ProInputParser::d_down);
+    bool b_L1    = parser.is_button_pressed(ProInputParser::L1);
+    bool b_L2    = parser.is_button_pressed(ProInputParser::L2);
+    bool b_L3    = parser.is_button_pressed(ProInputParser::L3);
+    bool b_R1    = parser.is_button_pressed(ProInputParser::R1);
+    bool b_R2    = parser.is_button_pressed(ProInputParser::R2);
+    bool b_R3    = parser.is_button_pressed(ProInputParser::R3);
+    bool b_share = parser.is_button_pressed(ProInputParser::share);
+    bool b_home  = parser.is_button_pressed(ProInputParser::home);
+    bool b_plus  = parser.is_button_pressed(ProInputParser::plus);
+    bool b_minus = parser.is_button_pressed(ProInputParser::minus);
 
     bool b_a, b_b, b_x, b_y;
     if (!config.swap_buttons) {
-      b_a = right & byte_button_value(A);
-      b_b = right & byte_button_value(B);
-      b_x = right & byte_button_value(X);
-      b_y = right & byte_button_value(Y);
+      b_a = parser.is_button_pressed(ProInputParser::A);
+      b_b = parser.is_button_pressed(ProInputParser::B);
+      b_x = parser.is_button_pressed(ProInputParser::X);
+      b_y = parser.is_button_pressed(ProInputParser::Y);
     } else {
-      b_a = right & byte_button_value(B);
-      b_b = right & byte_button_value(A);
-      b_x = right & byte_button_value(Y);
-      b_y = right & byte_button_value(X);
+      b_a = parser.is_button_pressed(ProInputParser::B);
+      b_b = parser.is_button_pressed(ProInputParser::A);
+      b_x = parser.is_button_pressed(ProInputParser::Y);
+      b_y = parser.is_button_pressed(ProInputParser::X);
     }
 
     // press
@@ -855,14 +597,13 @@ public:
     calibration_file.close();
   }
 
-  void uinput_manage_joysticks(const char &dat0, const char &dat1,
-                               const char &dat2, const char &dat3,
-                               const char &dat4, const char &dat5) {
+  void uinput_manage_joysticks(const ProInputParser &parser) {
     // extract data
-    uint8_t left_x = ((dat1 & 0x0F) << 4) | ((dat0 & 0xF0) >> 4);
-    uint8_t left_y = dat2;
-    uint8_t right_x = ((dat4 & 0x0F) << 4) | ((dat3 & 0xF0) >> 4);
-    uint8_t right_y = dat5;
+    uint8_t left_x;
+    uint8_t left_y;
+    uint8_t right_x;
+    uint8_t right_y;
+    parser.get_joystick_data(left_x, left_y, right_x, right_y);
 
     // invert
     if (config.invert_lx) {
@@ -921,14 +662,17 @@ private:
   bool read_calibration_from_file =
       true; // will be set to false in decalibrate or with flags
   bool share_button_free = false; // used for recalibration (press share & home)
-  uint8_t left_x_min = 0x7e;
-  uint8_t left_y_min = 0x7e;
-  uint8_t right_x_min = 0x7e;
-  uint8_t right_y_min = 0x7e;
-  uint8_t left_x_max = 0x7e;
-  uint8_t left_y_max = 0x7e;
-  uint8_t right_x_max = 0x7e;
-  uint8_t right_y_max = 0x7e;
+
+  static constexpr uint8_t center{0x7e};
+
+  uint8_t left_x_min  = center;
+  uint8_t left_y_min  = center;
+  uint8_t right_x_min = center;
+  uint8_t right_y_min = center;
+  uint8_t left_x_max  = center;
+  uint8_t left_y_max  = center;
+  uint8_t right_x_max = center;
+  uint8_t right_y_max = center;
 
   // bool last_d_left = false;
   // bool last_d_right = false;
