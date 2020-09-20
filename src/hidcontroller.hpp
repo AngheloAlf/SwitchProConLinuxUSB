@@ -16,7 +16,9 @@
 class HidController{
 public:
   HidController(unsigned short vendor_id, unsigned short product_id,
-                const wchar_t *serial_number, unsigned short n_controll) {
+                const wchar_t *serial_number, unsigned short n_controll)
+                : ven_id(vendor_id), prod_id(product_id), 
+                  n_controller(n_controll) {
     controller_ptr = hid_open(vendor_id, product_id, serial_number);
     // controller_ptr = hid_open_path("/dev/input/hidraw0");
  
@@ -26,10 +28,6 @@ public:
     }
     // hid_device_info *info = hid_open(vendor_id, product_id, serial_number);
     // std::cout<< "PATH: " << info->path << std::endl;;
-
-    n_controller = n_controll;
-    ven_id = vendor_id;
-    prod_id = product_id;
 
     // if (false)
     // { //!exchange(handshake)) { //need std::optional

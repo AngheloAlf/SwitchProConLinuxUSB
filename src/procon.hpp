@@ -58,9 +58,6 @@ public:
     }
     
     uinput_ctrl = new UInputController();
-
-    btns_map = make_button_map();
-    axis_map = make_axis_map();
   }
 
   ~ProController(){
@@ -120,15 +117,14 @@ public:
 
     ProInputParser parser = hid_ctrl->request_input();
     if (parser.detect_useless_data()) {
-      // printf("detected useless data!\n");
       return;
     }
-
     update_input_state(parser);
 
     if (buttons_pressed[ProInputParser::home] &&
         buttons_pressed[ProInputParser::share]) {
       decalibrate();
+      return;
     }
 
     uinput_manage_buttons();
@@ -248,29 +244,6 @@ private:
     calibration_file.close();
   }
 
-  void map_sticks() {
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-      axis_values[id] = (uint8_t)(clamp((float)(axis_values[id] - axis_min[id]) /
-                                        (float)(axis_max[id] - axis_min[id]) * 255.f));
-    }
-  }
-
-  static float clamp(float inp) {
-    if (inp < 0.5f)
-      return 0.5f;
-    if (inp > 254.5f) {
-      return 254.5f;
-    }
-    return inp;
-  }
-  static int clamp_int(int inp) {
-    if (inp < 0)
-      return 0;
-    if (inp > 255) {
-      return 255;
-    }
-    return inp;
-  }
   //-------------------------
   //         UINPUT
   //-------------------------
@@ -400,6 +373,30 @@ private:
     if (config.invert_ry) axis_values[ProInputParser::axis_ry] = 255 - axis_values[ProInputParser::axis_ry];
   }
 
+  void map_sticks() {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      axis_values[id] = clamp((float)(axis_values[id] - axis_min[id]) /
+                              (float)(axis_max[id] - axis_min[id]) * 255.f);
+    }
+  }
+
+  static float clamp(float inp) {
+    if (inp < 0.5f)
+      return 0.5f;
+    if (inp > 254.5f) {
+      return 254.5f;
+    }
+    return inp;
+  }
+  static int clamp_int(int inp) {
+    if (inp < 0)
+      return 0;
+    if (inp > 255) {
+      return 255;
+    }
+    return inp;
+  }
+
   std::array<int, 18> make_button_map() const {
     std::array<int, 18> map {0};
 
@@ -437,7 +434,6 @@ private:
     return map;
   }
 
-
   const std::string calibration_filename = "procon_calibration_data";
 
   uint n_print_cycle = 1000;
@@ -454,10 +450,10 @@ private:
   std::array<uint8_t, 4> axis_min{center};
   std::array<uint8_t, 4> axis_max{center};
 
-  std::array<int, 4> axis_map;
+  std::array<int, 4> axis_map = make_axis_map();;
   std::array<uint8_t, 4> axis_values{center};
 
-  std::array<int, 18> btns_map;
+  std::array<int, 18> btns_map = make_button_map();;
   const std::array<ProInputParser::BUTTONS, 12> xbox_btns_ids{
     ProInputParser::A, ProInputParser::B,
     ProInputParser::X, ProInputParser::Y,
