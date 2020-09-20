@@ -166,14 +166,13 @@ public:
     // }
     hid_ctrl->led();
 
-    auto dat = hid_ctrl->request_input();
-    if (hid_ctrl->detect_useless_data(dat[0])) {
+    ProInputParser parser = hid_ctrl->request_input();
+    if (parser.detect_useless_data()) {
       // printf("detected useless data!\n");
       return;
     }
 
-    ProInputParser input_parser(dat);
-    update_input_state(input_parser);
+    update_input_state(parser);
 
     if (buttons_pressed[ProInputParser::home] &&
         buttons_pressed[ProInputParser::share]) {
@@ -184,9 +183,9 @@ public:
     uinput_manage_joysticks();
     uinput_manage_dpad();
 
-    // print_buttons(input_parser);
-    // print_sticks(input_parser);
-    // print_exchange_array(dat);
+    // print_buttons(parser);
+    // print_sticks(parser);
+    // parser.print();
     return;
   }
 
@@ -207,17 +206,16 @@ public:
 
     hid_ctrl->blink();
 
-    auto dat = hid_ctrl->request_input();
-    if (hid_ctrl->detect_useless_data(dat[0])) {
+    ProInputParser parser = hid_ctrl->request_input();
+    if (parser.detect_useless_data()) {
       // printf("detected useless data!\n");
       return;
     }
 
-    ProInputParser parser(dat);
     update_input_state(parser);
     // print_buttons(parser);
     // print_sticks(parser);
-    // print_exchange_array(dat);
+    // parser.print();
 
     if (!share_button_free) {
       if (!parser.is_button_pressed(ProInputParser::share)) {
@@ -367,44 +365,6 @@ public:
     }
     return inp;
   }
-
-  static std::array<int, 18> make_button_map() {
-    std::array<int, 18> map {0};
-
-    map[ProInputParser::d_left]  = BTN_DPAD_LEFT;
-    map[ProInputParser::d_right] = BTN_DPAD_RIGHT;
-    map[ProInputParser::d_up]    = BTN_DPAD_UP;
-    map[ProInputParser::d_down]  = BTN_DPAD_DOWN;
-
-    map[ProInputParser::A] = BTN_EAST;
-    map[ProInputParser::B] = BTN_SOUTH;
-    map[ProInputParser::X] = BTN_WEST;
-    map[ProInputParser::Y] = BTN_NORTH;
-
-    map[ProInputParser::plus]  = BTN_START;
-    map[ProInputParser::minus] = BTN_SELECT;
-    map[ProInputParser::home]  = BTN_MODE;
-    // map[ProInputParser::share] = ;
-
-    map[ProInputParser::L1] = BTN_TL;
-    map[ProInputParser::L2] = BTN_TL2;
-    map[ProInputParser::L3] = BTN_THUMBL;
-    map[ProInputParser::R1] = BTN_TR;
-    map[ProInputParser::R2] = BTN_TR2;
-    map[ProInputParser::R3] = BTN_THUMBR;
-
-    return map;
-  }
-
-  static std::array<int, 4> make_axis_map() {
-    std::array<int, 4> map {0};
-    map[ProInputParser::axis_lx] = ABS_X;
-    map[ProInputParser::axis_ly] = ABS_Y;
-    map[ProInputParser::axis_rx] = ABS_RX;
-    map[ProInputParser::axis_ry] = ABS_RY;
-    return map;
-  }
-
   //-------------------------
   //         UINPUT
   //-------------------------
@@ -543,6 +503,44 @@ private:
     map_sticks(axis_values[ProInputParser::axis_lx], axis_values[ProInputParser::axis_ly], 
                axis_values[ProInputParser::axis_rx], axis_values[ProInputParser::axis_ry]);
   }
+
+  static std::array<int, 18> make_button_map() {
+    std::array<int, 18> map {0};
+
+    map[ProInputParser::d_left]  = BTN_DPAD_LEFT;
+    map[ProInputParser::d_right] = BTN_DPAD_RIGHT;
+    map[ProInputParser::d_up]    = BTN_DPAD_UP;
+    map[ProInputParser::d_down]  = BTN_DPAD_DOWN;
+
+    map[ProInputParser::A] = BTN_EAST;
+    map[ProInputParser::B] = BTN_SOUTH;
+    map[ProInputParser::X] = BTN_WEST;
+    map[ProInputParser::Y] = BTN_NORTH;
+
+    map[ProInputParser::plus]  = BTN_START;
+    map[ProInputParser::minus] = BTN_SELECT;
+    map[ProInputParser::home]  = BTN_MODE;
+    // map[ProInputParser::share] = ;
+
+    map[ProInputParser::L1] = BTN_TL;
+    map[ProInputParser::L2] = BTN_TL2;
+    map[ProInputParser::L3] = BTN_THUMBL;
+    map[ProInputParser::R1] = BTN_TR;
+    map[ProInputParser::R2] = BTN_TR2;
+    map[ProInputParser::R3] = BTN_THUMBR;
+
+    return map;
+  }
+
+  static std::array<int, 4> make_axis_map() {
+    std::array<int, 4> map {0};
+    map[ProInputParser::axis_lx] = ABS_X;
+    map[ProInputParser::axis_ly] = ABS_Y;
+    map[ProInputParser::axis_rx] = ABS_RX;
+    map[ProInputParser::axis_ry] = ABS_RY;
+    return map;
+  }
+
 
   const std::string calibration_filename = "procon_calibration_data";
 

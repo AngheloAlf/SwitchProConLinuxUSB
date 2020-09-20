@@ -9,43 +9,12 @@
 #include <ios>
 #include <unistd.h>
 
+#include "proinputparser.hpp"
+
 #define TEST_BAD_DATA_CYCLES 10
 
-
 class HidController{
-private:
-  hid_device *controller_ptr = nullptr;
-
-  unsigned short ven_id;
-  unsigned short prod_id;
-  unsigned short n_controller;
-
-  uint8_t rumble_counter{0};
-  const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
-  const std::array<uint8_t, 0> empty{{}};
-  const std::array<uint8_t, 2> handshake{{0x80, 0x02}};
-  const std::array<uint8_t, 2> switch_baudrate{{0x80, 0x03}};
-
-  /** 
-   * Forces the Pro Controller to only talk over USB HID without any timeouts. 
-   * This is required for the Pro Controller to not time out and revert to Bluetooth.
-   */
-  const std::array<uint8_t, 2> hid_only_mode{{0x80, 0x04}};
-  // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
-  const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
-
-
-  uint blink_position = 0;
-  size_t blink_counter = 0;
-  const size_t blink_length = 8;
-
-  static constexpr uint8_t led_command{0x30};
-  static constexpr uint8_t get_input{0x1f};
-  //static constexpr uint8_t center{0x7e};
 public:
-  static constexpr size_t exchange_length{0x400};
-  using exchange_array = std::array<uint8_t, exchange_length>;
-
   HidController(unsigned short vendor_id, unsigned short product_id,
                 const wchar_t *serial_number, unsigned short n_controll) {
     controller_ptr = hid_open(vendor_id, product_id, serial_number);
@@ -93,7 +62,7 @@ public:
     }
   }
 
-  exchange_array request_input() {
+  ProInputParser request_input() {
     return send_command(get_input, empty);
   }
 
@@ -133,7 +102,7 @@ public:
     }
   }
 
-  exchange_array send_rumble(uint8_t large_motor, uint8_t small_motor) {
+  ProInputParser send_rumble(uint8_t large_motor, uint8_t small_motor) {
     std::array<uint8_t, 9> buf{
       static_cast<uint8_t>(rumble_counter++ & 0xF),
       0x80, 0x00, 0x40, 0x40, 0x80, 0x00, 0x40, 0x40};
@@ -145,69 +114,40 @@ public:
       buf[1] = buf[5] = 0x10;
       buf[2] = buf[6] = small_motor;
     }
-    exchange_array ret = send_command(0x10, buf);
-    print_exchange_array(ret);
+    ProInputParser ret = send_command(0x10, buf);
+    ret.print();
     return ret;
   }
 
-  static void print_exchange_array(exchange_array arr) {
-    bool redcol = false;
-    if (arr[0] != 0x30)
-      PrintColor::yellow();
-    else {
-      PrintColor::red();
-      redcol = true;
-    }
-    for (size_t i = 0; i < 0x20; ++i) {
-      if (arr[i] == 0x00) {
-        PrintColor::blue();
-      } else {
-        if (redcol) {
-          PrintColor::red();
-        } else {
-          PrintColor::yellow();
-        }
-      }
-      printf("%02X ", arr[i]);
-    }
-    PrintColor::normal();
-    printf("\n");
-    fflush(stdout);
-  }
-
 private:
-
   template <size_t length>
-  exchange_array exchange(std::array<uint8_t, length> const &data,
+  ProInputParser exchange(std::array<uint8_t, length> const &data,
                           bool timed = false) {
-
     if (hid_write(controller_ptr, data.data(), length) < 0) {
       throw std::system_error(-1, std::generic_category(), 
                               "ERROR: read() returned -1!\n"
                               "Did you disconnect the controller?");
     }
 
-    exchange_array ret;
+    ProInputParser::exchange_array ret;
     ret.fill(0);
 
     bool successful = false;
     if (!timed) {
-      successful = hid_read(controller_ptr, ret.data(), exchange_length) >= 0;
+      successful = hid_read(controller_ptr, ret.data(), ProInputParser::exchange_length) >= 0;
     } else {
-      successful = hid_read_timeout(controller_ptr, ret.data(), exchange_length, 100) != 0;
+      successful = hid_read_timeout(controller_ptr, ret.data(), ProInputParser::exchange_length, 100) != 0;
     }
 
     if (!successful) {
       throw std::system_error(-2, std::generic_category());
     }
 
-    return ret;
+    return ProInputParser(ret);
   }
 
-
-
   template <size_t length>
-  exchange_array send_command(uint8_t command,
+  ProInputParser send_command(uint8_t command,
                               std::array<uint8_t, length> const &data) {
     std::array<uint8_t, length + 0x9> buffer;
     buffer.fill(0);
@@ -222,7 +162,7 @@ private:
   }
 
   template <size_t length>
-  exchange_array send_subcommand(uint8_t command, uint8_t subcommand,
+  ProInputParser send_subcommand(uint8_t command, uint8_t subcommand,
                                  std::array<uint8_t, length> const &data) {
     std::array<uint8_t, length + 10> buffer{
         static_cast<uint8_t>(rumble_counter++ & 0xF),
@@ -235,15 +175,13 @@ private:
     return send_command(command, buffer);
   }
 
-
   bool try_read_bad_data() {
-    auto dat = send_command(get_input, empty);
+    ProInputParser dat = send_command(get_input, empty);
 
-    if (detect_useless_data(dat[0])) {
+    if (dat.detect_useless_data()) {
       return false;
     }
-
-    if (detect_bad_data(dat[0], dat[1])) {
+    if (dat.detect_bad_data()) {
       // print_exchange_array(dat);
       return true;
     }
@@ -251,22 +189,33 @@ private:
     return false;
   }
 
-  /* Hackishly detects when the controller is trapped in a bad loop.
-  Nothing to do here, need to reopen device :(*/
-  bool detect_bad_data(const uint8_t &dat1, const uint8_t &dat2) {
-    return dat2 == 0x01 && dat1 == 0x81;
-  }
+  hid_device *controller_ptr = nullptr;
 
-public:
-  /* If this returns true, there is no controller information in this package,
-   * we can skip it*/
-  bool detect_useless_data(const uint8_t &dat) {
-    /*if (dat == 0x30)
-      n_bad_data_thirty++;
-    if (dat == 0x00)
-      n_bad_data_zero++;*/
-    return (dat == 0x30 || dat == 0x00);
-  }
+  unsigned short ven_id;
+  unsigned short prod_id;
+  unsigned short n_controller;
+
+  uint8_t rumble_counter{0};
+  const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
+  const std::array<uint8_t, 0> empty{{}};
+  const std::array<uint8_t, 2> handshake{{0x80, 0x02}};
+  const std::array<uint8_t, 2> switch_baudrate{{0x80, 0x03}};
+
+  /** 
+   * Forces the Pro Controller to only talk over USB HID without any timeouts. 
+   * This is required for the Pro Controller to not time out and revert to Bluetooth.
+   */
+  const std::array<uint8_t, 2> hid_only_mode{{0x80, 0x04}};
+  // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
+  const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
+
+
+  uint blink_position = 0;
+  size_t blink_counter = 0;
+  const size_t blink_length = 8;
+
+  static constexpr uint8_t led_command{0x30};
+  static constexpr uint8_t get_input{0x1f};
 };
 
 #endif

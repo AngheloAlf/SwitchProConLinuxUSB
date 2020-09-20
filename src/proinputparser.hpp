@@ -63,6 +63,27 @@ public:
     }
   }
 
+
+  /* Hackishly detects when the controller is trapped in a bad loop.
+  Nothing to do here, need to reopen device :(*/
+  bool detect_bad_data() const {
+    return dat[1] == 0x01 && dat[0] == 0x81;
+  }
+
+  /* If this returns true, there is no controller information in this package,
+   * we can skip it*/
+  bool detect_useless_data() const {
+    /*if (dat == 0x30)
+      n_bad_data_thirty++;
+    if (dat == 0x00)
+      n_bad_data_zero++;*/
+    return (dat[0] == 0x30 || dat[0] == 0x00);
+  }
+
+  void print() const {
+    print_exchange_array(dat);
+  }
+
   static uint8_t bit_position(BUTTONS button) {
     switch (button) {
     case d_left:
@@ -273,6 +294,30 @@ public:
     }
   }
 
+  static void print_exchange_array(exchange_array arr) {
+    bool redcol = false;
+    if (arr[0] != 0x30)
+      PrintColor::yellow();
+    else {
+      PrintColor::red();
+      redcol = true;
+    }
+    for (size_t i = 0; i < 0x20; ++i) {
+      if (arr[i] == 0x00) {
+        PrintColor::blue();
+      } else {
+        if (redcol) {
+          PrintColor::red();
+        } else {
+          PrintColor::yellow();
+        }
+      }
+      printf("%02X ", arr[i]);
+    }
+    PrintColor::normal();
+    printf("\n");
+    fflush(stdout);
+  }
 
 private:
   exchange_array dat;
