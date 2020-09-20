@@ -10,10 +10,6 @@ public:
   using exchange_array = std::array<uint8_t, exchange_length>;
 
   enum BUTTONS {
-    d_left,
-    d_right,
-    d_up,
-    d_down,
     A,
     B,
     X,
@@ -36,7 +32,15 @@ public:
     axis_ly,
     axis_rx,
     axis_ry,
-    axis_none,
+    axis_none
+  };
+
+  enum DPAD {
+    d_left,
+    d_right,
+    d_up,
+    d_down,
+    d_none
   };
 
   ProInputParser(exchange_array data): dat(data) {
@@ -63,6 +67,11 @@ public:
     }
   }
 
+  bool is_dpad_pressed(DPAD dpad) const {
+    uint8_t pos = dpad_data_address(dpad);
+    return dat[pos] & dpad_byte_value(dpad);
+  }
+
 
   /* Hackishly detects when the controller is trapped in a bad loop.
   Nothing to do here, need to reopen device :(*/
@@ -86,213 +95,141 @@ public:
 
   static uint8_t bit_position(BUTTONS button) {
     switch (button) {
-    case d_left:
-      return 0x04;
-      break;
-    case d_right:
-      return 0x03;
-      break;
-    case d_up:
-      return 0x02;
-      break;
-    case d_down:
-      return 0x01;
-      break;
-    case A:
-      return 0x04;
-      break;
-    case B:
-      return 0x03;
-      break;
-    case X:
-      return 0x02;
-      break;
     case Y:
-      return 0x01;
-      break;
-    case plus:
-      return 0x02;
-      break;
     case minus:
       return 0x01;
-      break;
-    case home:
-      return 0x05;
-      break;
-    case share:
-      return 0x06;
-      break;
-    case L1:
-      return 0x07;
-      break;
-    case L2:
-      return 0x08;
-      break;
-    case L3:
-      return 0x04;
-      break;
-    case R1:
-      return 0x07;
-      break;
-    case R2:
-      return 0x08;
-      break;
+    case X:
+    case plus:
+      return 0x02;
+    case B:
     case R3:
       return 0x03;
-      break;
+    case A:
+    case L3:
+      return 0x04;
+    case home:
+      return 0x05;
+    case share:
+      return 0x06;
+    case L1:
+    case R1:
+      return 0x07;
+    case L2:
+    case R2:
+      return 0x08;
     case None:
       return 0x00;
-      break;
     default:
-      #if 0
-      PrintColor::red();
-      printf("ERROR: Tried to find bitpos of unknown button!\n");
-      PrintColor::normal();
-      return 0x00;
-      #endif
-      break;
+      throw std::domain_error("ERROR: Tried to find bitpos of unknown button!");
     }
   }
 
   static uint8_t byte_button_value(BUTTONS button) {
     switch (button) {
-    case d_left:
-      return 0x08;
-      break;
-    case d_right:
-      return 0x04;
-      break;
-    case d_up:
-      return 0x02;
-      break;
-    case d_down:
-      return 0x01;
-      break;
-    case A:
-      return 0x08;
-      break;
-    case B:
-      return 0x04;
-      break;
-    case X:
-      return 0x02;
-      break;
     case Y:
-      return 0x01;
-      break;
-    case plus:
-      return 0x02;
-      break;
     case minus:
       return 0x01;
-      break;
-    case home:
-      return 0x10;
-      break;
-    case share:
-      return 0x20;
-      break;
-    case L1:
-      return 0x40;
-      break;
-    case L2:
-      return 0x80;
-      break;
-    case L3:
-      return 0x08;
-      break;
-    case R1:
-      return 0x40;
-      break;
-    case R2:
-      return 0x80;
-      break;
+    case X:
+    case plus:
+      return 0x02;
+    case B:
     case R3:
       return 0x04;
-      break;
+    case A:
+    case L3:
+      return 0x08;
+    case home:
+      return 0x10;
+    case share:
+      return 0x20;
+    case L1:
+    case R1:
+      return 0x40;
+    case L2:
+    case R2:
+      return 0x80;
     case None:
       return 0x00;
-      break;
     default:
-      #if 0
-      PrintColor::red();
-      printf("ERROR: Tried to find bitpos of unknown button!\n");
-      PrintColor::normal();
-      #endif
-      return 0x00;
-      break;
+      throw std::domain_error("ERROR: Tried to find bytepos of unknown button!");
     }
   }
 
   static uint8_t data_address(BUTTONS button) {
     switch (button) {
-    case d_left:
-      return 0x0f;
-      break;
-    case d_right:
-      return 0x0f;
-      break;
-    case d_up:
-      return 0x0f;
-      break;
-    case d_down:
-      return 0x0f;
-      break;
     case A:
-      return 0x0d;
-      break;
     case B:
-      return 0x0d;
-      break;
     case X:
-      return 0x0d;
-      break;
     case Y:
-      return 0x0d;
-      break;
-    case plus:
-      return 0x0e;
-      break;
-    case minus:
-      return 0x0e;
-      break;
-    case home:
-      return 0x0e;
-      break;
-    case share:
-      return 0x0e;
-      break;
-    case L1:
-      return 0x0f;
-      break;
-    case L2:
-      return 0x0f;
-      break;
-    case L3:
-      return 0x0e;
-      break;
     case R1:
-      return 0x0d;
-      break;
     case R2:
       return 0x0d;
-      break;
+    case plus:
+    case minus:
+    case home:
+    case share:
+    case L3:
     case R3:
       return 0x0e;
-      break;
+    case L1:
+    case L2:
+      return 0x0f;
     case None:
       return 0x00;
-      break;
     default:
-      #if 0
-      PrintColor::red();
-      printf("ERROR: Tried to find data adress of unknown button!\n");
-      PrintColor::normal();
-      #endif
-      return 0x00;
-      break;
+      throw std::domain_error("ERROR: Tried to find adress of unknown button!");
     }
   }
+
+
+  static uint8_t dpad_bit_position(DPAD dpad) {
+    switch (dpad) {
+    case d_left:
+      return 0x04;
+    case d_right:
+      return 0x03;
+    case d_up:
+      return 0x02;
+    case d_down:
+      return 0x01;
+    case d_none:
+      return 0x00;
+    default:
+      throw std::domain_error("ERROR: Tried to find bitpos of unknown dpad button!");
+    }
+  }
+
+  static uint8_t dpad_byte_value(DPAD dpad) {
+    switch (dpad) {
+    case d_left:
+      return 0x08;
+    case d_right:
+      return 0x04;
+    case d_up:
+      return 0x02;
+    case d_down:
+      return 0x01;
+    case d_none:
+      return 0x00;
+    default:
+      throw std::domain_error("ERROR: Tried to find bytepos of unknown dpad button!");
+    }
+  }
+
+  static uint8_t dpad_data_address(DPAD dpad) {
+    switch (dpad) {
+    case d_left:
+    case d_right:
+    case d_up:
+    case d_down:
+      return 0x0f;
+    case d_none:
+      return 0x00;
+    default:
+      throw std::domain_error("ERROR: Tried to find adress of unknown dpad button!");
+    }
+  }
+
 
   static void print_exchange_array(exchange_array arr) {
     bool redcol = false;
@@ -321,14 +258,6 @@ public:
 
   static const char *button_name(BUTTONS button) {
     switch (button) {
-    case d_left:
-      return "d_left";
-    case d_right:
-      return "d_right";
-    case d_up:
-      return "d_up";
-    case d_down:
-      return "d_down";
     case A:
       return "A";
     case B:
@@ -381,24 +310,47 @@ public:
     }
   }
 
-  static const std::array<BUTTONS, 18> btns_ids;
+  static const char *dpad_name(DPAD dpad) {
+    switch (dpad) {
+    case d_left:
+      return "d_left";
+    case d_right:
+      return "d_right";
+    case d_up:
+      return "d_up";
+    case d_down:
+      return "d_down";
+    case d_none:
+      return "None";
+    default:
+      return nullptr;
+    }
+  }
+
+  static const std::array<BUTTONS, 14> btns_ids;
   static const std::array<AXIS, 4> axis_ids;
+  static const std::array<DPAD, 4> dpad_ids;
 
 private:
   exchange_array dat;
 
 };
 
-const std::array<ProInputParser::BUTTONS, 18> ProInputParser::btns_ids = {
-  ProInputParser::d_left, ProInputParser::d_right, ProInputParser::d_up, ProInputParser::d_down,
+const std::array<ProInputParser::BUTTONS, 14> ProInputParser::btns_ids = {
   ProInputParser::A, ProInputParser::B, ProInputParser::X, ProInputParser::Y,
-  ProInputParser::plus, ProInputParser::minus, ProInputParser::home, ProInputParser::share,
+  ProInputParser::plus, ProInputParser::minus, 
+  ProInputParser::home, ProInputParser::share,
   ProInputParser::L1, ProInputParser::L2, ProInputParser::L3,
   ProInputParser::R1, ProInputParser::R2, ProInputParser::R3,
 };
 
 const std::array<ProInputParser::AXIS, 4> ProInputParser::axis_ids = {
   ProInputParser::axis_lx, ProInputParser::axis_ly, ProInputParser::axis_rx, ProInputParser::axis_ry,
+};
+
+const std::array<ProInputParser::DPAD, 4> ProInputParser::dpad_ids = {
+  ProInputParser::d_left, ProInputParser::d_right, 
+  ProInputParser::d_up, ProInputParser::d_down,
 };
 
 #endif

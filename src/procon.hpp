@@ -102,6 +102,14 @@ public:
     }
   }
 
+  void print_dpad() const {
+    for (const ProInputParser::DPAD &id: ProInputParser::dpad_ids) {
+      if (dpad_pressed[id]) {
+        printf("%s ", ProInputParser::dpad_name(id));
+      }
+    }
+  }
+
   void print_calibration_values() const {
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       printf("%s %03i,%03i   ", ProInputParser::axis_name(id), axis_min[id], axis_max[id]);
@@ -249,20 +257,20 @@ private:
   //-------------------------
 
   void uinput_manage_dpad() {
-    if (buttons_pressed[ProInputParser::d_left]) {
+    if (dpad_pressed[ProInputParser::d_left]) {
       uinput_ctrl->write_single_joystick(-1, ABS_HAT0X);
-    } else if (buttons_pressed[ProInputParser::d_right]) {
+    } else if (dpad_pressed[ProInputParser::d_right]) {
       uinput_ctrl->write_single_joystick(1, ABS_HAT0X);
-    } else if (!buttons_pressed[ProInputParser::d_left] &&
-               !buttons_pressed[ProInputParser::d_right]) {
+    } else if (!dpad_pressed[ProInputParser::d_left] &&
+               !dpad_pressed[ProInputParser::d_right]) {
       uinput_ctrl->write_single_joystick(0, ABS_HAT0X);
     }
-    if (buttons_pressed[ProInputParser::d_down]) {
+    if (dpad_pressed[ProInputParser::d_down]) {
       uinput_ctrl->write_single_joystick(-1, ABS_HAT0Y);
-    } else if (buttons_pressed[ProInputParser::d_up]) {
+    } else if (dpad_pressed[ProInputParser::d_up]) {
       uinput_ctrl->write_single_joystick(1, ABS_HAT0Y);
-    } else if (!buttons_pressed[ProInputParser::d_down] &&
-               !buttons_pressed[ProInputParser::d_up]) {
+    } else if (!dpad_pressed[ProInputParser::d_down] &&
+               !dpad_pressed[ProInputParser::d_up]) {
       uinput_ctrl->write_single_joystick(0, ABS_HAT0Y);
     }
 
@@ -348,6 +356,14 @@ private:
       axis_values[id] = parser.get_axis_status(id);
     }
 
+    /// dpad
+    for (const ProInputParser::DPAD &id: ProInputParser::dpad_ids) {
+      /// Store last state
+      dpad_last[id] = dpad_pressed[id];
+      /// Update value
+      dpad_pressed[id] = parser.is_dpad_pressed(id);
+    }
+
     if (config.swap_buttons) {
       buttons_pressed[ProInputParser::A] = parser.is_button_pressed(ProInputParser::B);
       buttons_pressed[ProInputParser::B] = parser.is_button_pressed(ProInputParser::A);
@@ -356,12 +372,12 @@ private:
     }
 
     if (config.invert_dx) {
-      buttons_pressed[ProInputParser::d_left]  = parser.is_button_pressed(ProInputParser::d_right);
-      buttons_pressed[ProInputParser::d_right] = parser.is_button_pressed(ProInputParser::d_left);
+      dpad_pressed[ProInputParser::d_left]  = parser.is_dpad_pressed(ProInputParser::d_right);
+      dpad_pressed[ProInputParser::d_right] = parser.is_dpad_pressed(ProInputParser::d_left);
     }
     if (config.invert_dy) {
-      buttons_pressed[ProInputParser::d_up]    = parser.is_button_pressed(ProInputParser::d_down);
-      buttons_pressed[ProInputParser::d_down]  = parser.is_button_pressed(ProInputParser::d_up);
+      dpad_pressed[ProInputParser::d_up]    = parser.is_dpad_pressed(ProInputParser::d_down);
+      dpad_pressed[ProInputParser::d_down]  = parser.is_dpad_pressed(ProInputParser::d_up);
     }
 
     map_sticks();
@@ -397,13 +413,8 @@ private:
     return inp;
   }
 
-  std::array<int, 18> make_button_map() const {
-    std::array<int, 18> map {0};
-
-    map[ProInputParser::d_left]  = BTN_DPAD_LEFT;
-    map[ProInputParser::d_right] = BTN_DPAD_RIGHT;
-    map[ProInputParser::d_up]    = BTN_DPAD_UP;
-    map[ProInputParser::d_down]  = BTN_DPAD_DOWN;
+  std::array<int, 14> make_button_map() const {
+    std::array<int, 14> map {0};
 
     map[ProInputParser::A] = BTN_EAST;
     map[ProInputParser::B] = BTN_SOUTH;
@@ -434,6 +445,15 @@ private:
     return map;
   }
 
+  std::array<int, 4> make_dpad_map() const {
+    std::array<int, 4> map {0};
+    map[ProInputParser::d_left]  = BTN_DPAD_LEFT;
+    map[ProInputParser::d_right] = BTN_DPAD_RIGHT;
+    map[ProInputParser::d_up]    = BTN_DPAD_UP;
+    map[ProInputParser::d_down]  = BTN_DPAD_DOWN;
+    return map;
+  }
+
   const std::string calibration_filename = "procon_calibration_data";
 
   uint n_print_cycle = 1000;
@@ -450,10 +470,10 @@ private:
   std::array<uint8_t, 4> axis_min{center};
   std::array<uint8_t, 4> axis_max{center};
 
-  std::array<int, 4> axis_map = make_axis_map();;
+  std::array<int, 4> axis_map = make_axis_map();
   std::array<uint8_t, 4> axis_values{center};
 
-  std::array<int, 18> btns_map = make_button_map();;
+  std::array<int, 14> btns_map = make_button_map();
   const std::array<ProInputParser::BUTTONS, 12> xbox_btns_ids{
     ProInputParser::A, ProInputParser::B,
     ProInputParser::X, ProInputParser::Y,
@@ -462,12 +482,12 @@ private:
     ProInputParser::L1, /*ProInputParser::L2,*/ ProInputParser::L3,
     ProInputParser::R1, /*ProInputParser::R2,*/ ProInputParser::R3,
   };
-  const std::array<ProInputParser::BUTTONS, 4> dpad_ids{
-    ProInputParser::d_left, ProInputParser::d_right,
-    ProInputParser::d_up, ProInputParser::d_down,
-  };
-  std::array<bool, 18> buttons_pressed{false};
-  std::array<bool, 18> last_pressed{false};
+  std::array<bool, 14> buttons_pressed{false};
+  std::array<bool, 14> last_pressed{false};
+
+  std::array<int, 4> dpad_map = make_dpad_map();
+  std::array<bool, 4> dpad_pressed{false};
+  std::array<bool, 4> dpad_last{false};
 
   bool dribble_mode = false;
 
