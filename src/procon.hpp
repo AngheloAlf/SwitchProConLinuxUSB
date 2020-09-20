@@ -152,7 +152,6 @@ public:
 
     ProInputParser parser = hid_ctrl->request_input();
     if (parser.detect_useless_data()) {
-      // printf("detected useless data!\n");
       return;
     }
 
@@ -164,7 +163,7 @@ public:
         share_button_free = true;
       }
     } else {
-      if (do_calibrate()) {
+      if (do_calibrate(parser)) {
         // send_rumble(0,255);
         calibrated = true;
         hid_ctrl->led();
@@ -173,15 +172,20 @@ public:
     }
   }
 
-  bool do_calibrate() {
-    left_x_min  = (axis_values[ProInputParser::axis_lx]  < left_x_min)  ? axis_values[ProInputParser::axis_lx]  : left_x_min;
-    left_y_min  = (axis_values[ProInputParser::axis_ly]  < left_y_min)  ? axis_values[ProInputParser::axis_ly]  : left_y_min;
-    right_x_min = (axis_values[ProInputParser::axis_rx] < right_x_min) ? axis_values[ProInputParser::axis_rx] : right_x_min;
-    right_y_min = (axis_values[ProInputParser::axis_ry] < right_y_min) ? axis_values[ProInputParser::axis_ry] : right_y_min;
-    left_x_max  = (axis_values[ProInputParser::axis_lx]  > left_x_max)  ? axis_values[ProInputParser::axis_lx]  : left_x_max;
-    left_y_max  = (axis_values[ProInputParser::axis_ly]  > left_y_max)  ? axis_values[ProInputParser::axis_ly]  : left_y_max;
-    right_x_max = (axis_values[ProInputParser::axis_rx] > right_x_max) ? axis_values[ProInputParser::axis_rx] : right_x_max;
-    right_y_max = (axis_values[ProInputParser::axis_ry] > right_y_max) ? axis_values[ProInputParser::axis_ry] : right_y_max;
+  bool do_calibrate(const ProInputParser &parser) {
+    uint8_t lx = parser.get_axis_status(ProInputParser::axis_lx);
+    uint8_t ly = parser.get_axis_status(ProInputParser::axis_ly);
+    uint8_t rx = parser.get_axis_status(ProInputParser::axis_rx);
+    uint8_t ry = parser.get_axis_status(ProInputParser::axis_ry);
+
+    left_x_min  = (lx < left_x_min)  ? lx : left_x_min;
+    left_y_min  = (ly < left_y_min)  ? ly : left_y_min;
+    right_x_min = (rx < right_x_min) ? rx : right_x_min;
+    right_y_min = (ry < right_y_min) ? ry : right_y_min;
+    left_x_max  = (lx > left_x_max)  ? lx : left_x_max;
+    left_y_max  = (ly > left_y_max)  ? ly : left_y_max;
+    right_x_max = (rx > right_x_max) ? rx : right_x_max;
+    right_y_max = (ry > right_y_max) ? ry : right_y_max;
 
     // printf("left_x_min: %u\n", left_x_min);
     // printf("left_y_min: %u\n", left_y_min);
