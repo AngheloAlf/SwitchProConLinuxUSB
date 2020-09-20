@@ -105,6 +105,12 @@ public:
     }
   }
 
+  void print_calibration_values() const {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      printf("%s %03i,%03i   ", ProInputParser::axis_name(id), axis_min[id], axis_max[id]);
+    }
+  }
+
   void poll_input() {
     // print_cycle_counter++;
     // if(print_cycle_counter++ > n_print_cycle) {
@@ -143,7 +149,6 @@ public:
         calibrated = true;
         // send_rumble(0,255);
         // hid_ctrl->led();
-
         return;
       }
     }
@@ -173,53 +178,22 @@ public:
   }
 
   bool do_calibrate(const ProInputParser &parser) {
-    uint8_t lx = parser.get_axis_status(ProInputParser::axis_lx);
-    uint8_t ly = parser.get_axis_status(ProInputParser::axis_ly);
-    uint8_t rx = parser.get_axis_status(ProInputParser::axis_rx);
-    uint8_t ry = parser.get_axis_status(ProInputParser::axis_ry);
-
-    left_x_min  = (lx < left_x_min)  ? lx : left_x_min;
-    left_y_min  = (ly < left_y_min)  ? ly : left_y_min;
-    right_x_min = (rx < right_x_min) ? rx : right_x_min;
-    right_y_min = (ry < right_y_min) ? ry : right_y_min;
-    left_x_max  = (lx > left_x_max)  ? lx : left_x_max;
-    left_y_max  = (ly > left_y_max)  ? ly : left_y_max;
-    right_x_max = (rx > right_x_max) ? rx : right_x_max;
-    right_y_max = (ry > right_y_max) ? ry : right_y_max;
-
-    // printf("left_x_min: %u\n", left_x_min);
-    // printf("left_y_min: %u\n", left_y_min);
-    // printf("right_x_min: %u\n", right_x_min);
-    // printf("right_y_min: %u\n", right_y_min);
-    // printf("left_x_max: %u\n", left_x_max);
-    // printf("left_y_max: %u\n", left_y_max);
-    // printf("right_x_max: %u\n", right_x_max);
-    // printf("right_y_max: %u\n\n", right_y_max);
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      uint8_t value = parser.get_axis_status(id);
+      if (value < axis_min[id]) axis_min[id] = value;
+      if (value > axis_max[id]) axis_max[id] = value;
+    }
     // print_calibration_values();
 
     return buttons_pressed[ProInputParser::share];
   }
 
-  void print_calibration_values() {
-    std::cout << "LX: " << (unsigned int)left_x_min << ","
-              << (unsigned int)left_x_max
-              << "   LY: " << (unsigned int)left_y_min << ","
-              << (unsigned int)left_y_max
-              << "   RX: " << (unsigned int)right_x_min << ","
-              << (unsigned int)right_x_max
-              << "   RY: " << (unsigned int)right_y_min << ","
-              << (unsigned int)right_y_max << "                \n";
-  }
-
   void decalibrate() {
-    left_x_min = center;
-    left_x_max = center;
-    left_y_min = center;
-    left_x_max = center;
-    right_x_min = center;
-    right_x_max = center;
-    right_y_min = center;
-    right_x_max = center;
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      axis_min[id] = center;
+      axis_max[id] = center;
+    }
+
     calibrated = false;
     PrintColor::magenta();
     printf("Controller decalibrated!\n");
@@ -252,15 +226,10 @@ private:
     myReadFile.open(calibration_filename,
                     std::ios::in | std::ios::binary);
     if (myReadFile) {
-      myReadFile.read((char *)&left_x_min, sizeof(uint8_t));
-      myReadFile.read((char *)&left_x_max, sizeof(uint8_t));
-      myReadFile.read((char *)&left_y_min, sizeof(uint8_t));
-      myReadFile.read((char *)&left_y_max, sizeof(uint8_t));
-      myReadFile.read((char *)&right_x_min, sizeof(uint8_t));
-      myReadFile.read((char *)&right_x_max, sizeof(uint8_t));
-      myReadFile.read((char *)&right_y_min, sizeof(uint8_t));
-      myReadFile.read((char *)&right_y_max, sizeof(uint8_t));
-
+      for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+        myReadFile.read((char *)&axis_min[id], sizeof(uint8_t));
+        myReadFile.read((char *)&axis_max[id], sizeof(uint8_t));
+      }
       file_readed = true;
     }
 
@@ -268,31 +237,22 @@ private:
     return file_readed;
   }
 
-  void write_calibration_to_file() const {
+  void write_calibration_to_file() {
     std::ofstream calibration_file;
     calibration_file.open(calibration_filename,
                           std::ios::out | std::ios::binary);
-    calibration_file.write((char *)&left_x_min, sizeof(uint8_t));
-    calibration_file.write((char *)&left_x_max, sizeof(uint8_t));
-    calibration_file.write((char *)&left_y_min, sizeof(uint8_t));
-    calibration_file.write((char *)&left_y_max, sizeof(uint8_t));
-    calibration_file.write((char *)&right_x_min, sizeof(uint8_t));
-    calibration_file.write((char *)&right_x_max, sizeof(uint8_t));
-    calibration_file.write((char *)&right_y_min, sizeof(uint8_t));
-    calibration_file.write((char *)&right_y_max, sizeof(uint8_t));
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      calibration_file.write((char *)&axis_min[id], sizeof(uint8_t));
+      calibration_file.write((char *)&axis_max[id], sizeof(uint8_t));
+    }
     calibration_file.close();
   }
 
-  void map_sticks(uint8_t &left_x, uint8_t &left_y, uint8_t &right_x,
-                        uint8_t &right_y) {
-    left_x = (uint8_t)(clamp((float)(left_x - left_x_min) /
-                             (float)(left_x_max - left_x_min) * 255.f));
-    left_y = (uint8_t)(clamp((float)(left_y - left_y_min) /
-                             (float)(left_y_max - left_y_min) * 255.f));
-    right_x = (uint8_t)(clamp((float)(right_x - right_x_min) /
-                              (float)(right_x_max - right_x_min) * 255.f));
-    right_y = (uint8_t)(clamp((float)(right_y - right_y_min) /
-                              (float)(right_y_max - right_y_min) * 255.f));
+  void map_sticks() {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      axis_values[id] = (uint8_t)(clamp((float)(axis_values[id] - axis_min[id]) /
+                                        (float)(axis_max[id] - axis_min[id]) * 255.f));
+    }
   }
 
   static float clamp(float inp) {
@@ -431,14 +391,13 @@ private:
       buttons_pressed[ProInputParser::d_down]  = parser.is_button_pressed(ProInputParser::d_up);
     }
 
+    map_sticks();
+
     // Invert axis
     if (config.invert_lx) axis_values[ProInputParser::axis_lx] = 255 - axis_values[ProInputParser::axis_lx];
     if (config.invert_ly) axis_values[ProInputParser::axis_ly] = 255 - axis_values[ProInputParser::axis_ly];
     if (config.invert_rx) axis_values[ProInputParser::axis_rx] = 255 - axis_values[ProInputParser::axis_rx];
     if (config.invert_ry) axis_values[ProInputParser::axis_ry] = 255 - axis_values[ProInputParser::axis_ry];
-
-    map_sticks(axis_values[ProInputParser::axis_lx], axis_values[ProInputParser::axis_ly], 
-               axis_values[ProInputParser::axis_rx], axis_values[ProInputParser::axis_ry]);
   }
 
   std::array<int, 18> make_button_map() const {
@@ -492,14 +451,8 @@ private:
   bool share_button_free = false; // used for recalibration (press share & home)
 
   static constexpr uint8_t center{0x7e};
-  uint8_t left_x_min  = center;
-  uint8_t left_y_min  = center;
-  uint8_t right_x_min = center;
-  uint8_t right_y_min = center;
-  uint8_t left_x_max  = center;
-  uint8_t left_y_max  = center;
-  uint8_t right_x_max = center;
-  uint8_t right_y_max = center;
+  std::array<uint8_t, 4> axis_min{center};
+  std::array<uint8_t, 4> axis_max{center};
 
   std::array<int, 4> axis_map;
   std::array<uint8_t, 4> axis_values{center};
