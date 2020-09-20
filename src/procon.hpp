@@ -58,6 +58,8 @@ public:
     }
     
     uinput_ctrl = new UInputController();
+
+    btns_map = make_button_map();
   }
 
   ~ProController(){
@@ -155,7 +157,6 @@ public:
   // }
 
   void clear_console() { system("clear"); }
-
 
   int poll_input() {
     // print_cycle_counter++;
@@ -289,7 +290,7 @@ public:
               << "   RX: " << (unsigned int)right_x_min << ","
               << (unsigned int)right_x_max
               << "   RY: " << (unsigned int)right_y_min << ","
-              << (unsigned int)right_y_max << "                \r";
+              << (unsigned int)right_y_max << "                \n";
   }
 
   void decalibrate() {
@@ -311,240 +312,6 @@ public:
     read_calibration_from_file = false;
     share_button_free = false;
     // usleep(1000*1000);
-  }
-
-  void map_sticks(uint8_t &left_x, uint8_t &left_y, uint8_t &right_x,
-                        uint8_t &right_y) {
-    left_x = (uint8_t)(clamp((float)(left_x - left_x_min) /
-                             (float)(left_x_max - left_x_min) * 255.f));
-    left_y = (uint8_t)(clamp((float)(left_y - left_y_min) /
-                             (float)(left_y_max - left_y_min) * 255.f));
-    right_x = (uint8_t)(clamp((float)(right_x - right_x_min) /
-                              (float)(right_x_max - right_x_min) * 255.f));
-    right_y = (uint8_t)(clamp((float)(right_y - right_y_min) /
-                              (float)(right_y_max - right_y_min) * 255.f));
-  }
-
-  static float clamp(float inp) {
-    if (inp < 0.5f)
-      return 0.5f;
-    if (inp > 254.5f) {
-      return 254.5f;
-    }
-    return inp;
-  }
-  static int clamp_int(int inp) {
-    if (inp < 0)
-      return 0;
-    if (inp > 255) {
-      return 255;
-    }
-    return inp;
-  }
-
-
-
-  //-------------------------
-  //         UINPUT
-  //-------------------------
-
-  void uinput_manage_dpad(const ProInputParser &parser) {
-    bool b_d_left;
-    bool b_d_right;
-    bool b_d_up;
-    bool b_d_down;
-
-    // invert
-    if (!config.invert_dx) {
-      b_d_left  = parser.is_button_pressed(ProInputParser::d_left);
-      b_d_right = parser.is_button_pressed(ProInputParser::d_right);
-    } else {
-      b_d_left  = parser.is_button_pressed(ProInputParser::d_right);
-      b_d_right = parser.is_button_pressed(ProInputParser::d_left);
-    }
-
-    if (!config.invert_dy) {
-      b_d_up    = parser.is_button_pressed(ProInputParser::d_up);
-      b_d_down  = parser.is_button_pressed(ProInputParser::d_down);
-    } else {
-      b_d_up    = parser.is_button_pressed(ProInputParser::d_down);
-      b_d_down  = parser.is_button_pressed(ProInputParser::d_up);
-    }
-
-    if (b_d_left) {
-      uinput_ctrl->uinput_write_single_joystick(-1, ABS_HAT0X);
-    } else if (b_d_right) {
-      uinput_ctrl->uinput_write_single_joystick(1, ABS_HAT0X);
-    } else if (!b_d_left && !b_d_right) {
-      uinput_ctrl->uinput_write_single_joystick(0, ABS_HAT0X);
-    }
-    if (b_d_down) {
-      uinput_ctrl->uinput_write_single_joystick(-1, ABS_HAT0Y);
-    } else if (b_d_up) {
-      uinput_ctrl->uinput_write_single_joystick(1, ABS_HAT0Y);
-    } else if (!b_d_down && !b_d_up) {
-      uinput_ctrl->uinput_write_single_joystick(0, ABS_HAT0Y);
-    }
-
-    // send report
-    uinput_ctrl->send_report();
-  }
-
-  void uinput_manage_buttons(const ProInputParser &parser) {
-
-    // bool b_d_left  = parser.is_button_pressed(ProInputParser::d_left);
-    // bool b_d_right = parser.is_button_pressed(ProInputParser::d_right);
-    // bool b_d_up    = parser.is_button_pressed(ProInputParser::d_up);
-    // bool b_d_down  = parser.is_button_pressed(ProInputParser::d_down);
-    bool b_L1    = parser.is_button_pressed(ProInputParser::L1);
-    bool b_L2    = parser.is_button_pressed(ProInputParser::L2);
-    bool b_L3    = parser.is_button_pressed(ProInputParser::L3);
-    bool b_R1    = parser.is_button_pressed(ProInputParser::R1);
-    bool b_R2    = parser.is_button_pressed(ProInputParser::R2);
-    bool b_R3    = parser.is_button_pressed(ProInputParser::R3);
-    bool b_share = parser.is_button_pressed(ProInputParser::share);
-    bool b_home  = parser.is_button_pressed(ProInputParser::home);
-    bool b_plus  = parser.is_button_pressed(ProInputParser::plus);
-    bool b_minus = parser.is_button_pressed(ProInputParser::minus);
-
-    bool b_a, b_b, b_x, b_y;
-    if (!config.swap_buttons) {
-      b_a = parser.is_button_pressed(ProInputParser::A);
-      b_b = parser.is_button_pressed(ProInputParser::B);
-      b_x = parser.is_button_pressed(ProInputParser::X);
-      b_y = parser.is_button_pressed(ProInputParser::Y);
-    } else {
-      b_a = parser.is_button_pressed(ProInputParser::B);
-      b_b = parser.is_button_pressed(ProInputParser::A);
-      b_x = parser.is_button_pressed(ProInputParser::Y);
-      b_y = parser.is_button_pressed(ProInputParser::X);
-    }
-
-    // press
-    if (b_a && !last_a)
-      uinput_ctrl->uinput_button_down(BTN_EAST);
-    if (b_b && !last_b)
-      uinput_ctrl->uinput_button_down(BTN_SOUTH);
-    if (b_x && !last_x) {
-      uinput_ctrl->uinput_button_down(BTN_WEST);
-#ifdef DRIBBLE_MODE // toggle off dribble mode
-      if (dribble_mode)
-        toggle_dribble_mode();
-#endif
-    }
-#ifdef DRIBBLE_MODE // toggle dribble mode
-    if (b_y && !last_y)
-      toggle_dribble_mode();
-    if (b_share && !last_share) // replace button by share
-      uinput_ctrl->uinput_button_down(BTN_NORTH);
-#else
-    if (b_y && !last_y)
-      uinput_ctrl->uinput_button_down(BTN_NORTH);
-#endif
-
-    // if (b_d_down && !last_d_down)
-    //   uinput_ctrl->uinput_button_down(BTN_DPAD_DOWN);
-    // if (b_d_up && !last_d_up)
-    //   uinput_ctrl->uinput_button_down(BTN_DPAD_UP);
-    // if (b_d_left && !last_d_left)
-    //   uinput_ctrl->uinput_button_down(BTN_DPAD_LEFT);
-    // if (b_d_right && !last_d_right)
-    //   uinput_ctrl->uinput_button_down(BTN_DPAD_RIGHT);
-    if (b_plus && !last_plus)
-      uinput_ctrl->uinput_button_down(BTN_START);
-    if (b_minus && !last_minus)
-      uinput_ctrl->uinput_button_down(BTN_SELECT);
-    if (b_L1 && !last_L1)
-      uinput_ctrl->uinput_button_down(BTN_TL);
-    // if (b_L2 && !last_L2)
-    //   uinput_ctrl->uinput_button_down(BTN_TL2);
-    if (b_R1 && !last_R1)
-      uinput_ctrl->uinput_button_down(BTN_TR);
-    // if (b_R2 && !last_R2)
-    //   uinput_ctrl->uinput_button_down(BTN_TR2);
-    if (b_L3 && !last_L3)
-      uinput_ctrl->uinput_button_down(BTN_THUMBL);
-    if (b_R3 && !last_R3)
-      uinput_ctrl->uinput_button_down(BTN_THUMBR);
-    // if (b_L1 && !last_L1)
-    //   uinput_ctrl->uinput_button_down(BTN_TL);
-    if (b_home && !last_home)
-      uinput_ctrl->uinput_button_down(BTN_MODE);
-
-    // release
-    if (!b_a && last_a)
-      uinput_ctrl->uinput_button_release(BTN_EAST);
-    if (!b_b && last_b)
-      uinput_ctrl->uinput_button_release(BTN_SOUTH);
-    if (!b_x && last_x)
-      uinput_ctrl->uinput_button_release(BTN_WEST);
-
-#ifdef DRIBBLE_MODE
-    if (!b_y && last_y)
-      uinput_ctrl->uinput_button_release(BTN_WEST);
-    if (!b_share && last_share)
-      uinput_ctrl->uinput_button_release(BTN_NORTH);
-#else
-    if (!b_y && last_y)
-      uinput_ctrl->uinput_button_release(BTN_NORTH);
-#endif
-
-    // if (!b_d_down && last_d_down)
-    //   uinput_ctrl->uinput_button_release(BTN_DPAD_DOWN);
-    // if (!b_d_up && last_d_up)
-    //   uinput_ctrl->uinput_button_release(BTN_DPAD_UP);
-    // if (!b_d_left && last_d_left)
-    //   uinput_ctrl->uinput_button_release(BTN_DPAD_LEFT);
-    // if (!b_d_right && last_d_right)
-    //   uinput_ctrl->uinput_button_release(BTN_DPAD_RIGHT);
-    if (!b_plus && last_plus)
-      uinput_ctrl->uinput_button_release(BTN_START);
-    if (!b_minus && last_minus)
-      uinput_ctrl->uinput_button_release(BTN_SELECT);
-    if (!b_L1 && last_L1)
-      uinput_ctrl->uinput_button_release(BTN_TL);
-    // if (!b_L2 && last_L2)
-    //   uinput_ctrl->uinput_button_release(BTN_TL2);
-    if (!b_R1 && last_R1)
-      uinput_ctrl->uinput_button_release(BTN_TR);
-    // if (!b_R2 && last_R2)
-    //   uinput_ctrl->uinput_button_release(BTN_TR2);
-    if (!b_L3 && last_L3)
-      uinput_ctrl->uinput_button_release(BTN_THUMBL);
-    if (!b_R3 && last_R3)
-      uinput_ctrl->uinput_button_release(BTN_THUMBR);
-    // if (!b_L1 && last_L1)
-    //   uinput_ctrl->uinput_button_release(BTN_TL);
-    if (!b_home && last_home)
-      uinput_ctrl->uinput_button_release(BTN_MODE);
-
-    // last_d_left = b_d_left;
-    // last_d_right = b_d_right;
-    // last_d_up = b_d_up;
-    // last_d_down = b_d_down;
-    last_L1 = b_L1;
-    // last_L2 = b_L2;
-    last_L3 = b_L3;
-    last_R1 = b_R1;
-    // last_R2 = b_R2;
-    last_R3 = b_R3;
-    last_share = b_share;
-    last_home = b_home;
-    last_plus = b_plus;
-    last_minus = b_minus;
-    last_a = b_a;
-    last_b = b_b;
-    last_x = b_x;
-    last_y = b_y;
-
-    // do triggers here as well
-    int val = b_L2 ? 255 : 0;
-    uinput_ctrl->uinput_write_single_joystick(val, ABS_Z);
-    val = b_R2 ? 255 : 0;
-    uinput_ctrl->uinput_write_single_joystick(val, ABS_RZ);
-
-    // send report
-    uinput_ctrl->send_report();
   }
 
   bool is_calibrated() {
@@ -595,6 +362,172 @@ public:
     calibration_file.write((char *)&right_y_min, sizeof(uint8_t));
     calibration_file.write((char *)&right_y_max, sizeof(uint8_t));
     calibration_file.close();
+  }
+
+  void map_sticks(uint8_t &left_x, uint8_t &left_y, uint8_t &right_x,
+                        uint8_t &right_y) {
+    left_x = (uint8_t)(clamp((float)(left_x - left_x_min) /
+                             (float)(left_x_max - left_x_min) * 255.f));
+    left_y = (uint8_t)(clamp((float)(left_y - left_y_min) /
+                             (float)(left_y_max - left_y_min) * 255.f));
+    right_x = (uint8_t)(clamp((float)(right_x - right_x_min) /
+                              (float)(right_x_max - right_x_min) * 255.f));
+    right_y = (uint8_t)(clamp((float)(right_y - right_y_min) /
+                              (float)(right_y_max - right_y_min) * 255.f));
+  }
+
+  static float clamp(float inp) {
+    if (inp < 0.5f)
+      return 0.5f;
+    if (inp > 254.5f) {
+      return 254.5f;
+    }
+    return inp;
+  }
+  static int clamp_int(int inp) {
+    if (inp < 0)
+      return 0;
+    if (inp > 255) {
+      return 255;
+    }
+    return inp;
+  }
+
+
+  static std::array<int, 18> make_button_map() {
+    std::array<int, 18> map {0};
+
+    map[ProInputParser::d_left]  = BTN_DPAD_LEFT;
+    map[ProInputParser::d_right] = BTN_DPAD_RIGHT;
+    map[ProInputParser::d_up]    = BTN_DPAD_UP;
+    map[ProInputParser::d_down]  = BTN_DPAD_DOWN;
+
+    map[ProInputParser::A] = BTN_EAST;
+    map[ProInputParser::B] = BTN_SOUTH;
+    map[ProInputParser::X] = BTN_WEST;
+    map[ProInputParser::Y] = BTN_NORTH;
+
+    map[ProInputParser::plus]  = BTN_START;
+    map[ProInputParser::minus] = BTN_SELECT;
+    map[ProInputParser::home]  = BTN_MODE;
+    // map[ProInputParser::share] = ;
+
+    map[ProInputParser::L1] = BTN_TL;
+    map[ProInputParser::L2] = BTN_TL2;
+    map[ProInputParser::L3] = BTN_THUMBL;
+    map[ProInputParser::R1] = BTN_TR;
+    map[ProInputParser::R2] = BTN_TR2;
+    map[ProInputParser::R3] = BTN_THUMBR;
+
+    return map;
+  }
+
+  //-------------------------
+  //         UINPUT
+  //-------------------------
+
+  void uinput_manage_dpad(const ProInputParser &parser) {
+    bool b_d_left  = parser.is_button_pressed(ProInputParser::d_left);
+    bool b_d_right = parser.is_button_pressed(ProInputParser::d_right);
+    bool b_d_up    = parser.is_button_pressed(ProInputParser::d_up);
+    bool b_d_down  = parser.is_button_pressed(ProInputParser::d_down);
+
+    // invert
+    if (config.invert_dx) {
+      b_d_left  = parser.is_button_pressed(ProInputParser::d_right);
+      b_d_right = parser.is_button_pressed(ProInputParser::d_left);
+    }
+    if (config.invert_dy) {
+      b_d_up    = parser.is_button_pressed(ProInputParser::d_down);
+      b_d_down  = parser.is_button_pressed(ProInputParser::d_up);
+    }
+
+    if (b_d_left) {
+      uinput_ctrl->uinput_write_single_joystick(-1, ABS_HAT0X);
+    } else if (b_d_right) {
+      uinput_ctrl->uinput_write_single_joystick(1, ABS_HAT0X);
+    } else if (!b_d_left && !b_d_right) {
+      uinput_ctrl->uinput_write_single_joystick(0, ABS_HAT0X);
+    }
+    if (b_d_down) {
+      uinput_ctrl->uinput_write_single_joystick(-1, ABS_HAT0Y);
+    } else if (b_d_up) {
+      uinput_ctrl->uinput_write_single_joystick(1, ABS_HAT0Y);
+    } else if (!b_d_down && !b_d_up) {
+      uinput_ctrl->uinput_write_single_joystick(0, ABS_HAT0Y);
+    }
+
+    uinput_ctrl->send_report();
+  }
+
+  void uinput_manage_buttons(const ProInputParser &parser) {
+    std::array<bool, 18> buttons_pressed{false};
+    for (const ProInputParser::BUTTONS &id: btns_ids) {
+      buttons_pressed[id] = parser.is_button_pressed(id);
+    }
+
+    if (config.swap_buttons) {
+      buttons_pressed[ProInputParser::A] = parser.is_button_pressed(ProInputParser::B);
+      buttons_pressed[ProInputParser::B] = parser.is_button_pressed(ProInputParser::A);
+      buttons_pressed[ProInputParser::X] = parser.is_button_pressed(ProInputParser::Y);
+      buttons_pressed[ProInputParser::Y] = parser.is_button_pressed(ProInputParser::X);
+    }
+
+    for (const ProInputParser::BUTTONS &id: xbox_btns_ids) {
+      if (buttons_pressed[id] && !last_pressed[id]) {
+        uinput_ctrl->uinput_button_down(btns_map[id]);
+      }
+    }
+    #if 0
+    // press
+    if (buttons_pressed[ProInputParser::X] && !last_pressed[ProInputParser::X]) {
+      uinput_ctrl->uinput_button_down(BTN_WEST);
+#ifdef DRIBBLE_MODE // toggle off dribble mode
+      if (dribble_mode)
+        toggle_dribble_mode();
+#endif
+    }
+#ifdef DRIBBLE_MODE // toggle dribble mode
+    if (buttons_pressed[ProInputParser::Y] && !last_pressed[ProInputParser::Y])
+      toggle_dribble_mode();
+    if (buttons_pressed[ProInputParser::share] && !last_pressed[ProInputParser::share]) // replace button by share
+      uinput_ctrl->uinput_button_down(BTN_NORTH);
+#else
+    if (buttons_pressed[ProInputParser::Y] && !last_pressed[ProInputParser::Y])
+      uinput_ctrl->uinput_button_down(BTN_NORTH);
+#endif
+    #endif
+
+
+    for (const ProInputParser::BUTTONS &id: xbox_btns_ids) {
+      if (!buttons_pressed[id] && last_pressed[id]) {
+        uinput_ctrl->uinput_button_release(btns_map[id]);
+      }
+    }
+    #if 0
+#ifdef DRIBBLE_MODE
+    if (!buttons_pressed[ProInputParser::Y] && last_pressed[ProInputParser::Y])
+      uinput_ctrl->uinput_button_release(BTN_WEST);
+    if (!buttons_pressed[ProInputParser::share] && last_pressed[ProInputParser::share])
+      uinput_ctrl->uinput_button_release(BTN_NORTH);
+#else
+    if (!buttons_pressed[ProInputParser::Y] && last_pressed[ProInputParser::Y])
+      uinput_ctrl->uinput_button_release(BTN_NORTH);
+#endif
+    #endif
+
+    for(const ProInputParser::BUTTONS &id: btns_ids){
+      last_pressed[id] = buttons_pressed[id];
+    }
+
+    // do triggers here as well
+    int val;
+    val = buttons_pressed[ProInputParser::L2] ? 255 : 0;
+    uinput_ctrl->uinput_write_single_joystick(val, ABS_Z);
+    val = buttons_pressed[ProInputParser::R2] ? 255 : 0;
+    uinput_ctrl->uinput_write_single_joystick(val, ABS_RZ);
+
+    uinput_ctrl->send_report();
   }
 
   void uinput_manage_joysticks(const ProInputParser &parser) {
@@ -664,7 +597,6 @@ private:
   bool share_button_free = false; // used for recalibration (press share & home)
 
   static constexpr uint8_t center{0x7e};
-
   uint8_t left_x_min  = center;
   uint8_t left_y_min  = center;
   uint8_t right_x_min = center;
@@ -674,31 +606,34 @@ private:
   uint8_t right_x_max = center;
   uint8_t right_y_max = center;
 
-  // bool last_d_left = false;
-  // bool last_d_right = false;
-  // bool last_d_up = false;
-  // bool last_d_down = false;
-  bool last_L1 = false;
-  // bool last_L2 = false;
-  bool last_L3 = false;
-  bool last_R1 = false;
-  // bool last_R2 = false;
-  bool last_R3 = false;
-  bool last_share = false;
-  bool last_home = false;
-  bool last_plus = false;
-  bool last_minus = false;
-  bool last_a = false;
-  bool last_b = false;
-  bool last_x = false;
-  bool last_y = false;
+  std::array<int, 18> btns_map;
+  const std::array<ProInputParser::BUTTONS, 14> btns_ids{
+    ProInputParser::A, ProInputParser::B,
+    ProInputParser::X, ProInputParser::Y,
+    ProInputParser::plus, ProInputParser::minus,
+    ProInputParser::home, ProInputParser::share,
+    ProInputParser::L1, ProInputParser::L2, ProInputParser::L3,
+    ProInputParser::R1, ProInputParser::R2, ProInputParser::R3,
+  };
+  const std::array<ProInputParser::BUTTONS, 11> xbox_btns_ids{
+    ProInputParser::A, ProInputParser::B,
+    ProInputParser::X, ProInputParser::Y,
+    ProInputParser::plus, ProInputParser::minus,
+    ProInputParser::home, /*ProInputParser::share,*/
+    ProInputParser::L1, /*ProInputParser::L2,*/ ProInputParser::L3,
+    ProInputParser::R1, /*ProInputParser::R2,*/ ProInputParser::R3,
+  };
+  const std::array<ProInputParser::BUTTONS, 4> dpad_ids{
+    ProInputParser::d_left, ProInputParser::d_right,
+    ProInputParser::d_up, ProInputParser::d_down,
+  };
+  std::array<bool, 18> last_pressed{false};
 
   bool dribble_mode = false;
 
   Config config;
   HidController *hid_ctrl = nullptr;
   UInputController *uinput_ctrl = nullptr;
-
 };
 
 #endif
