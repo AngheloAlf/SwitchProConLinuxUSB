@@ -18,11 +18,14 @@ void exit_handler(int ignored){
 void print_help() {
   printf("Usage: procon_driver [OPTIONS]\nOptions are:\n");
   printf(" -h --help                   get help on usage at start\n");
+  printf(" -v --version                show version and exits\n");
   printf(" -c --calibration            force calibration at start\n");
   printf(" -s --swap_buttons           Swap A and B buttons and X and Y "
           "buttons\n");
   printf(" -i --invert-axis [AXIS]     invert axis, possible axis: lx, ly, "
           "rx, ry, dx, dy\n");
+  printf(" -p --print-state [TYPE]     Enables printing the state of TYPE. "
+         "Possible TYPEs: a (axis), b (buttons), d (dpad)\n");
 #ifdef DRIBBLE_MODE
   printf(" -d [VALUE]                  Enables dribble mode. If a parameter is"
          " given, it is used as the dribble cam value. Range 0 to 255\n");
@@ -76,8 +79,11 @@ void handle_controller(hid_device_info *iter, Config &config) {
     PrintColor::normal();
   }
 
+  printf("\n");
+
   while (controller_loop) {
     if (!controller.is_calibrated()) {
+      fflush(stdout);
       while (!controller.is_calibrated()) {
         if (!controller_loop) {
           return;
@@ -91,6 +97,20 @@ void handle_controller(hid_device_info *iter, Config &config) {
     }
 
     controller.poll_input();
+    if (config.print_axis) {
+      controller.print_sticks();
+      printf("\t");
+    }
+    if (config.print_buttons) {
+      controller.print_buttons();
+    }
+    if (config.print_dpad) {
+      controller.print_dpad();
+    }
+    if (config.print_axis || config.print_buttons || config.print_dpad) {
+      fflush(stdout);
+      printf("\r\e[K");
+    }
   }
 }
 
@@ -145,7 +165,7 @@ int main(int argc, char *argv[]) {
     printf("%s\n", e.what());
 
     PrintColor::magenta();
-    printf("\nTry unplugging and plugging the usb to the controller.\n");
+    printf("\nTry unplugging and plugging again the usb to the controller.\n");
 
     PrintColor::yellow();
     printf("Exiting...\n");
