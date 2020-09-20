@@ -7,7 +7,6 @@
 #include <string>
 #include <stdexcept>
 
-
 class Config{
 public:
   bool help = false;
@@ -21,10 +20,8 @@ public:
   bool invert_dy = false;
   bool swap_buttons = false;
 
-#ifdef DRIBBLE_MODE
   int dribble_cam_value = 205;
   bool found_dribble_cam_value = false;
-#endif
 
   Config(int argc, char *argv[]) {
 
@@ -83,14 +80,21 @@ public:
         option_found = true;
         swap_buttons = true;
       }
-#ifdef DRIBBLE_MODE
+      #ifdef DRIBBLE_MODE
       if (std::string(argv[i]) == "-d") {
         option_found = true;
-        i++;
-        dribble_cam_value = std::stoi(argv[i]);
+        if (i+1 < argc && isdigit(argv[i+1][0])) {
+          i++;
+          dribble_cam_value = std::stoi(argv[i]);
+          if (dribble_cam_value < 0 || dribble_cam_value > 255) {
+            throw std::domain_error("Dribble cam value out of range. "
+                                    "Expected value in [0, 255], got "
+                                    + std::to_string(dribble_cam_value) + ".");
+          }
+        }
         found_dribble_cam_value = true;
       }
-#endif
+      #endif
       if (!option_found) {
         throw std::invalid_argument("Unknown option " + std::string(argv[i]) + ". For usage, type './procon_driver --help'");
       }

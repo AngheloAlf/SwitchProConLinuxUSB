@@ -8,6 +8,7 @@
 
 bool controller_loop = true;
 void exit_handler(int ignored){
+  (void)ignored;
   controller_loop = false;
   PrintColor::magenta();
   printf("\nExiting...\n");
@@ -22,12 +23,12 @@ void print_help() {
           "buttons\n");
   printf(" -i --invert-axis [AXIS]     invert axis, possible axis: lx, ly, "
           "rx, ry, dx, dy\n");
-  printf("\nIf you are experiencing an error, try running the program as root.");
-
 #ifdef DRIBBLE_MODE
-  printf(" -d [VALUE]                  pass parameter for dribble cam. Range "
-          "0 to 255\n");
+  printf(" -d [VALUE]                  Enables dribble mode. If a parameter is"
+         " given, it is used as the dribble cam value. Range 0 to 255\n");
 #endif
+
+  printf("\nIf you are experiencing an error, try running the program as root.\n");
   printf("\n");
 }
 
@@ -45,14 +46,6 @@ void print_header(){
   printf("  |\n"
          "-------------------------------------------------------------------"
          "-------\n\n");
-#ifdef DRIBBLE_MODE
-  PrintColor::cyan();
-  printf("Dribble mode enabled!\n\n");
-  PrintColor::normal();
-// if(found_dribble_cam_value) {
-//   printf("VALUE: %i", dribble_cam_value);
-// }
-#endif
   fflush(stdout);
 }
 
@@ -120,6 +113,13 @@ int main(int argc, char *argv[]) {
   }
 
   print_header();
+
+  if (config.found_dribble_cam_value) {
+    PrintColor::cyan();
+    printf("Dribble mode enabled!\n");
+    printf("Value: %i\n\n", config.dribble_cam_value);
+    PrintColor::normal();
+  }
 
   if (hid_init() < 0) {
     PrintColor::red();

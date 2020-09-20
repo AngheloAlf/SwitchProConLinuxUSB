@@ -454,45 +454,45 @@ public:
 
     for (const ProInputParser::BUTTONS &id: xbox_btns_ids) {
       if (buttons_pressed[id] && !last_pressed[id]) {
+        if (config.found_dribble_cam_value) {
+          switch (id) {
+          case ProInputParser::X:
+            uinput_ctrl->button_press(btns_map[ProInputParser::X]);
+            if (dribble_mode) toggle_dribble_mode(); // toggle off dribble mode
+            continue;
+          case ProInputParser::Y:
+            toggle_dribble_mode();
+            continue;
+          case ProInputParser::share:
+            uinput_ctrl->button_press(btns_map[ProInputParser::Y]);
+            continue;
+          default:
+            break;
+          }
+        }
+
         uinput_ctrl->button_press(btns_map[id]);
       }
     }
-    #if 0
-    // press
-    if (buttons_pressed[ProInputParser::X] && !last_pressed[ProInputParser::X]) {
-      uinput_ctrl->button_press(BTN_WEST);
-#ifdef DRIBBLE_MODE // toggle off dribble mode
-      if (dribble_mode)
-        toggle_dribble_mode();
-#endif
-    }
-#ifdef DRIBBLE_MODE // toggle dribble mode
-    if (buttons_pressed[ProInputParser::Y] && !last_pressed[ProInputParser::Y])
-      toggle_dribble_mode();
-    if (buttons_pressed[ProInputParser::share] && !last_pressed[ProInputParser::share]) // replace button by share
-      uinput_ctrl->button_press(BTN_NORTH);
-#else
-    if (buttons_pressed[ProInputParser::Y] && !last_pressed[ProInputParser::Y])
-      uinput_ctrl->button_press(BTN_NORTH);
-#endif
-    #endif
 
     for (const ProInputParser::BUTTONS &id: xbox_btns_ids) {
       if (!buttons_pressed[id] && last_pressed[id]) {
+        if (config.found_dribble_cam_value) {
+          switch (id) {
+          case ProInputParser::Y:
+            uinput_ctrl->button_release(btns_map[ProInputParser::X]);
+            continue;
+          case ProInputParser::share:
+            uinput_ctrl->button_release(btns_map[ProInputParser::Y]);
+            continue;
+          default:
+            break;
+          }
+        }
+
         uinput_ctrl->button_release(btns_map[id]);
       }
     }
-    #if 0
-#ifdef DRIBBLE_MODE
-    if (!buttons_pressed[ProInputParser::Y] && last_pressed[ProInputParser::Y])
-      uinput_ctrl->button_release(BTN_WEST);
-    if (!buttons_pressed[ProInputParser::share] && last_pressed[ProInputParser::share])
-      uinput_ctrl->button_release(BTN_NORTH);
-#else
-    if (!buttons_pressed[ProInputParser::Y] && last_pressed[ProInputParser::Y])
-      uinput_ctrl->button_release(BTN_NORTH);
-#endif
-    #endif
 
     for(const ProInputParser::BUTTONS &id: btns_ids){
       last_pressed[id] = buttons_pressed[id];
@@ -520,15 +520,13 @@ public:
     if (config.invert_ry) right_y = 255 - right_y;
 
     map_sticks(left_x, left_y, right_x, right_y);
+    if (dribble_mode) {
+      right_y = clamp_int(right_y + config.dribble_cam_value - 127);
+    }
 
     uinput_ctrl->write_single_joystick(left_x, ABS_X);
     uinput_ctrl->write_single_joystick(left_y, ABS_Y);
     uinput_ctrl->write_single_joystick(right_x, ABS_RX);
-#ifdef DRIBBLE_MODE
-    if (dribble_mode) {
-      right_y = clamp_int(right_y + config.dribble_cam_value - 127);
-    }
-#endif
     uinput_ctrl->write_single_joystick(right_y, ABS_RY);
 
     uinput_ctrl->send_report();
@@ -572,11 +570,11 @@ private:
     ProInputParser::L1, ProInputParser::L2, ProInputParser::L3,
     ProInputParser::R1, ProInputParser::R2, ProInputParser::R3,
   };
-  const std::array<ProInputParser::BUTTONS, 11> xbox_btns_ids{
+  const std::array<ProInputParser::BUTTONS, 12> xbox_btns_ids{
     ProInputParser::A, ProInputParser::B,
     ProInputParser::X, ProInputParser::Y,
-    ProInputParser::plus, ProInputParser::minus,
-    ProInputParser::home, /*ProInputParser::share,*/
+    ProInputParser::plus, ProInputParser::minus, ProInputParser::home, 
+    ProInputParser::share, /// Allow it to be used for dribble mode.
     ProInputParser::L1, /*ProInputParser::L2,*/ ProInputParser::L3,
     ProInputParser::R1, /*ProInputParser::R2,*/ ProInputParser::R3,
   };

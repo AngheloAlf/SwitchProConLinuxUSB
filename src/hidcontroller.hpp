@@ -9,7 +9,6 @@
 #include <ios>
 #include <unistd.h>
 
-
 #define TEST_BAD_DATA_CYCLES 10
 
 

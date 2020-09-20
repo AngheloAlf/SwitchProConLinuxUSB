@@ -2,9 +2,7 @@
 #ifndef PRO_INPUT_PARSER_HPP
 #define PRO_INPUT_PARSER_HPP
 
-
 #include <array>
-
 
 class ProInputParser{
 public:
