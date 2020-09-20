@@ -36,7 +36,7 @@ public:
     axis_ly,
     axis_rx,
     axis_ry,
-    arix_none,
+    axis_none,
   };
 
   ProInputParser(exchange_array data): dat(data) {
@@ -319,10 +319,86 @@ public:
     fflush(stdout);
   }
 
+  static const char *button_name(BUTTONS button) {
+    switch (button) {
+    case d_left:
+      return "d_left";
+    case d_right:
+      return "d_right";
+    case d_up:
+      return "d_up";
+    case d_down:
+      return "d_down";
+    case A:
+      return "A";
+    case B:
+      return "B";
+    case X:
+      return "X";
+    case Y:
+      return "Y";
+    case plus:
+      return "plus";
+    case minus:
+      return "minus";
+    case home:
+      return "home";
+    case share:
+      return "share";
+    case L1:
+      return "L1";
+    case L2:
+      return "L2";
+    case L3:
+      return "L3";
+    case R1:
+      return "R1";
+    case R2:
+      return "R2";
+    case R3:
+      return "R3";
+    case None:
+      return "None";
+    default:
+      return nullptr;
+    }
+  }
+
+  static const char *axis_name(AXIS axis) {
+    switch (axis) {
+    case axis_lx:
+      return "axis_lx";
+    case axis_ly:
+      return "axis_ly";
+    case axis_rx:
+      return "axis_rx";
+    case axis_ry:
+      return "axis_ry";
+    case axis_none:
+      return "axis_none";
+    default:
+      return nullptr;
+    }
+  }
+
+  static const std::array<BUTTONS, 18> btns_ids;
+  static const std::array<AXIS, 4> axis_ids;
+
 private:
   exchange_array dat;
 
 };
 
+const std::array<ProInputParser::BUTTONS, 18> ProInputParser::btns_ids = {
+  ProInputParser::d_left, ProInputParser::d_right, ProInputParser::d_up, ProInputParser::d_down,
+  ProInputParser::A, ProInputParser::B, ProInputParser::X, ProInputParser::Y,
+  ProInputParser::plus, ProInputParser::minus, ProInputParser::home, ProInputParser::share,
+  ProInputParser::L1, ProInputParser::L2, ProInputParser::L3,
+  ProInputParser::R1, ProInputParser::R2, ProInputParser::R3,
+};
+
+const std::array<ProInputParser::AXIS, 4> ProInputParser::axis_ids = {
+  ProInputParser::axis_lx, ProInputParser::axis_ly, ProInputParser::axis_rx, ProInputParser::axis_ry,
+};
 
 #endif

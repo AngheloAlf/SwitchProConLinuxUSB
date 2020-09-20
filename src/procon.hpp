@@ -91,73 +91,19 @@ public:
   //   n_bad_data_zero = 0;
   // }
 
-  // void print_sticks(const ProInputParser &parser) {
-  //   uint8_t left_x;
-  //   uint8_t left_y;
-  //   uint8_t right_x;
-  //   uint8_t right_y;
-  //   parser.get_joystick_data(left_x, left_y, right_x, right_y);
+  void print_sticks() const {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      printf("%s %03i ", ProInputParser::axis_name(id), axis_values[id]);
+    }
+  }
 
-  //   map_sticks(left_x, left_y, right_x, right_y);
-
-  //   clear_console();
-  //   yellow();
-  //   printf("left_x %d\n", left_x);
-  //   printf("left_y %d\n", left_y);
-  //   printf("right_x %d\n", right_x);
-  //   printf("right_y %d\n\n", right_y);
-  //   normal();
-
-  //   // if(left_x == 0x00 || left_y == 0x00 || right_x == 0x00 || right_y ==
-  //   0x00
-  //   // ) {
-  //   //     return -1;
-  //   // }
-  //   // return 0;
-  // }
-
-  // void print_buttons(const ProInputParser &parser) {
-
-  //   if (parser.is_button_pressed(ProInputParser::d_left))
-  //     printf("d_left\n");
-  //   if (parser.is_button_pressed(ProInputParser::d_right))
-  //     printf("d_right\n");
-  //   if (parser.is_button_pressed(ProInputParser::d_up))
-  //     printf("d_up\n");
-  //   if (parser.is_button_pressed(ProInputParser::d_down))
-  //     printf("d_down\n");
-  //   if (parser.is_button_pressed(ProInputParser::L1))
-  //     printf("L1\n");
-  //   if (parser.is_button_pressed(ProInputParser::L2))
-  //     printf("L2\n");
-  //   if (parser.is_button_pressed(ProInputParser::L3))
-  //     printf("L3\n");
-  //   if (parser.is_button_pressed(ProInputParser::R3))
-  //     printf("R3\n");
-  //   if (parser.is_button_pressed(ProInputParser::share))
-  //     printf("share\n");
-  //   if (parser.is_button_pressed(ProInputParser::home)) {
-  //     printf("home\n");
-  //   }
-  //   if (parser.is_button_pressed(ProInputParser::plus))
-  //     printf("plus\n");
-  //   if (parser.is_button_pressed(ProInputParser::minus))
-  //     printf("minus\n");
-  //   if (parser.is_button_pressed(ProInputParser::A))
-  //     printf("A\n");
-  //   if (parser.is_button_pressed(ProInputParser::B))
-  //     printf("B\n");
-  //   if (parser.is_button_pressed(ProInputParser::X))
-  //     printf("X\n");
-  //   if (parser.is_button_pressed(ProInputParser::Y))
-  //     printf("Y\n");
-  //   if (parser.is_button_pressed(ProInputParser::R1))
-  //     printf("R1\n");
-  //   if (parser.is_button_pressed(ProInputParser::R2))
-  //     printf("R2\n");
-  // }
-
-  void clear_console() { system("clear"); }
+  void print_buttons() const {
+    for (const ProInputParser::BUTTONS &id: ProInputParser::btns_ids) {
+      if (buttons_pressed[id]) {
+        printf("%s ", ProInputParser::button_name(id));
+      }
+    }
+  }
 
   void poll_input() {
     // print_cycle_counter++;
@@ -183,8 +129,6 @@ public:
     uinput_manage_joysticks();
     uinput_manage_dpad();
 
-    // print_buttons(parser);
-    // print_sticks(parser);
     // parser.print();
     return;
   }
@@ -213,8 +157,6 @@ public:
     }
 
     update_input_state(parser);
-    // print_buttons(parser);
-    // print_sticks(parser);
     // parser.print();
 
     if (!share_button_free) {
@@ -241,7 +183,6 @@ public:
     right_x_max = (axis_values[ProInputParser::axis_rx] > right_x_max) ? axis_values[ProInputParser::axis_rx] : right_x_max;
     right_y_max = (axis_values[ProInputParser::axis_ry] > right_y_max) ? axis_values[ProInputParser::axis_ry] : right_y_max;
 
-    // clear_console();
     // printf("left_x_min: %u\n", left_x_min);
     // printf("left_y_min: %u\n", left_y_min);
     // printf("right_x_min: %u\n", right_x_min);
@@ -287,19 +228,20 @@ public:
     // usleep(1000*1000);
   }
 
-  bool is_calibrated() {
+  bool is_calibrated() const {
     return calibrated;
   }
 
-  bool needs_first_calibration() {
+  bool needs_first_calibration() const {
     return !read_calibration_from_file || !calibration_file_exists();
   }
 
-  bool calibration_file_exists() {
+  bool calibration_file_exists() const {
     std::ifstream conf(calibration_filename);
     return conf.good();
   }
 
+private:
   bool read_calibration_file() {
     bool file_readed = false;
     std::ifstream myReadFile;
@@ -322,7 +264,7 @@ public:
     return file_readed;
   }
 
-  void write_calibration_to_file(){
+  void write_calibration_to_file() const {
     std::ofstream calibration_file;
     calibration_file.open(calibration_filename,
                           std::ios::out | std::ios::binary);
@@ -448,33 +390,24 @@ public:
       axis_values[ProInputParser::axis_ry] = clamp_int(axis_values[ProInputParser::axis_ry] + config.dribble_cam_value - 127);
     }
 
-    for (const ProInputParser::AXIS &id: axis_ids) {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       uinput_ctrl->write_single_joystick(axis_values[id], axis_map[id]);
     }
 
     uinput_ctrl->send_report();
-
-    // clear_console();
-    // printf("left_x: %i\n", (int)left_x);
-    // printf("left_y: %i\n", (int)left_y);
-    // printf("right_x: %i\n", (int)right_x);
-    // printf("right_y: %i\n", (int)right_y);
   }
 
-private:
   void update_input_state(const ProInputParser &parser) {
-    /// Store last state
-    for(const ProInputParser::BUTTONS &id: btns_ids){
-      last_pressed[id] = buttons_pressed[id];
-    }
-
     /// Buttons
-    for (const ProInputParser::BUTTONS &id: btns_ids) {
+    for (const ProInputParser::BUTTONS &id: ProInputParser::btns_ids) {
+      /// Store last state
+      last_pressed[id] = buttons_pressed[id];
+      /// Update value
       buttons_pressed[id] = parser.is_button_pressed(id);
     }
 
     /// Axis
-    for (const ProInputParser::AXIS &id: axis_ids) {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       axis_values[id] = parser.get_axis_status(id);
     }
 
@@ -504,7 +437,7 @@ private:
                axis_values[ProInputParser::axis_rx], axis_values[ProInputParser::axis_ry]);
   }
 
-  static std::array<int, 18> make_button_map() {
+  std::array<int, 18> make_button_map() const {
     std::array<int, 18> map {0};
 
     map[ProInputParser::d_left]  = BTN_DPAD_LEFT;
@@ -532,7 +465,7 @@ private:
     return map;
   }
 
-  static std::array<int, 4> make_axis_map() {
+  std::array<int, 4> make_axis_map() const {
     std::array<int, 4> map {0};
     map[ProInputParser::axis_lx] = ABS_X;
     map[ProInputParser::axis_ly] = ABS_Y;
@@ -565,24 +498,9 @@ private:
   uint8_t right_y_max = center;
 
   std::array<int, 4> axis_map;
-  const std::array<ProInputParser::AXIS, 4> axis_ids{
-    ProInputParser::axis_lx, ProInputParser::axis_ly,
-    ProInputParser::axis_rx, ProInputParser::axis_ry,
-  };
   std::array<uint8_t, 4> axis_values{center};
 
-
   std::array<int, 18> btns_map;
-  const std::array<ProInputParser::BUTTONS, 18> btns_ids{
-    ProInputParser::d_left, ProInputParser::d_right,
-    ProInputParser::d_up, ProInputParser::d_down,
-    ProInputParser::A, ProInputParser::B,
-    ProInputParser::X, ProInputParser::Y,
-    ProInputParser::plus, ProInputParser::minus,
-    ProInputParser::home, ProInputParser::share,
-    ProInputParser::L1, ProInputParser::L2, ProInputParser::L3,
-    ProInputParser::R1, ProInputParser::R2, ProInputParser::R3,
-  };
   const std::array<ProInputParser::BUTTONS, 12> xbox_btns_ids{
     ProInputParser::A, ProInputParser::B,
     ProInputParser::X, ProInputParser::Y,
