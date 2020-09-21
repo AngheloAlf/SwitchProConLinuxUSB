@@ -20,6 +20,8 @@ public:
   bool invert_dx = false;
   bool invert_dy = false;
   bool swap_buttons = false;
+  bool swap_ab = false;
+  bool swap_xy = false;
   bool print_axis = false;
   bool print_buttons = false;
   bool print_dpad = false;
@@ -29,24 +31,19 @@ public:
 
   Config(int argc, char *argv[]) {
     for (int i = 1; i < argc; ++i) {
-      bool option_found = false;
       if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
         help = true;
-        option_found = true;
       }
-      if (!strcmp(argv[i], "-c") || !strcmp(argv[i], "--calibration")) {
+      else if (!strcmp(argv[i], "-c") || !strcmp(argv[i], "--calibration")) {
         force_calibration = true;
-        option_found = true;
       }
-      if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version")) {
+      else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version")) {
         show_version = true;
-        option_found = true;
       }
-      if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--invert-axis")) {
+      else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--invert-axis")) {
         if (i + 1 >= argc) {
           throw std::invalid_argument("Expected axis parameter. use --help for options!");
         }
-        option_found = true;
         bool valid_axis_name;
         do {
           valid_axis_name = false;
@@ -75,15 +72,19 @@ public:
           }
         } while (valid_axis_name && i + 1 < argc);
       }
-      if (!strcmp(argv[i], "-s") || !strcmp(argv[i], "--swap_buttons")) {
-        option_found = true;
+      else if (!strcmp(argv[i], "-s") || !strcmp(argv[i], "--swap-buttons")) {
         swap_buttons = true;
       }
-      if (!strcmp(argv[i], "-p") || !strcmp(argv[i], "--print-state")) {
+      else if (!strcmp(argv[i], "--swap-ab")) {
+        swap_ab = true;
+      }
+      else if (!strcmp(argv[i], "--swap-xy")) {
+        swap_xy = true;
+      }
+      else if (!strcmp(argv[i], "-p") || !strcmp(argv[i], "--print-state")) {
         if (i + 1 >= argc) {
           throw std::invalid_argument("Expected parameter. Use --help for options!");
         }
-        option_found = true;
         bool valid_parameter;
         do {
           valid_parameter = true;
@@ -103,8 +104,7 @@ public:
         } while (valid_parameter && i + 1 < argc);
       }
       #ifdef DRIBBLE_MODE
-      if (!strcmp(argv[i], "-d")) {
-        option_found = true;
+      else if (!strcmp(argv[i], "-d")) {
         if (i+1 < argc && isdigit(argv[i+1][0])) {
           i++;
           dribble_cam_value = std::stoi(argv[i]);
@@ -117,7 +117,7 @@ public:
         found_dribble_cam_value = true;
       }
       #endif
-      if (!option_found) {
+      else {
         throw std::invalid_argument("Unknown option " + std::string(argv[i]) + ". For usage, type './procon_driver --help'");
       }
     }

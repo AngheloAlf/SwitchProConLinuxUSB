@@ -10,16 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Map the home button to the Xbox guide button.
-- Blink the leds during the sticks calibration.
-- Option to print the state of the sticks, buttons and/or dpad.
-  - If enabled, the raw state of the sticks will be printed during the calibration.
+- Blink the leds during the axis calibration.
+- Option to print the state of the axis (`-p a`), buttons (`-p b`) and/or dpad (`-p d`).
+  - If enabled, the raw state of the axis will be printed during the calibration.
+- Option to only swap A and B buttons (`--swap-ab`) and option to only swap X and Y buttons (`--swap-xy`).
 - Exceptions.
 - A changelog.
 
 ### Changed
 
 - A _lot_ of code cleanup.
-- The calibration now stores the center position of the sticks.
+- The calibration process now stores the center position of the axis.
+- `--swap_buttons` to `--swap-buttons`.
 
 ### Fixed
 
@@ -31,8 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Version of the original project.
 - Disguise a Pro-Controller as an Xbox360 controller.
-- Allow to perform calibration on both sticks.
-- Allow to invert both sticks.
+- Allow to perform calibration on both axis.
+- Allow to invert both axis.
 - Allow swaping A with B and X with Y.
 
 [Unreleased]: https://github.com/AngheloAlf/SwitchProConLinuxUSB/compare/master...AngheloAlf:new_features

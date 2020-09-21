@@ -361,9 +361,11 @@ private:
       dpad_pressed[id] = parser.is_dpad_pressed(id);
     }
 
-    if (config.swap_buttons) {
+    if (config.swap_ab || config.swap_buttons) {
       buttons_pressed[ProInputParser::A] = parser.is_button_pressed(ProInputParser::B);
       buttons_pressed[ProInputParser::B] = parser.is_button_pressed(ProInputParser::A);
+    }
+    if (config.swap_xy || config.swap_buttons) {
       buttons_pressed[ProInputParser::X] = parser.is_button_pressed(ProInputParser::Y);
       buttons_pressed[ProInputParser::Y] = parser.is_button_pressed(ProInputParser::X);
     }

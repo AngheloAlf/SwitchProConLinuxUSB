@@ -20,8 +20,10 @@ void print_help() {
   printf(" -h --help                   get help on usage at start\n");
   printf(" -v --version                show version and exits\n");
   printf(" -c --calibration            force calibration at start\n");
-  printf(" -s --swap_buttons           Swap A and B buttons and X and Y "
+  printf(" -s --swap-buttons           Swap A and B buttons and X and Y "
           "buttons\n");
+  printf("    --swap-ab                Swap A and B buttons\n");
+  printf("    --swap-xy                Swap X and Y buttons\n");
   printf(" -i --invert-axis [AXIS]     invert axis, possible axis: lx, ly, "
           "rx, ry, dx, dy\n");
   printf(" -p --print-state [TYPE]     Enables printing the state of TYPE. "
