@@ -112,7 +112,7 @@ public:
 
   void print_calibration_values() const {
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-      printf("%s %03i,%03i   ", ProInputParser::axis_name(id), axis_min[id], axis_max[id]);
+      printf("%s %03i,%03i,%03i   ", ProInputParser::axis_name(id), axis_min[id], axis_cen[id], axis_max[id]);
     }
   }
 
@@ -143,16 +143,17 @@ public:
     return;
   }
 
-  void calibrate() {
+  void calibrate_from_file() {
     if (read_calibration_from_file) {
       if (read_calibration_file()) {
         calibrated = true;
         // send_rumble(0,255);
         // hid_ctrl->led();
-        return;
       }
     }
+  }
 
+  void calibrate() {
     hid_ctrl->blink();
 
     ProInputParser parser = hid_ctrl->request_input();
@@ -164,46 +165,32 @@ public:
     // parser.print();
 
     if (!share_button_free) {
-      if (!parser.is_button_pressed(ProInputParser::share)) {
+      if (!buttons_pressed[ProInputParser::share]) {
         share_button_free = true;
       }
-    } else {
-      if (do_calibrate(parser)) {
-        // send_rumble(0,255);
-        calibrated = true;
-        hid_ctrl->led();
-        write_calibration_to_file();
-      }
+      return;
     }
-  }
 
-  bool do_calibrate(const ProInputParser &parser) {
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-      uint8_t value = parser.get_axis_status(id);
-      if (value < axis_min[id]) axis_min[id] = value;
-      if (value > axis_max[id]) axis_max[id] = value;
+    if (perform_calibration(parser)) {
+      // send_rumble(0,255);
+      calibrated = true;
+      hid_ctrl->led();
+      write_calibration_to_file();
+      // print_calibration_values();
+      // printf("\n");
     }
-    // print_calibration_values();
-
-    return buttons_pressed[ProInputParser::share];
   }
 
   void decalibrate() {
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       axis_min[id] = center;
       axis_max[id] = center;
+      axis_cen[id] = center;
     }
 
     calibrated = false;
-    PrintColor::magenta();
-    printf("Controller decalibrated!\n");
-    PrintColor::cyan();
-    printf("Perform calibration again and press the square 'share' "
-           "button!\n");
-    PrintColor::normal();
     read_calibration_from_file = false;
     share_button_free = false;
-    // usleep(1000*1000);
   }
 
   bool is_calibrated() const {
@@ -220,6 +207,24 @@ public:
   }
 
 private:
+  bool perform_calibration(const ProInputParser &parser) {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      uint8_t value = parser.get_axis_status(id);
+      if (value < axis_min[id]) axis_min[id] = value;
+      if (value > axis_max[id]) axis_max[id] = value;
+    }
+
+    if (!buttons_pressed[ProInputParser::share]) {
+      return false;
+    }
+
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      axis_cen[id] = parser.get_axis_status(id);
+    }
+
+    return true;
+  }
+
   bool read_calibration_file() {
     bool file_readed = false;
     std::ifstream myReadFile;
@@ -229,6 +234,7 @@ private:
       for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
         myReadFile.read((char *)&axis_min[id], sizeof(uint8_t));
         myReadFile.read((char *)&axis_max[id], sizeof(uint8_t));
+        myReadFile.read((char *)&axis_cen[id], sizeof(uint8_t));
       }
       file_readed = true;
     }
@@ -244,6 +250,7 @@ private:
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       calibration_file.write((char *)&axis_min[id], sizeof(uint8_t));
       calibration_file.write((char *)&axis_max[id], sizeof(uint8_t));
+      calibration_file.write((char *)&axis_cen[id], sizeof(uint8_t));
     }
     calibration_file.close();
   }
@@ -381,16 +388,24 @@ private:
 
   void map_sticks() {
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-      axis_values[id] = clamp((float)(axis_values[id] - axis_min[id]) /
-                              (float)(axis_max[id] - axis_min[id]) * 255.f);
+      long double val;
+      if (axis_values[id] < axis_cen[id]) {
+        val = (long double)(axis_values[id] - axis_min[id]) /
+              (long double)(axis_cen[id] - axis_min[id]) / 2.L;
+      } else {
+        val = (long double)(axis_values[id] - axis_cen[id]) /
+              (long double)(axis_max[id] - axis_cen[id]) / 2.L;
+        val += 0.5L;
+      }
+      axis_values[id] = clamp(val * 0xFF);
     }
   }
 
-  static float clamp(float inp) {
+  static uint8_t clamp(long double inp) {
     if (inp < 0.5f)
-      return 0.5f;
+      return 0;
     if (inp > 254.5f) {
-      return 254.5f;
+      return 255;
     }
     return inp;
   }
@@ -460,9 +475,10 @@ private:
       true; // will be set to false in decalibrate or with flags
   bool share_button_free = false; // used for recalibration (press share & home)
 
-  static constexpr uint8_t center{0x7e};
+  static constexpr uint8_t center{0x7f};
   std::array<uint8_t, 4> axis_min{center};
   std::array<uint8_t, 4> axis_max{center};
+  std::array<uint8_t, 4> axis_cen{center};
 
   std::array<int, 4> axis_map = make_axis_map();
   std::array<uint8_t, 4> axis_values{center};

@@ -61,21 +61,15 @@ void handle_controller(hid_device_info *iter, Config &config) {
   PrintColor::green();
   printf("Opened controller!\n");
 
-  if (controller.needs_first_calibration()) {
-    PrintColor::blue();
-    printf("Now entering calibration mode. \n");
-    PrintColor::cyan();
-    printf("Move both control sticks to their maximum positions "
-           "(i.e. turn them in a circle once slowly.), then press the " 
-           "square 'share' button!\n");
-    PrintColor::normal();
-  } else {
-    controller.calibrate();
+  if (!controller.needs_first_calibration()) {
+    controller.calibrate_from_file();
     PrintColor::green();
-    printf("Read calibration data from file! ");
+    printf("Read calibration data from file!");
     PrintColor::cyan();
     printf("Press 'share' and 'home' to calibrate again or start with "
            "--calibrate or -c.\n");
+    PrintColor::green();
+    printf("Now entering input mode!\n");
     PrintColor::normal();
   }
 
@@ -84,6 +78,14 @@ void handle_controller(hid_device_info *iter, Config &config) {
   while (controller_loop) {
     if (!controller.is_calibrated()) {
       fflush(stdout);
+      PrintColor::blue();
+      printf("Starting calibration mode.\n");
+      PrintColor::cyan();
+      printf("Move both control sticks to their maximum positions "
+            "(i.e. turn them in a circle once slowly.).\n"
+            "Then leave both control sticks at their center and press the " 
+            "square 'share' button!\n");
+      PrintColor::normal();
       while (!controller.is_calibrated()) {
         if (!controller_loop) {
           return;
