@@ -39,7 +39,7 @@ sudo apt install git
 Clone the repository here:
 
 ```bash
-git clone https://github.com/FrotBot/SwitchProConLinuxUSB.git .
+git clone https://github.com/AngheloAlf/SwitchProConLinuxUSB.git .
 ```
 
 install and build the driver:
