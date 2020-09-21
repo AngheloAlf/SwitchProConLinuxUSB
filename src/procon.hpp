@@ -377,7 +377,9 @@ private:
       dpad_pressed[ProInputParser::d_down]  = parser.is_dpad_pressed(ProInputParser::d_up);
     }
 
-    map_sticks();
+    if (calibrated) {
+      map_sticks();
+    }
 
     // Invert axis
     if (config.invert_lx) axis_values[ProInputParser::axis_lx] = 255 - axis_values[ProInputParser::axis_lx];

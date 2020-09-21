@@ -91,6 +91,12 @@ void handle_controller(hid_device_info *iter, Config &config) {
           return;
         }
         controller.calibrate();
+
+        if (config.print_axis) {
+          controller.print_sticks();
+          fflush(stdout);
+          printf("\r\e[K");
+        }
       }
       PrintColor::green();
       printf("Wrote calibration data to file!\n");
@@ -99,6 +105,7 @@ void handle_controller(hid_device_info *iter, Config &config) {
     }
 
     controller.poll_input();
+
     if (config.print_axis) {
       controller.print_sticks();
       printf("\t");
