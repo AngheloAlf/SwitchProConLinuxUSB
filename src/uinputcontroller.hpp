@@ -141,7 +141,8 @@ public:
       ret = get_packet(uinput_event);
     }
   }
-
+  uint16_t magnitude = 0, r_length = 0;
+  int32_t length_remaining = 0;
 private:
   void send_packet(unsigned short type, unsigned short code, int value){
     struct input_event uinput_event;
@@ -189,12 +190,18 @@ private:
       printf("%x %x\n", upload.request_id, upload.retval);
       printf("\t%x %x %x\n", upload.effect.type, upload.effect.id, upload.effect.direction);
       printf("\ttrigger: %x %x\n", upload.effect.trigger.button, upload.effect.trigger.interval);
-      printf("\treplay: %x %x\n", upload.effect.replay.length, upload.effect.replay.delay);
+      printf("\treplay: %i %i\n", upload.effect.replay.length, upload.effect.replay.delay);
+      if (upload.effect.type == FF_RUMBLE) {
+        printf("\tmagnitude: %x %x\n", upload.effect.u.rumble.strong_magnitude, upload.effect.u.rumble.weak_magnitude);
+      }
       printf("\n");
       upload.retval = 0; // -1 on error
       //upload.effect.id = 0;
 
       /// TODO: enable
+      if (!magnitude) magnitude = upload.effect.u.rumble.strong_magnitude;
+      if (!magnitude) magnitude = upload.effect.u.rumble.weak_magnitude;
+      r_length = upload.effect.replay.length;
 
       ioctl(uinput_fd, UI_END_FF_UPLOAD, &upload);
       break;
@@ -222,6 +229,9 @@ private:
 
   void handle_EV_FF(const struct input_event &uinput_event) {
     printf("(EV_FF) code: %04x - value: %x\n", uinput_event.code, uinput_event.value);
+    if (uinput_event.value) {
+      length_remaining += r_length;
+    }
   }
 
   int uinput_version, uinput_rc, uinput_fd;

@@ -136,6 +136,10 @@ public:
     }
 
     uinput_ctrl->update_state();
+    if (uinput_ctrl->length_remaining > 0) {
+      hid_ctrl->rumble(200, 3);
+      uinput_ctrl->length_remaining -= 50;
+    }
 
     manage_buttons();
     manage_joysticks();
