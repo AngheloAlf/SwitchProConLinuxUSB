@@ -20,24 +20,11 @@ public:
                 : ven_id(vendor_id), prod_id(product_id), 
                   n_controller(n_controll) {
     controller_ptr = hid_open(vendor_id, product_id, serial_number);
-    // controller_ptr = hid_open_path("/dev/input/hidraw0");
- 
-    //printf("SERIAL NUMBER: %u\n", serial_number);
     if (!controller_ptr) {
-      throw std::ios_base::failure("Can't connect to controller. Invalid device pointer");
+      throw std::ios_base::failure("Can't connect to controller. You could try again with sudo. Invalid device pointer");
     }
-    // hid_device_info *info = hid_open(vendor_id, product_id, serial_number);
-    // std::cout<< "PATH: " << info->path << std::endl;;
 
-    // if (false)
-    // { //!exchange(handshake)) { //need std::optional
-    //     red();
-    //     printf("ERROR: exchange handshake failed!\n");
-    //     normal();
-    // }
-
-    // set_non_blocking();
-
+    exchange(handshake);
     exchange(switch_baudrate);
     exchange(handshake);
 
