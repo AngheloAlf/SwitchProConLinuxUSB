@@ -52,16 +52,16 @@ public:
     return dat[pos] & byte_button_value(button);
   }
 
-  uint8_t get_axis_status(AXIS axis) const {
+  uint16_t get_axis_status(AXIS axis) const {
     switch (axis) {
     case axis_lx:
-      return ((dat[0x11] & 0x0F) << 4) | ((dat[0x10] & 0xF0) >> 4);
+      return ((dat[0x11] & 0x0F) << 8) | dat[0x10];
     case axis_ly:
-      return dat[0x12];
+      return (dat[0x12] << 4) | ((dat[0x11] & 0xF0) >> 4);
     case axis_rx:
-      return ((dat[0x14] & 0x0F) << 4) | ((dat[0x13] & 0xF0) >> 4);
+      return ((dat[0x14] & 0x0F) << 8) | dat[0x13];
     case axis_ry:
-      return dat[0x15];
+      return (dat[0x15] << 4) | ((dat[0x14] & 0xF0) >> 4);
     default:
       return 0;
     }

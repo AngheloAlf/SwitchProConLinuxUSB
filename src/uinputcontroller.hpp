@@ -60,17 +60,17 @@ public:
     ioctl(uinput_fd, UI_SET_ABSBIT, ABS_HAT0Y);
 
     uinput_device.absmin[ABS_X] = 0;
-    uinput_device.absmax[ABS_X] = 255;
+    uinput_device.absmax[ABS_X] = 0xFFF;
     uinput_device.absmin[ABS_Y] = 0;
-    uinput_device.absmax[ABS_Y] = 255;
+    uinput_device.absmax[ABS_Y] = 0xFFF;
     uinput_device.absmin[ABS_RX] = 0;
-    uinput_device.absmax[ABS_RX] = 255;
+    uinput_device.absmax[ABS_RX] = 0xFFF;
     uinput_device.absmin[ABS_RY] = 0;
-    uinput_device.absmax[ABS_RY] = 255;
+    uinput_device.absmax[ABS_RY] = 0xFFF;
     uinput_device.absmin[ABS_Z] = 0;
-    uinput_device.absmax[ABS_Z] = 255;
+    uinput_device.absmax[ABS_Z] = 0xFFF;
     uinput_device.absmin[ABS_RZ] = 0;
-    uinput_device.absmax[ABS_RZ] = 255;
+    uinput_device.absmax[ABS_RZ] = 0xFFF;
     uinput_device.absmin[ABS_HAT0X] = -1;
     uinput_device.absmax[ABS_HAT0X] =  1;
     uinput_device.absmin[ABS_HAT0Y] = -1;
