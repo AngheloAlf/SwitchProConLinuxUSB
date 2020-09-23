@@ -135,6 +135,8 @@ public:
       return;
     }
 
+    uinput_ctrl->update_state();
+
     manage_buttons();
     manage_joysticks();
     manage_dpad();
