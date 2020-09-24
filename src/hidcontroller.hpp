@@ -24,6 +24,8 @@ public:
       throw std::ios_base::failure("Can't connect to controller. You could try again with sudo. Invalid device pointer");
     }
 
+    set_blocking();
+
     exchange(handshake);
     exchange(switch_baudrate);
     exchange(handshake);
@@ -31,6 +33,7 @@ public:
     // the next part will sometimes fail, then need to reopen device via hidapi
     exchange(hid_only_mode, true);
 
+    set_non_blocking();
     usleep(100 * 1000);
 
     // TEST FOR BAD DATA
@@ -43,6 +46,8 @@ public:
 
   ~HidController(){
     if (controller_ptr != nullptr) {
+      set_blocking();
+      exchange(msg_close);
       hid_close(controller_ptr);
     }
   }
@@ -183,14 +188,16 @@ private:
   uint8_t rumble_counter{0};
   const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
   const std::array<uint8_t, 0> empty{{}};
+
   const std::array<uint8_t, 2> handshake{{0x80, 0x02}};
   const std::array<uint8_t, 2> switch_baudrate{{0x80, 0x03}};
-
   /** 
    * Forces the Pro Controller to only talk over USB HID without any timeouts. 
    * This is required for the Pro Controller to not time out and revert to Bluetooth.
    */
   const std::array<uint8_t, 2> hid_only_mode{{0x80, 0x04}};
+  const std::array<uint8_t, 2> msg_close{{0x80, 0x05}};
+
   // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
   const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
 

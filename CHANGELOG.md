@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Option to print the state of the axis (`-p a`), buttons (`-p b`) and/or dpad (`-p d`).
   - If enabled, the raw state of the axis will be printed during the calibration.
 - Option to only swap A and B buttons (`--swap-ab`) and option to only swap X and Y buttons (`--swap-xy`).
+- Send a 'close connection' message to controller when exiting the program.
+  - This way the led turns off at exit.
 - Exceptions.
 - A changelog.
 
@@ -26,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Some memory leaks related to hidapi.
+- "Can't connect to controller" error when trying to reopen the program after a successful execution.
 
 ## [1.0 alpha2] - 2019-05-26
 
