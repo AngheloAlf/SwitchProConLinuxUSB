@@ -7,6 +7,24 @@
 #include <vector>
 
 
+HidApi::Enumerate::Enumerate(uint16_t vendor_id, uint16_t product_id) {
+  ptr = hid_enumerate(vendor_id, product_id);
+  if (ptr == nullptr) {
+    throw std::runtime_error("Unable to find any requested device.");
+  }
+}
+
+HidApi::Enumerate::~Enumerate() {
+  if (ptr != nullptr) {
+    hid_free_enumeration(ptr);
+  }
+}
+
+const struct hid_device_info *HidApi::Enumerate::device_info() const {
+  return ptr;
+}
+
+
 HidApi::HidApi(const struct hid_device_info *device_info) {
   ptr = hid_open_path(device_info->path);
   if (ptr == nullptr) {
@@ -14,9 +32,8 @@ HidApi::HidApi(const struct hid_device_info *device_info) {
   }
 }
 
-/*HidApi::HidApi(const HidApi::Enumerate &info) {
-  HidApi(info.device_info());
-}*/
+HidApi::HidApi(const HidApi::Enumerate &info): HidApi(info.device_info()) {
+}
 
 HidApi::HidApi(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number) {
   ptr = hid_open(vendor_id, product_id, serial_number);
@@ -71,7 +88,7 @@ std::array<uint8_t, 0x400> HidApi::exchange(size_t length, const uint8_t *data_t
   if (timed) {
     int val = read_timeout(ret.size(), ret.data(), milliseconds);
     if (val == 0) {
-      throw std::runtime_error("TODO.");
+      throw std::runtime_error("Didn't receive exchange packet after " + std::to_string(milliseconds) + " milliseconds.");
     }
   }
   else {
@@ -134,23 +151,6 @@ void HidApi::exit() {
   }
 }
 
-
-HidApi::Enumerate::Enumerate(uint16_t vendor_id, uint16_t product_id) {
-  ptr = hid_enumerate(vendor_id, product_id);
-  if (ptr == nullptr) {
-    throw std::runtime_error("Hid enumerate error");
-  }
-}
-
-HidApi::Enumerate::~Enumerate() {
-  if (ptr != nullptr) {
-    hid_free_enumeration(ptr);
-  }
-}
-
-const struct hid_device_info *HidApi::Enumerate::device_info() const {
-  return ptr;
-}
 
 std::string HidApi::wide_to_string(const wchar_t *wide) {
   //size_t len = wcslen(wide);

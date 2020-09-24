@@ -31,9 +31,8 @@
 #define MAX_N_CONTROLLERS 4
 
 class ProController {
-
 public:
-  ProController(unsigned short n_controller, hid_device_info *device_info, 
+  ProController(unsigned short n_controller, const HidApi::Enumerate &device_info, 
                 Config &cfg): config(cfg){
     if (config.force_calibration) {
       read_calibration_from_file = false;
@@ -42,9 +41,7 @@ public:
     bool opened = false;
     while(!opened){
       try {
-        hid_ctrl = new HidController(device_info->vendor_id, 
-                                    device_info->product_id,
-                                    device_info->serial_number, n_controller);
+        hid_ctrl = new HidController(device_info, n_controller);
         opened = true;
       } catch (const std::ios_base::failure &e) {
         throw;

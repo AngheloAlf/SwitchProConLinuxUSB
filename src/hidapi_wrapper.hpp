@@ -9,9 +9,22 @@
 
 class HidApi{
 public:
+  class Enumerate{
+  public:
+    Enumerate(uint16_t vendor_id, uint16_t product_id);
+
+    ~Enumerate();
+
+    const struct hid_device_info *device_info() const;
+
+  private:
+    struct hid_device_info *ptr = nullptr;
+  };
+
+
   HidApi(const struct hid_device_info *device_info);
 
-  //HidApi(const HidApi::Enumerate &info);
+  HidApi(const HidApi::Enumerate &info);
 
   HidApi(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number);
 
@@ -66,19 +79,6 @@ public:
   static void init();
 
   static void exit();
-
-
-  class Enumerate{
-  public:
-    Enumerate(uint16_t vendor_id, uint16_t product_id);
-
-    ~Enumerate();
-
-    const struct hid_device_info *device_info() const;
-
-  private:
-    struct hid_device_info *ptr = nullptr;
-  };
 
   static constexpr uint16_t any_vendor{0};
   static constexpr uint16_t any_product{0};

@@ -13,10 +13,8 @@
 
 class HidController{
 public:
-  HidController(unsigned short vendor_id, unsigned short product_id,
-                const wchar_t *serial_number, unsigned short n_controll)
-                : hid(vendor_id, product_id, serial_number), 
-                  n_controller(n_controll) {
+  HidController(const HidApi::Enumerate &device_info, unsigned short n_controll)
+                : hid(device_info), n_controller(n_controll) {
     hid.set_blocking();
 
     hid.exchange(handshake);
