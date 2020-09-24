@@ -49,8 +49,12 @@ include_directories(
 )
 set(MAIN main.cpp)
 
+file(GLOB src_folder
+    #"*.h"
+    "src/*.cpp"
+)
 
 MESSAGE( STATUS "CMAKE_BINARY_DIR:         " ${HIDAPI_INCLUDE_DIR} )
 
-add_executable(${PROJECT_NAME} ${MAIN})
+add_executable(${PROJECT_NAME} ${MAIN} ${src_folder})
 target_link_libraries(${PROJECT_NAME} ${HIDAPI_LIBRARIES}) #${TESTLIB_LIBRARY2})#libshit)# ${TESTLIB_LIBRARY2})#libshit)
