@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 
 # Build SwitchProCon
-mkdir build
-cd build
-cmake ..
-make
-cd ..
+./build.sh
 
 #copy udev rules
 sudo cp 99-hid-procon.rules /etc/udev/rules.d/99-hid-procon.rules
