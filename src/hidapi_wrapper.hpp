@@ -18,6 +18,7 @@ namespace HidApi{
     HidApiError(const std::string& what_arg);
     HidApiError(const char* what_arg);
     HidApiError(hid_device *ptr);
+    HidApiError(hid_device *ptr, const std::string& what_arg);
     HidApiError(hid_device *ptr, const char* what_arg);
 
     ~HidApiError();

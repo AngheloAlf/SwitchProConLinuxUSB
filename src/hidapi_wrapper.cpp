@@ -32,6 +32,14 @@ HidApiError::HidApiError(hid_device *ptr): std::runtime_error("") {
   }
   copy_string_to_char(&str, std::string("HidApi: ") + wide_to_string(er));
 }
+HidApiError::HidApiError(hid_device *ptr, const std::string& what_arg): std::runtime_error(what_arg) {
+  const wchar_t *er = hid_error(ptr);
+  if (er == nullptr) {
+    copy_string_to_char(&str, std::string("HidApi: ") + what_arg);
+    return;
+  }
+  copy_string_to_char(&str, std::string("HidApi: ") + what_arg + "\n" + wide_to_string(er));
+}
 HidApiError::HidApiError(hid_device *ptr, const char* what_arg): std::runtime_error(what_arg) {
   const wchar_t *er = hid_error(ptr);
   if (er == nullptr) {
@@ -72,7 +80,7 @@ const struct hid_device_info *Enumerate::device_info() const {
 Device::Device(const struct hid_device_info *device_info) {
   ptr = hid_open_path(device_info->path);
   if (ptr == nullptr) {
-    throw HidApiError(ptr);
+    throw HidApiError(ptr, "open_path()");
   }
 }
 
@@ -82,7 +90,7 @@ Device::Device(const Enumerate &info): Device(info.device_info()) {
 Device::Device(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number) {
   ptr = hid_open(vendor_id, product_id, serial_number);
   if (ptr == nullptr) {
-    throw HidApiError(ptr);
+    throw HidApiError(ptr, "open()");
   }
 }
 
@@ -96,7 +104,7 @@ Device::~Device(){
 size_t Device::write(size_t len, const uint8_t *data) {
   int ret = hid_write(ptr, data, len);
   if (ret < 0) {
-    throw HidApiError(ptr);
+    throw HidApiError(ptr, "write() returned " + std::to_string(ret));
   }
   return ret;
 }
@@ -112,7 +120,7 @@ size_t Device::read(size_t len, uint8_t *data, int milliseconds) {
   }
 
   if (ret < 0) {
-    throw HidApiError(ptr);
+    throw HidApiError(ptr, "read() returned " + std::to_string(ret));
   }
   return ret;
 }

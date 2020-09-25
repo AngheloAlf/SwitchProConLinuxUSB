@@ -37,7 +37,11 @@ public:
 
   ~HidController(){
     hid.set_blocking();
-    hid.exchange(msg_close);
+    try {
+      close();
+    }
+    catch (const HidApi::HidApiError &e) {
+    }
 
     // Wait for controller to receive the close packet.
     usleep(1000 * 1000);
@@ -82,6 +86,10 @@ public:
     ProInputParser ret = send_command(0x10, buf);
     ret.print();
     return ret;
+  }
+
+  void close() {
+    hid.exchange(msg_close);
   }
 
 private:
