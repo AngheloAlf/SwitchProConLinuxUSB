@@ -128,7 +128,7 @@ private:
     return false;
   }
 
-  HidApi hid;
+  HidApi::Device hid;
 
   unsigned short n_controller;
 
