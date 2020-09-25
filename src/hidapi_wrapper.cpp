@@ -1,18 +1,62 @@
 #include "hidapi_wrapper.hpp"
 
-
-#include <hidapi.h>
 #include <cstdlib>
-#include <stdexcept>
+#include <cstring>
 #include <vector>
 
 constexpr size_t maxlen = 1024;
 
 
+void copy_string_to_char(char **dst, const std::string &src) {
+  size_t sz = src.size() + 1;
+  *dst = (char *)malloc(sz);
+  strncpy(*dst, src.c_str(), sz);
+}
+
+HidApi::HidApiError::HidApiError(): std::runtime_error("Unspecified error") {
+  std::string aux = std::string("HidApi: ") + "Unspecified error";
+  copy_string_to_char(&str, aux);
+}
+
+HidApi::HidApiError::HidApiError(const std::string& what_arg): std::runtime_error(what_arg) {
+  std::string aux = std::string("HidApi: ") + what_arg;
+  copy_string_to_char(&str, aux);
+}
+HidApi::HidApiError::HidApiError(const char* what_arg): std::runtime_error(what_arg) {
+  std::string aux = std::string("HidApi: ") + what_arg;
+  copy_string_to_char(&str, aux);
+}
+HidApi::HidApiError::HidApiError(hid_device *ptr): std::runtime_error("") {
+  const wchar_t *er = hid_error(ptr);
+  if (er == nullptr) {
+    copy_string_to_char(&str, "HidApi: Unknown error");
+    return;
+  }
+  copy_string_to_char(&str, std::string("HidApi: ") + wide_to_string(er));
+}
+HidApi::HidApiError::HidApiError(hid_device *ptr, const char* what_arg): std::runtime_error(what_arg) {
+  const wchar_t *er = hid_error(ptr);
+  if (er == nullptr) {
+    copy_string_to_char(&str, std::string("HidApi: ") + what_arg);
+    return;
+  }
+  copy_string_to_char(&str, std::string("HidApi: ") + what_arg + "\n" + wide_to_string(er));
+}
+
+
+HidApi::HidApiError::~HidApiError() {
+  free(str);
+}
+
+const char *HidApi::HidApiError::what() const noexcept {
+  return str;
+}
+
+
 HidApi::Enumerate::Enumerate(uint16_t vendor_id, uint16_t product_id) {
   ptr = hid_enumerate(vendor_id, product_id);
   if (ptr == nullptr) {
-    throw std::runtime_error("Unable to find any requested device.");
+    throw HidApi::HidApiError("Unable to find any requested device.");
   }
 }
 
@@ -30,7 +74,7 @@ const struct hid_device_info *HidApi::Enumerate::device_info() const {
 HidApi::HidApi(const struct hid_device_info *device_info) {
   ptr = hid_open_path(device_info->path);
   if (ptr == nullptr) {
-    throw std::runtime_error(error());
+    throw HidApi::HidApiError(ptr);
   }
 }
 
@@ -40,7 +84,7 @@ HidApi::HidApi(const HidApi::Enumerate &info): HidApi(info.device_info()) {
 HidApi::HidApi(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number) {
   ptr = hid_open(vendor_id, product_id, serial_number);
   if (ptr == nullptr) {
-    throw std::runtime_error(error());
+    throw HidApi::HidApiError(ptr);
   }
 }
 
@@ -54,7 +98,7 @@ HidApi::~HidApi(){
 size_t HidApi::write(size_t len, const uint8_t *data) {
   int ret = hid_write(ptr, data, len);
   if (ret < 0) {
-    throw std::runtime_error(error());
+    throw HidApi::HidApiError(ptr);
   }
   return ret;
 }
@@ -70,7 +114,7 @@ size_t HidApi::read(size_t len, uint8_t *data, int milliseconds) {
   }
 
   if (ret < 0) {
-    throw std::runtime_error(error());
+    throw HidApi::HidApiError(ptr);
   }
   return ret;
 }
@@ -87,7 +131,7 @@ size_t HidApi::exchange(size_t read_len, uint8_t *buf, size_t write_len, const u
 
   size_t ret = read(read_len, buf, milliseconds);
   if (milliseconds >= 0 && ret == 0) {
-    throw std::runtime_error("Didn't receive exchange packet after " + std::to_string(milliseconds) + " milliseconds.");
+    throw HidApi::HidApiError("Didn't receive exchange packet after " + std::to_string(milliseconds) + " milliseconds.");
   }
 
   return ret;
@@ -104,14 +148,14 @@ std::array<uint8_t, HidApi::default_length> HidApi::exchange(size_t write_len, c
 
 void HidApi::set_non_blocking() {
   if (hid_set_nonblocking(ptr, 1) < 0) {
-    throw std::runtime_error("Couldn't set non-blocking mode.");
+    throw HidApi::HidApiError("Couldn't set non-blocking mode.");
   }
   blocking = false;
 }
 
 void HidApi::set_blocking() {
   if (hid_set_nonblocking(ptr, 0) < 0) {
-    throw std::runtime_error("Couldn't set blocking mode.");
+    throw HidApi::HidApiError("Couldn't set blocking mode.");
   }
   blocking = true;
 }
@@ -120,7 +164,7 @@ void HidApi::set_blocking() {
 std::string HidApi::get_manufacturer() const {
   std::array<wchar_t, maxlen+1> buf;
   if (hid_get_manufacturer_string(ptr, buf.data(), maxlen) < 0) {
-    throw std::runtime_error("Couldn't get manufacturer string.");
+    throw HidApi::HidApiError("Couldn't get manufacturer string.");
   }
   return HidApi::wide_to_string(buf.data());
 }
@@ -128,7 +172,7 @@ std::string HidApi::get_manufacturer() const {
 std::string HidApi::get_product() const {
   std::array<wchar_t, maxlen+1> buf;
   if (hid_get_product_string(ptr, buf.data(), maxlen) < 0) {
-    throw std::runtime_error("Couldn't get product string.");
+    throw HidApi::HidApiError("Couldn't get product string.");
   }
   return HidApi::wide_to_string(buf.data());
 }
@@ -136,7 +180,7 @@ std::string HidApi::get_product() const {
 std::string HidApi::get_serial_number() const {
   std::array<wchar_t, maxlen+1> buf;
   if (hid_get_serial_number_string(ptr, buf.data(), maxlen) < 0) {
-    throw std::runtime_error("Couldn't get serial number string.");
+    throw HidApi::HidApiError("Couldn't get serial number string.");
   }
   return HidApi::wide_to_string(buf.data());
 }
@@ -144,7 +188,7 @@ std::string HidApi::get_serial_number() const {
 std::string HidApi::get_indexed(int string_index) const {
   std::array<wchar_t, maxlen+1> buf;
   if (hid_get_indexed_string(ptr, string_index, buf.data(), maxlen) < 0) {
-    throw std::runtime_error("Couldn't get ndexed string.");
+    throw HidApi::HidApiError("Couldn't get ndexed string.");
   }
   return HidApi::wide_to_string(buf.data());
 }
@@ -152,13 +196,13 @@ std::string HidApi::get_indexed(int string_index) const {
 
 void HidApi::init() {
   if (hid_init() < 0) {
-    throw std::runtime_error("Hid init error");
+    throw HidApi::HidApiError("Hid init error");
   }
 }
 
 void HidApi::exit() {
   if (hid_exit() < 0) {
-    throw std::runtime_error("Hid exit error");
+    throw HidApi::HidApiError("Hid exit error");
   }
 }
 
@@ -172,7 +216,4 @@ std::string HidApi::wide_to_string(const wchar_t *wide) {
   std::wcsrtombs(&mbstr[0], &wide, mbstr.size(), &state);
 
   return std::string(&mbstr[0]);
-}
-std::string HidApi::error() {
-  return wide_to_string(hid_error(ptr));
 }

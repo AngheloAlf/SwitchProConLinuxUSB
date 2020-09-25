@@ -2,14 +2,32 @@
 #ifndef HIDAPI_WRAPPER__HPP
 #define HIDAPI_WRAPPER__HPP
 
-#include <hidapi.h>
+#include <hidapi/hidapi.h>
+
 #include <array>
 #include <string>
+#include <stdexcept>
 
 
 class HidApi{
 public:
   static constexpr size_t default_length{0x400};
+
+  class HidApiError: public std::runtime_error {
+  public:
+    HidApiError();
+    HidApiError(const std::string& what_arg);
+    HidApiError(const char* what_arg);
+    HidApiError(hid_device *ptr);
+    HidApiError(hid_device *ptr, const char* what_arg);
+
+    ~HidApiError();
+
+    const char *what() const noexcept;
+  
+  private:
+    char *str = nullptr;
+  };
 
   class Enumerate{
   public:
@@ -88,7 +106,6 @@ public:
 
 private:
   static std::string wide_to_string(const wchar_t *wide);
-  std::string error();
 
   hid_device *ptr = nullptr;
   bool blocking = true;
