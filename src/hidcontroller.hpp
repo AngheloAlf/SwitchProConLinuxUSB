@@ -107,7 +107,7 @@ public:
     return ret;
   }
 
-  ProInputParser rumble(int frequency, int intensity) {
+  ProInputParser rumble(/*int frequency, int intensity*/) {
     std::array<uint8_t, 8> buf;
 
     buf[0] = buf[0+4] = 0x00;

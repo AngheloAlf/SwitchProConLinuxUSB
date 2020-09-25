@@ -11,6 +11,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <system_error>
+#include <array>
+
+#include "rumbledata.hpp"
 
 
 class UInputController{
@@ -86,7 +89,7 @@ public:
     //ioctl(uinput_fd, UI_SET_FFBIT, FF_SINE);
     //ioctl(uinput_fd, UI_SET_FFBIT, FF_GAIN);
 
-    uinput_device.ff_effects_max = 2;
+    uinput_device.ff_effects_max = max_effects;
 
     if (write(uinput_fd, &uinput_device, sizeof(uinput_device)) < 0) {
       close(uinput_fd);
@@ -141,8 +144,7 @@ public:
       ret = get_packet(uinput_event);
     }
   }
-  uint16_t magnitude = 0, r_length = 0;
-  int32_t length_remaining = 0;
+
 private:
   void send_packet(unsigned short type, unsigned short code, int value){
     struct input_event uinput_event;
@@ -198,10 +200,15 @@ private:
       upload.retval = 0; // -1 on error
       //upload.effect.id = 0;
 
-      /// TODO: enable
-      if (!magnitude) magnitude = upload.effect.u.rumble.strong_magnitude;
-      if (!magnitude) magnitude = upload.effect.u.rumble.weak_magnitude;
-      r_length = upload.effect.replay.length;
+      if (upload.effect.id < max_effects) {
+        struct ff_effect *eff = &upload.effect;
+        if (!rumble_effects.at(eff->id).init(eff->id, eff->type, eff->replay.length, eff->replay.delay, eff->u.rumble.strong_magnitude, eff->u.rumble.weak_magnitude)) {
+          upload.retval = -1;
+        }
+      }
+      else {
+        upload.retval = -1;
+      }
 
       ioctl(uinput_fd, UI_END_FF_UPLOAD, &upload);
       break;
@@ -216,7 +223,9 @@ private:
       printf("%x %x %x\n", erase.request_id, erase.retval, erase.effect_id);
       printf("\n");
 
-      /// TODO: disable
+      if (erase.request_id < max_effects) {
+        rumble_effects.at(erase.request_id).deinit();
+      }
 
       ioctl(uinput_fd, UI_END_FF_ERASE, &erase);
       break;
@@ -229,12 +238,15 @@ private:
 
   void handle_EV_FF(const struct input_event &uinput_event) {
     printf("(EV_FF) code: %04x - value: %x\n", uinput_event.code, uinput_event.value);
-    if (uinput_event.value) {
-      length_remaining += r_length;
+    if (uinput_event.code < max_effects) {
+      rumble_effects.at(uinput_event.code).play(uinput_event.code, uinput_event.value);
     }
   }
 
   int uinput_version, uinput_rc, uinput_fd;
+
+  static constexpr uint16_t max_effects{2};
+  std::array<RumbleData, max_effects> rumble_effects;
 };
 
 #endif
