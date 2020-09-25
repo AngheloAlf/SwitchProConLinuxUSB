@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 SET(CMAKE_CXX_COMPILER /usr/bin/g++)
 set (CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wshadow -g")
+#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -lasan -fsanitize=address")
 
 project(procon_driver)
 
@@ -49,8 +50,12 @@ include_directories(
 )
 set(MAIN main.cpp)
 
+file(GLOB src_folder
+    #"src/*.hpp"
+    "src/*.cpp"
+)
 
 MESSAGE( STATUS "CMAKE_BINARY_DIR:         " ${HIDAPI_INCLUDE_DIR} )
 
-add_executable(${PROJECT_NAME} ${MAIN})
+add_executable(${PROJECT_NAME} ${MAIN} ${src_folder})
 target_link_libraries(${PROJECT_NAME} ${HIDAPI_LIBRARIES}) #${TESTLIB_LIBRARY2})#libshit)# ${TESTLIB_LIBRARY2})#libshit)
