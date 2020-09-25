@@ -51,7 +51,7 @@ include_directories(
 set(MAIN main.cpp)
 
 file(GLOB src_folder
-    #"*.h"
+    #"src/*.hpp"
     "src/*.cpp"
 )
 

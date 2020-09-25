@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <vector>
 
+constexpr size_t maxlen = 1024;
+
 
 HidApi::Enumerate::Enumerate(uint16_t vendor_id, uint16_t product_id) {
   ptr = hid_enumerate(vendor_id, product_id);
@@ -49,8 +51,8 @@ HidApi::~HidApi(){
 }
 
 
-int HidApi::write(size_t length, const uint8_t *data) {
-  int ret = hid_write(ptr, data, length);
+size_t HidApi::write(size_t len, const uint8_t *data) {
+  int ret = hid_write(ptr, data, len);
   if (ret < 0) {
     throw std::runtime_error(error());
   }
@@ -58,42 +60,43 @@ int HidApi::write(size_t length, const uint8_t *data) {
 }
 
 
-
-int HidApi::read(size_t length, uint8_t *data) {
-  int ret = hid_read(ptr, data, length);
-  if (ret < 0) {
-    throw std::runtime_error(error());
-  }
-  return ret;
-}
-
-
-
-int HidApi::read_timeout(size_t length, uint8_t *data, int milliseconds) {
-  int ret = hid_read_timeout(ptr, data, length, milliseconds);
-  if (ret < 0) {
-    throw std::runtime_error(error());
-  }
-  return ret;
-}
-
-
-
-std::array<uint8_t, 0x400> HidApi::exchange(size_t length, const uint8_t *data_to_write, bool timed, int milliseconds) {
-  write(length, data_to_write);
-
-  std::array<uint8_t, 0x400> ret;
-  ret.fill(0);
-
-  if (timed) {
-    int val = read_timeout(ret.size(), ret.data(), milliseconds);
-    if (val == 0) {
-      throw std::runtime_error("Didn't receive exchange packet after " + std::to_string(milliseconds) + " milliseconds.");
-    }
+size_t HidApi::read(size_t len, uint8_t *data, int milliseconds) {
+  int ret;
+  if (milliseconds < 0) {
+    ret = hid_read(ptr, data, len);
   }
   else {
-    read(ret.size(), ret.data());
+    ret = hid_read_timeout(ptr, data, len, milliseconds);
   }
+
+  if (ret < 0) {
+    throw std::runtime_error(error());
+  }
+  return ret;
+}
+
+std::array<uint8_t, HidApi::default_length> HidApi::read(int milliseconds) {
+  std::array<uint8_t, HidApi::default_length> ret;
+  read(HidApi::default_length, ret.data(), milliseconds);
+  return ret;
+}
+
+
+size_t HidApi::exchange(size_t read_len, uint8_t *buf, size_t write_len, const uint8_t *data_to_write, int milliseconds) {
+  write(write_len, data_to_write);
+
+  size_t ret = read(read_len, buf, milliseconds);
+  if (milliseconds >= 0 && ret == 0) {
+    throw std::runtime_error("Didn't receive exchange packet after " + std::to_string(milliseconds) + " milliseconds.");
+  }
+
+  return ret;
+}
+
+std::array<uint8_t, HidApi::default_length> HidApi::exchange(size_t write_len, const uint8_t *data_to_write, int milliseconds) {
+  std::array<uint8_t, HidApi::default_length> ret;
+  ret.fill(0);
+  exchange(HidApi::default_length, ret.data(), write_len, data_to_write, milliseconds);
 
   return ret;
 }
@@ -114,28 +117,36 @@ void HidApi::set_blocking() {
 }
 
 
-void HidApi::get_manufacturer(wchar_t *string, size_t maxlen) const {
-  if (hid_get_manufacturer_string(ptr, string, maxlen) < 0) {
+std::string HidApi::get_manufacturer() const {
+  std::array<wchar_t, maxlen+1> buf;
+  if (hid_get_manufacturer_string(ptr, buf.data(), maxlen) < 0) {
     throw std::runtime_error("Couldn't get manufacturer string.");
   }
+  return HidApi::wide_to_string(buf.data());
 }
 
-void HidApi::get_product(wchar_t *string, size_t maxlen) const {
-  if (hid_get_product_string(ptr, string, maxlen) < 0) {
+std::string HidApi::get_product() const {
+  std::array<wchar_t, maxlen+1> buf;
+  if (hid_get_product_string(ptr, buf.data(), maxlen) < 0) {
     throw std::runtime_error("Couldn't get product string.");
   }
+  return HidApi::wide_to_string(buf.data());
 }
 
-void HidApi::get_serial_number(wchar_t *string, size_t maxlen) const {
-  if (hid_get_serial_number_string(ptr, string, maxlen) < 0) {
+std::string HidApi::get_serial_number() const {
+  std::array<wchar_t, maxlen+1> buf;
+  if (hid_get_serial_number_string(ptr, buf.data(), maxlen) < 0) {
     throw std::runtime_error("Couldn't get serial number string.");
   }
+  return HidApi::wide_to_string(buf.data());
 }
 
-void HidApi::get_indexed(int string_index, wchar_t *string, size_t maxlen) const {
-  if (hid_get_indexed_string(ptr, string_index, string, maxlen) < 0) {
+std::string HidApi::get_indexed(int string_index) const {
+  std::array<wchar_t, maxlen+1> buf;
+  if (hid_get_indexed_string(ptr, string_index, buf.data(), maxlen) < 0) {
     throw std::runtime_error("Couldn't get ndexed string.");
   }
+  return HidApi::wide_to_string(buf.data());
 }
 
 

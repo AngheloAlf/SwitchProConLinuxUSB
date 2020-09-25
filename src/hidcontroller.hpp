@@ -22,7 +22,7 @@ public:
     hid.exchange(handshake);
 
     // the next part will sometimes fail, then need to reopen device via hidapi
-    hid.exchange(hid_only_mode, true);
+    hid.exchange(hid_only_mode, 100);
 
     hid.set_non_blocking();
     usleep(100 * 1000);
