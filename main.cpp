@@ -55,7 +55,7 @@ void print_header(){
 }
 
 
-void handle_controller(hid_device_info *iter, Config &config) {
+void handle_controller(const HidApi::Enumerate &iter, Config &config) {
   unsigned short n_controller = 0;
 
   ProController controller(n_controller, iter, config);
@@ -149,20 +149,12 @@ int main(int argc, char *argv[]) {
     PrintColor::normal();
   }
 
-  if (hid_init() < 0) {
-    PrintColor::red();
-    printf("Hid init error...\n");
-    PrintColor::normal();
-    return -1;
+  try {
+    HidApi::init();
   }
-  hid_device_info *iter =
-      hid_enumerate(NINTENDO_ID, PROCON_ID); // Don't trust hidapi, returns
-                                             // non-matching devices sometimes
-                                             // (*const to prevent compiler from
-                                             // optimizing away)
-  if (iter == nullptr) {
+  catch (const std::runtime_error &e) {
     PrintColor::red();
-    printf("No controller found...\n");
+    printf("%s\n", e.what());
     PrintColor::normal();
     return -1;
   }
@@ -170,6 +162,8 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, exit_handler);
 
   try {
+    // Don't trust hidapi, returns non-matching devices sometimes
+    HidApi::Enumerate iter(NINTENDO_ID, PROCON_ID);
     handle_controller(iter, config);
   } catch (const std::ios_base::failure &e) {
     PrintColor::red();
@@ -181,21 +175,25 @@ int main(int argc, char *argv[]) {
     PrintColor::yellow();
     printf("Exiting...\n");
     PrintColor::normal();
-
-    hid_free_enumeration(iter);
-    return -3;
   } catch (const std::exception &e) {
     PrintColor::red();
     printf("%s\n", e.what());
     PrintColor::normal();
   }
-
-  hid_free_enumeration(iter);
-
-  if (hid_exit() < 0) {
+  #if 0
+  catch (const std::runtime_error &e) {
     PrintColor::red();
-    printf("Hid init error...\n");
-    PrintColor::normal();
+    printf("No controller found: %s\n", e.what());
+    return -1;
+  }
+  #endif
+
+  try {
+   HidApi::exit();
+  }
+  catch (const std::runtime_error &e) {
+    PrintColor::red();
+    printf("%s\n", e.what());
     return -1;
   }
 
