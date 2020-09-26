@@ -236,8 +236,12 @@ private:
       //printf("%x %x %x\n", erase.request_id, erase.retval, erase.effect_id);
       //printf("\n");
 
-      if (erase.request_id < max_effects) {
-        rumble_effects.at(erase.request_id).deinit();
+      if (erase.effect_id < max_effects) {
+        rumble_effects.at(erase.effect_id).deinit();
+        erase.retval = 0;
+      }
+      else {
+        erase.retval = -1;
       }
 
       ioctl(uinput_fd, UI_END_FF_ERASE, &erase);

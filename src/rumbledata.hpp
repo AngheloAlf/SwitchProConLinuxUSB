@@ -27,6 +27,7 @@ public:
         data.direction = direction;
 
         enabled         = true;
+        time_delayed    = 0;
         remaining       = 0;
         return true;
     }
@@ -47,8 +48,14 @@ public:
         }
 
         if (value == 0) {
+            time_delayed = 0;
             remaining = 0;
             return true;
+        }
+
+        if (remaining <= 0) {
+            if (time_delayed < 0) time_delayed = 0;
+            time_delayed += data.delay;
         }
 
         if (remaining < 0) remaining = 0;
@@ -60,6 +67,16 @@ public:
         if (!enabled) {
             return;
         }
+
+        if (time_delayed > delta_milis) {
+            time_delayed -= delta_milis;
+            return;
+        }
+        else {
+            delta_milis -= time_delayed;
+            time_delayed = 0;
+        }
+
         if (remaining < delta_milis) {
             remaining = 0;
             return;
@@ -69,6 +86,9 @@ public:
 
     int32_t get_remaining() const {
         if (!enabled) {
+            return 0;
+        }
+        if (time_delayed > 0) {
             return 0;
         }
         return remaining;
@@ -86,6 +106,7 @@ private:
     struct rumble_data data;
 
     bool enabled=false;
+    int32_t time_delayed = 0;
     int32_t remaining = 0;
 };
 
