@@ -214,11 +214,10 @@ void HidApi::exit() {
 
 
 std::string wide_to_string(const wchar_t *wide) {
-  //size_t len = wcslen(wide);
-
-  std::mbstate_t state/* = std::mbstate_t()*/;
-  std::size_t len = 1 + std::wcsrtombs(nullptr, &wide, 0, &state);
+  size_t len = wcslen(wide);
   std::vector<char> mbstr(len);
+
+  std::mbstate_t state;
   std::wcsrtombs(&mbstr[0], &wide, mbstr.size(), &state);
 
   return std::string(&mbstr[0]);
