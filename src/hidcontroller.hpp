@@ -2,48 +2,29 @@
 #ifndef HID_CONTROLLER_H
 #define HID_CONTROLLER_H
 
-#include "hidapi.h"
 #include <array>
 #include <stdexcept>
-#include <system_error>
-#include <ios>
 #include <unistd.h>
 
+#include "hidapi_wrapper.hpp"
 #include "proinputparser.hpp"
 
 #define TEST_BAD_DATA_CYCLES 10
 
 class HidController{
 public:
-  HidController(unsigned short vendor_id, unsigned short product_id,
-                const wchar_t *serial_number, unsigned short n_controll)
-                : ven_id(vendor_id), prod_id(product_id), 
-                  n_controller(n_controll) {
-    controller_ptr = hid_open(vendor_id, product_id, serial_number);
-    // controller_ptr = hid_open_path("/dev/input/hidraw0");
- 
-    //printf("SERIAL NUMBER: %u\n", serial_number);
-    if (!controller_ptr) {
-      throw std::ios_base::failure("Can't connect to controller. Invalid device pointer");
-    }
-    // hid_device_info *info = hid_open(vendor_id, product_id, serial_number);
-    // std::cout<< "PATH: " << info->path << std::endl;;
+  HidController(const HidApi::Enumerate &device_info, unsigned short n_controll)
+                : hid(device_info), n_controller(n_controll) {
+    hid.set_blocking();
 
-    // if (false)
-    // { //!exchange(handshake)) { //need std::optional
-    //     red();
-    //     printf("ERROR: exchange handshake failed!\n");
-    //     normal();
-    // }
-
-    // set_non_blocking();
-
-    exchange(switch_baudrate);
-    exchange(handshake);
+    hid.exchange(handshake);
+    hid.exchange(switch_baudrate);
+    hid.exchange(handshake);
 
     // the next part will sometimes fail, then need to reopen device via hidapi
-    exchange(hid_only_mode, true);
+    hid.exchange(hid_only_mode, 100);
 
+    hid.set_non_blocking();
     usleep(100 * 1000);
 
     // TEST FOR BAD DATA
@@ -55,9 +36,15 @@ public:
   }
 
   ~HidController(){
-    if (controller_ptr != nullptr) {
-      hid_close(controller_ptr);
+    hid.set_blocking();
+    try {
+      close();
     }
+    catch (const HidApi::HidApiError &e) {
+    }
+
+    // Wait for controller to receive the close packet.
+    usleep(1000 * 1000);
   }
 
   ProInputParser request_input() {
@@ -84,22 +71,6 @@ public:
     send_subcommand(0x1, led_command, blink_command);
   }
 
-  void set_non_blocking() {
-    if (hid_set_nonblocking(controller_ptr, 1) < 0) {
-      throw std::runtime_error("Couldn't set controller " + 
-                               std::to_string(n_controller) + 
-                               " to non-blocking.");
-    }
-  }
-
-  void set_blocking() {
-    if (hid_set_nonblocking(controller_ptr, 0) < 0) {
-      throw std::runtime_error("Couldn't set controller " + 
-                               std::to_string(n_controller) + 
-                               " to blocking.");
-    }
-  }
-
   ProInputParser send_rumble(uint8_t large_motor, uint8_t small_motor) {
     std::array<uint8_t, 9> buf{
       static_cast<uint8_t>(rumble_counter++ & 0xF),
@@ -117,33 +88,11 @@ public:
     return ret;
   }
 
-private:
-  template <size_t length>
-  ProInputParser exchange(std::array<uint8_t, length> const &data,
-                          bool timed = false) {
-    if (hid_write(controller_ptr, data.data(), length) < 0) {
-      throw std::system_error(-1, std::generic_category(), 
-                              "ERROR: read() returned -1!\n"
-                              "Did you disconnect the controller?");
-    }
-
-    ProInputParser::exchange_array ret;
-    ret.fill(0);
-
-    bool successful = false;
-    if (!timed) {
-      successful = hid_read(controller_ptr, ret.data(), ProInputParser::exchange_length) >= 0;
-    } else {
-      successful = hid_read_timeout(controller_ptr, ret.data(), ProInputParser::exchange_length, 100) != 0;
-    }
-
-    if (!successful) {
-      throw std::system_error(-2, std::generic_category());
-    }
-
-    return ProInputParser(ret);
+  void close() {
+    hid.exchange(msg_close);
   }
 
+private:
   template <size_t length>
   ProInputParser send_command(uint8_t command,
                               std::array<uint8_t, length> const &data) {
@@ -156,7 +105,7 @@ private:
     if (length > 0) {
       memcpy(buffer.data() + 0x9, data.data(), length);
     }
-    return exchange(buffer);
+    return ProInputParser(hid.exchange(buffer));
   }
 
   template <size_t length>
@@ -187,23 +136,23 @@ private:
     return false;
   }
 
-  hid_device *controller_ptr = nullptr;
+  HidApi::Device hid;
 
-  unsigned short ven_id;
-  unsigned short prod_id;
   unsigned short n_controller;
 
   uint8_t rumble_counter{0};
   const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
   const std::array<uint8_t, 0> empty{{}};
+
   const std::array<uint8_t, 2> handshake{{0x80, 0x02}};
   const std::array<uint8_t, 2> switch_baudrate{{0x80, 0x03}};
-
   /** 
    * Forces the Pro Controller to only talk over USB HID without any timeouts. 
    * This is required for the Pro Controller to not time out and revert to Bluetooth.
    */
   const std::array<uint8_t, 2> hid_only_mode{{0x80, 0x04}};
+  const std::array<uint8_t, 2> msg_close{{0x80, 0x05}};
+
   // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
   const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
 
