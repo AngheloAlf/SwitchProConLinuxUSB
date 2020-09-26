@@ -7,8 +7,10 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wshadow -g")
 
 project(procon_driver)
 
+#find_library(HIDAPI_LIBRARY
+#	NAMES hidapi hidapi-libusb REQUIRED)
 find_library(HIDAPI_LIBRARY
-	NAMES hidapi hidapi-libusb REQUIRED)
+	NAMES hidapi hidapi-hidraw REQUIRED)
 
 #find_library(EVDEV_LIBRARY
 #	NAMES evdev REQUIRED)

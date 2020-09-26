@@ -15,6 +15,11 @@ class HidController{
 public:
   HidController(const HidApi::Enumerate &device_info, unsigned short n_controll)
                 : hid(device_info), n_controller(n_controll) {
+    printf("serial number: %s\n", hid.get_serial_number().c_str());
+    if (hid.get_serial_number() != "000000000001") {
+      printf("Bluetooth!\n");
+      throw 1;
+    }
     hid.set_blocking();
 
     hid.exchange(handshake);
