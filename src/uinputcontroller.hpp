@@ -18,6 +18,8 @@
 
 class UInputController{
 public:
+  static constexpr uint16_t max_effects{2};
+
   UInputController() {
     uinput_fd = open("/dev/uinput", O_RDWR | O_NONBLOCK);
     if (uinput_fd < 0) {
@@ -145,6 +147,17 @@ public:
     }
   }
 
+  std::array<int32_t, max_effects> update_time(long double delta_milis) {
+    std::array<int32_t, max_effects> remaining_arr;
+    size_t i = 0;
+    for(RumbleData &rum: rumble_effects) {
+      rum.update_time(delta_milis);
+      remaining_arr[i] = rum.get_remaining();
+      ++i;
+    }
+    return remaining_arr;
+  }
+
 private:
   void send_packet(unsigned short type, unsigned short code, int value){
     struct input_event uinput_event;
@@ -188,15 +201,15 @@ private:
 
       ioctl(uinput_fd, UI_BEGIN_FF_UPLOAD, &upload);
 
-      printf("(UI_FF_UPLOAD): %i\n", uinput_event.value);
-      printf("%x %x\n", upload.request_id, upload.retval);
-      printf("\t%x %x %x\n", upload.effect.type, upload.effect.id, upload.effect.direction);
-      printf("\ttrigger: %x %x\n", upload.effect.trigger.button, upload.effect.trigger.interval);
-      printf("\treplay: %i %i\n", upload.effect.replay.length, upload.effect.replay.delay);
+      //printf("(UI_FF_UPLOAD): %i\n", uinput_event.value);
+      //printf("%x %x\n", upload.request_id, upload.retval);
+      //printf("\t%x %x %x\n", upload.effect.type, upload.effect.id, upload.effect.direction);
+      //printf("\ttrigger: %x %x\n", upload.effect.trigger.button, upload.effect.trigger.interval);
+      //printf("\treplay: %i %i\n", upload.effect.replay.length, upload.effect.replay.delay);
       if (upload.effect.type == FF_RUMBLE) {
-        printf("\tmagnitude: %x %x\n", upload.effect.u.rumble.strong_magnitude, upload.effect.u.rumble.weak_magnitude);
+        //printf("\tmagnitude: %x %x\n", upload.effect.u.rumble.strong_magnitude, upload.effect.u.rumble.weak_magnitude);
       }
-      printf("\n");
+      //printf("\n");
       upload.retval = 0; // -1 on error
       //upload.effect.id = 0;
 
@@ -219,9 +232,9 @@ private:
 
       ioctl(uinput_fd, UI_BEGIN_FF_ERASE, &erase);
 
-      printf("(UI_FF_ERASE): %i\n", uinput_event.value);
-      printf("%x %x %x\n", erase.request_id, erase.retval, erase.effect_id);
-      printf("\n");
+      //printf("(UI_FF_ERASE): %i\n", uinput_event.value);
+      //printf("%x %x %x\n", erase.request_id, erase.retval, erase.effect_id);
+      //printf("\n");
 
       if (erase.request_id < max_effects) {
         rumble_effects.at(erase.request_id).deinit();
@@ -237,15 +250,14 @@ private:
   }
 
   void handle_EV_FF(const struct input_event &uinput_event) {
-    printf("(EV_FF) code: %04x - value: %x\n", uinput_event.code, uinput_event.value);
+    //printf("(EV_FF) code: %04x - value: %x\n", uinput_event.code, uinput_event.value);
     if (uinput_event.code < max_effects) {
-      rumble_effects.at(uinput_event.code).play(uinput_event.code, uinput_event.value);
+      rumble_effects.at(uinput_event.code).start_effect(uinput_event.code, uinput_event.value);
     }
   }
 
   int uinput_version, uinput_rc, uinput_fd;
 
-  static constexpr uint16_t max_effects{2};
   std::array<RumbleData, max_effects> rumble_effects;
 };
 

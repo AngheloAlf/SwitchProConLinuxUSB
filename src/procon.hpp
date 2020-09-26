@@ -113,11 +113,13 @@ public:
     }
   }
 
-  void poll_input() {
+  void poll_input(long double delta_milis) {
     // print_cycle_counter++;
     // if(print_cycle_counter++ > n_print_cycle) {
     //     timer();
     // }
+    auto remaining_arr = uinput_ctrl->update_time(delta_milis);
+
     hid_ctrl->led();
 
     ProInputParser parser = hid_ctrl->request_input();
@@ -130,6 +132,14 @@ public:
         buttons_pressed[ProInputParser::share]) {
       decalibrate();
       return;
+    }
+
+    for(const int32_t &remaining: remaining_arr) {
+      if (remaining > 0) {
+        //printf("%04i ms\n", remaining);
+        //printf("%04i ms  %12.2Lf ms\n", remaining, delta_milis);
+        hid_ctrl->rumble();
+      }
     }
 
     uinput_ctrl->update_state();
