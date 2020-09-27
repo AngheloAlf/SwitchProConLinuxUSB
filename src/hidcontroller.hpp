@@ -17,9 +17,9 @@ public:
                 : hid(device_info), n_controller(n_controll) {
     hid.set_blocking();
 
-    hid.exchange(handshake);
+    hid.exchange(msg_handshake);
     hid.exchange(switch_baudrate);
-    hid.exchange(handshake);
+    hid.exchange(msg_handshake);
 
     // the next part will sometimes fail, then need to reopen device via hidapi
     hid.exchange(hid_only_mode, 100);
@@ -48,7 +48,7 @@ public:
   }
 
   ProInputParser request_input() {
-    return send_command(get_input, empty);
+    return send_command(Cmd::get_input, empty);
   }
 
   void led(int number = -1){
@@ -57,7 +57,7 @@ public:
       player_led[n_controller] : 
       static_cast<uint8_t>(number)};
     
-    send_subcommand(0x1, led_command, value);
+    send_subcommand(SubCmd::set_leds, value);
   }
 
   void blink() {
@@ -68,7 +68,7 @@ public:
       }
     }
     std::array<uint8_t,1> blink_command{{blink_array[blink_position]}};
-    send_subcommand(0x1, led_command, blink_command);
+    send_subcommand(SubCmd::set_leds, blink_command);
   }
 
   ProInputParser send_rumble(uint8_t large_motor, uint8_t small_motor) {
@@ -83,7 +83,7 @@ public:
       buf[1] = buf[5] = 0x10;
       buf[2] = buf[6] = small_motor;
     }
-    ProInputParser ret = send_command(0x10, buf);
+    ProInputParser ret = send_command(Cmd::rumble_only, buf);
     ret.print();
     return ret;
   }
@@ -93,14 +93,35 @@ public:
   }
 
 private:
+  enum Uart {
+    status        = 0x01,
+    handshake     = 0x02,
+    inc_baudrate  = 0x03,
+    hid_only      = 0x04,
+    turn_off_hid  = 0x05,
+    //prehand_cmd   = 0x91,
+    uart_cmd      = 0x92,
+  };
+
+  enum Cmd {
+    sub_command   = 0x01,
+    rumble_only   = 0x10,
+    get_input     = 0x1f, // ?
+  };
+
+  enum SubCmd {
+    set_leds      = 0x30,
+    get_leds      = 0x31,
+  };
+
   template <size_t length>
-  ProInputParser send_command(uint8_t command,
+  ProInputParser send_command(Cmd command,
                               std::array<uint8_t, length> const &data) {
     std::array<uint8_t, length + 0x9> buffer;
     buffer.fill(0);
     buffer[0x0] = 0x80;
-    buffer[0x1] = 0x92;
-    buffer[0x3] = 0x31;
+    buffer[0x1] = Uart::uart_cmd;
+    buffer[0x3] = 0x31; // length
     buffer[0x8] = command;
     if (length > 0) {
       memcpy(buffer.data() + 0x9, data.data(), length);
@@ -109,7 +130,7 @@ private:
   }
 
   template <size_t length>
-  ProInputParser send_subcommand(uint8_t command, uint8_t subcommand,
+  ProInputParser send_subcommand(SubCmd subcommand,
                                  std::array<uint8_t, length> const &data) {
     std::array<uint8_t, length + 10> buffer{
         static_cast<uint8_t>(rumble_counter++ & 0xF),
@@ -119,11 +140,11 @@ private:
     if (length > 0) {
       memcpy(buffer.data() + 10, data.data(), length);
     }
-    return send_command(command, buffer);
+    return send_command(Cmd::sub_command, buffer);
   }
 
   bool try_read_bad_data() {
-    ProInputParser dat = send_command(get_input, empty);
+    ProInputParser dat = request_input();
 
     if (dat.detect_useless_data()) {
       return false;
@@ -144,25 +165,21 @@ private:
   const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
   const std::array<uint8_t, 0> empty{{}};
 
-  const std::array<uint8_t, 2> handshake{{0x80, 0x02}};
-  const std::array<uint8_t, 2> switch_baudrate{{0x80, 0x03}};
+  const std::array<uint8_t, 2> msg_handshake{{0x80, Uart::handshake}};
+  const std::array<uint8_t, 2> switch_baudrate{{0x80, Uart::inc_baudrate}};
   /** 
    * Forces the Pro Controller to only talk over USB HID without any timeouts. 
    * This is required for the Pro Controller to not time out and revert to Bluetooth.
    */
-  const std::array<uint8_t, 2> hid_only_mode{{0x80, 0x04}};
-  const std::array<uint8_t, 2> msg_close{{0x80, 0x05}};
+  const std::array<uint8_t, 2> hid_only_mode{{0x80, Uart::hid_only}};
+  const std::array<uint8_t, 2> msg_close{{0x80, Uart::turn_off_hid}};
 
   // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
   const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
 
-
   uint blink_position = 0;
   size_t blink_counter = 0;
   const size_t blink_length = 8;
-
-  static constexpr uint8_t led_command{0x30};
-  static constexpr uint8_t get_input{0x1f};
 };
 
 #endif
