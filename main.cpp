@@ -2,9 +2,14 @@
 #include "config.hpp"
 #include "print_color.hpp"
 
+#include <chrono>
 #include <signal.h>
 
 //#define DEBUG
+
+int64_t current_time_micro() {
+  return std::chrono::steady_clock::now().time_since_epoch() / std::chrono::microseconds(1);
+}
 
 bool controller_loop = true;
 void exit_handler(int ignored){
@@ -77,6 +82,8 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
 
   printf("\n");
 
+  int64_t last = current_time_micro();
+  long double delta_milis = 16;
   while (controller_loop) {
     if (!controller.is_calibrated()) {
       fflush(stdout);
@@ -106,7 +113,7 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
       PrintColor::normal();
     }
 
-    controller.poll_input();
+    controller.poll_input(delta_milis);
 
     if (config.print_axis) {
       controller.print_sticks();
@@ -122,6 +129,11 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
       fflush(stdout);
       printf("\r\e[K");
     }
+
+    int64_t now = current_time_micro();
+    delta_milis = (now-last)/1000.L;
+    //printf("%02.2Lf ms\n", delta_milis);
+    last = now;
   }
 }
 

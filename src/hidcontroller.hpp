@@ -24,6 +24,9 @@ public:
     // the next part will sometimes fail, then need to reopen device via hidapi
     hid.exchange(hid_only_mode, 100);
 
+    std::array<uint8_t, 1> rumble_enable{{0x01}};
+    send_subcommand(0x01, 0x48, rumble_enable);
+
     hid.set_non_blocking();
     usleep(100 * 1000);
 
@@ -88,6 +91,19 @@ public:
     return ret;
   }
 
+  ProInputParser rumble(/*int frequency, int intensity*/) {
+    std::array<uint8_t, 8> buf;
+
+    buf[0] = buf[0+4] = 0x00;
+    buf[1] = buf[1+4] = 0x01;
+    buf[2] = buf[2+4] = 0x40;
+    buf[3] = buf[3+4] = 0x40;
+
+    ProInputParser ret = send_command(0x10, buf);
+    //ret.print();
+    return ret;
+  }
+
   void close() {
     hid.exchange(msg_close);
   }
@@ -112,9 +128,9 @@ private:
   ProInputParser send_subcommand(uint8_t command, uint8_t subcommand,
                                  std::array<uint8_t, length> const &data) {
     std::array<uint8_t, length + 10> buffer{
-        static_cast<uint8_t>(rumble_counter++ & 0xF),
-        0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40,
-        subcommand};
+      static_cast<uint8_t>(rumble_counter++ & 0xF),
+      0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40,
+      subcommand};
 
     if (length > 0) {
       memcpy(buffer.data() + 10, data.data(), length);
