@@ -18,17 +18,23 @@ public:
     printf("serial number: %s\n", hid.get_serial_number().c_str());
     if (hid.get_serial_number() != "000000000001") {
       printf("Bluetooth!\n");
-      throw 1;
+      bluetooth = true;
     }
     hid.set_blocking();
 
-    hid.exchange(handshake);
-    hid.exchange(switch_baudrate);
-    hid.exchange(handshake);
+    if (!bluetooth) {
+      hid.exchange(handshake);
+      hid.exchange(switch_baudrate);
+      hid.exchange(handshake);
 
-    // the next part will sometimes fail, then need to reopen device via hidapi
-    hid.exchange(hid_only_mode, 100);
+      // the next part will sometimes fail, then need to reopen device via hidapi
+      hid.exchange(hid_only_mode, 100);
+    }
 
+    if (bluetooth) {
+      HidApi::generic_packet<1> msg_increase_datarate_bt{{0x31}};
+      send_subcommand(0x1, 0x3, msg_increase_datarate_bt);
+    }
     hid.set_non_blocking();
     usleep(100 * 1000);
 
@@ -53,6 +59,9 @@ public:
   }
 
   ProInputParser request_input() {
+    if (bluetooth) {
+      return send_subcommand(0x1, 0x0, empty);
+    }
     return send_command(get_input, empty);
   }
 
@@ -94,23 +103,39 @@ public:
   }
 
   void close() {
-    hid.exchange(msg_close);
+    if (!bluetooth) {
+      hid.exchange(msg_close);
+    }
   }
 
 private:
   template <size_t length>
-  ProInputParser send_command(uint8_t command,
-                              std::array<uint8_t, length> const &data) {
-    std::array<uint8_t, length + 0x9> buffer;
+  HidApi::generic_packet<length + 0x8> prepare_usb_packet(HidApi::generic_packet<length> const &data) {
+    HidApi::generic_packet<length + 0x8> buffer;
     buffer.fill(0);
     buffer[0x0] = 0x80;
     buffer[0x1] = 0x92;
     buffer[0x3] = 0x31;
-    buffer[0x8] = command;
     if (length > 0) {
-      memcpy(buffer.data() + 0x9, data.data(), length);
+      memcpy(buffer.data() + 0x8, data.data(), length);
     }
-    return ProInputParser(hid.exchange(buffer));
+    return buffer;
+  }
+
+  template <size_t length>
+  ProInputParser send_command(uint8_t command,
+                              std::array<uint8_t, length> const &data) {
+    std::array<uint8_t, length + 1> buffer;
+    buffer.fill(0);
+    buffer[0x0] = command;
+    if (length > 0) {
+      memcpy(buffer.data() + 1, data.data(), length);
+    }
+    if (bluetooth) {
+      return ProInputParser(hid.exchange(buffer));
+    }
+    
+    return ProInputParser(hid.exchange(prepare_usb_packet(buffer)));
   }
 
   template <size_t length>
@@ -128,7 +153,7 @@ private:
   }
 
   bool try_read_bad_data() {
-    ProInputParser dat = send_command(get_input, empty);
+    ProInputParser dat = request_input();
 
     if (dat.detect_useless_data()) {
       return false;
@@ -142,6 +167,7 @@ private:
   }
 
   HidApi::Device hid;
+  bool bluetooth = false;
 
   unsigned short n_controller;
 

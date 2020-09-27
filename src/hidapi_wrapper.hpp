@@ -10,7 +10,11 @@
 
 
 namespace HidApi{
+  template <size_t length>
+  using generic_packet = std::array<uint8_t, length>;
+
   static constexpr size_t default_length{0x400};
+  using default_packet = generic_packet<default_length>;
 
   class HidApiError: public std::runtime_error {
   public:
