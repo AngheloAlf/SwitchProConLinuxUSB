@@ -9,6 +9,14 @@
 
 class ProInputParser{
 public:
+  enum PacketType {
+    zeros,                  /// A packet with all data zero'ed.
+    standard_input_report,  /// Standard input report format. [0] == x21 || x30 || x31
+    packet_req,             /// ?
+    unknown,                /// For unrecognized packets.
+    packet_none,
+  };
+
   enum BUTTONS {
     A,
     B,
@@ -44,7 +52,28 @@ public:
   };
 
   ProInputParser(HidApi::default_packet data): dat(data) {
+    switch (dat[0x00]) {
+    case 0x00:
+      type = PacketType::zeros;
+      break;
 
+    case 0x21:
+    case 0x30:
+    case 0x31:
+      type = PacketType::standard_input_report;
+      break;
+
+    case 0x81:
+      type = PacketType::packet_req;
+      break;
+
+    default:
+      /// maybe throw?
+      type = PacketType::unknown;
+      printf("unknown packet\n");
+      print();
+      break;
+    }
   }
 
   bool is_button_pressed(BUTTONS button) const {
@@ -53,15 +82,16 @@ public:
   }
 
   uint16_t get_axis_status(AXIS axis) const {
+    size_t high, low;
+    high = axis_data_address_high(axis);
+    low  = axis_data_address_low(axis);
     switch (axis) {
     case axis_lx:
-      return ((dat[0x11] & 0x0F) << 8) | dat[0x10];
-    case axis_ly:
-      return (dat[0x12] << 4) | ((dat[0x11] & 0xF0) >> 4);
     case axis_rx:
-      return ((dat[0x14] & 0x0F) << 8) | dat[0x13];
+      return ((dat[high] & 0x0F) << 8) |   dat[low];
+    case axis_ly:
     case axis_ry:
-      return (dat[0x15] << 4) | ((dat[0x14] & 0xF0) >> 4);
+      return  (dat[high] << 4)         | ((dat[low] & 0xF0) >> 4);
     default:
       return 0;
     }
@@ -155,7 +185,7 @@ public:
     }
   }
 
-  static uint8_t data_address(BUTTONS button) {
+  static size_t data_address(BUTTONS button) {
     switch (button) {
     case A:
     case B:
@@ -178,6 +208,36 @@ public:
       return 0x00;
     default:
       throw std::domain_error("ERROR: Tried to find adress of unknown button!");
+    }
+  }
+
+
+  static size_t axis_data_address_high(AXIS axis) {
+    switch (axis) {
+    case AXIS::axis_lx:
+      return 0x11;
+    case AXIS::axis_ly:
+      return 0x12;
+    case AXIS::axis_rx:
+      return 0x14;
+    case AXIS::axis_ry:
+      return 0x15;
+    default:
+      throw std::domain_error("ERROR: Tried to find address of unknown axis!");
+    }
+  }
+  static size_t axis_data_address_low(AXIS axis) {
+    switch (axis) {
+    case AXIS::axis_lx:
+      return 0x10;
+    case AXIS::axis_ly:
+      return 0x11;
+    case AXIS::axis_rx:
+      return 0x13;
+    case AXIS::axis_ry:
+      return 0x14;
+    default:
+      throw std::domain_error("ERROR: Tried to find address of unknown axis!");
     }
   }
 
@@ -216,7 +276,7 @@ public:
     }
   }
 
-  static uint8_t dpad_data_address(DPAD dpad) {
+  static size_t dpad_data_address(DPAD dpad) {
     switch (dpad) {
     case d_left:
     case d_right:
@@ -333,7 +393,7 @@ public:
 
 private:
   HidApi::default_packet dat;
-
+  PacketType type = PacketType::packet_none;
 };
 
 const std::array<ProInputParser::BUTTONS, 14> ProInputParser::btns_ids = {
