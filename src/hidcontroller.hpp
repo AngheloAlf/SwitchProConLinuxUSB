@@ -54,7 +54,7 @@ public:
   }
 
   void led(int number = -1){
-    std::array<uint8_t, 1> value {
+    HidApi::generic_packet<1> value {
       number < 0 ?
       player_led[n_controller] : 
       static_cast<uint8_t>(number)};
@@ -69,12 +69,12 @@ public:
         blink_position = 0;
       }
     }
-    std::array<uint8_t,1> blink_command{{blink_array[blink_position]}};
+    HidApi::generic_packet<1> blink_command{{blink_array[blink_position]}};
     send_subcommand(SubCmd::set_leds, blink_command);
   }
 
   ProInputParser send_rumble(uint8_t large_motor, uint8_t small_motor) {
-    std::array<uint8_t, 9> buf{
+    HidApi::generic_packet<9> buf{
       static_cast<uint8_t>(rumble_counter++ & 0xF),
       0x80, 0x00, 0x40, 0x40, 0x80, 0x00, 0x40, 0x40};
 
@@ -91,7 +91,7 @@ public:
   }
 
   ProInputParser rumble(/*int frequency, int intensity*/) {
-    std::array<uint8_t, 8> buf;
+    HidApi::generic_packet<8> buf;
 
     buf[0] = buf[0+4] = 0x00;
     buf[1] = buf[1+4] = 0x01;
@@ -136,15 +136,15 @@ private:
     en_rumble     = 0x48,
   };
 
-  std::array<uint8_t, HidApi::default_length> send_uart(Uart uart){
-    std::array<uint8_t, 0x02> packet {Protocols::nintendo, uart};
+  HidApi::default_packet send_uart(Uart uart){
+    HidApi::generic_packet<0x02> packet {Protocols::nintendo, uart};
     return hid.exchange(packet);
   }
 
   template <size_t length>
-  std::array<uint8_t, HidApi::default_length> 
-  send_uart(const std::array<uint8_t, length> &data){
-    std::array<uint8_t, length + 0x08> packet;
+  HidApi::default_packet 
+  send_uart(const HidApi::generic_packet<length> &data){
+    HidApi::generic_packet<length + 0x08> packet;
     packet.fill(0);
     packet[0x00] = Protocols::nintendo;
     packet[0x01] = Uart::uart_cmd;
@@ -158,8 +158,8 @@ private:
 
   template <size_t length>
   ProInputParser send_command(Cmd command,
-                              std::array<uint8_t, length> const &data) {
-    std::array<uint8_t, length + 0x01> buffer;
+                              HidApi::generic_packet<length> const &data) {
+    HidApi::generic_packet<length + 0x01> buffer;
     buffer.fill(0);
     buffer[0x00] = command;
     if (length > 0) {
@@ -170,8 +170,8 @@ private:
 
   template <size_t length>
   ProInputParser send_subcommand(SubCmd subcommand,
-                                 std::array<uint8_t, length> const &data) {
-    std::array<uint8_t, length + 10> buffer{
+                                 HidApi::generic_packet<length> const &data) {
+    HidApi::generic_packet<length + 10> buffer{
       static_cast<uint8_t>(rumble_counter++ & 0xF),
       0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40,
       subcommand};
@@ -203,8 +203,8 @@ private:
   uint8_t rumble_counter{0};
   const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
 
-  const std::array<uint8_t, 0> empty{{}};
-  const std::array<uint8_t, 1> enable{{0x01}};
+  const HidApi::generic_packet<0> empty{{}};
+  const HidApi::generic_packet<1> enable{{0x01}};
 
   // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
   const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
