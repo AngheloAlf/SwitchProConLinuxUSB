@@ -25,6 +25,7 @@ public:
     send_uart(Uart::hid_only);
 
     send_subcommand(SubCmd::en_rumble, enable);
+    // send_subcommand(SubCmd::en_imu, enable);
 
     hid.set_non_blocking();
     usleep(100 * 1000);
@@ -120,6 +121,7 @@ private:
     inc_baudrate  = 0x03,
     hid_only      = 0x04,
     turn_off_hid  = 0x05,
+    //reset         = 0x06,
     //prehand_cmd   = 0x91,
     uart_cmd      = 0x92,
   };
@@ -127,13 +129,19 @@ private:
   enum Cmd {
     sub_command   = 0x01,
     rumble_only   = 0x10,
+    //nfc_ir_req    = 0x11,
     get_input     = 0x1f, // ?
   };
 
   enum SubCmd {
+    //req_dev_info  = 0x02,
+    //set_in_report = 0x03, /// Set input report mode
     set_leds      = 0x30,
     get_leds      = 0x31,
+    //set_home_led  = 0x38,
+    en_imu        = 0x40,
     en_rumble     = 0x48,
+    //get_voltage   = 0x50, /// Get regullated voltage. Useful to know battery status
   };
 
   HidApi::default_packet send_uart(Uart uart){
