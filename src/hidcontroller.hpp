@@ -36,13 +36,13 @@ public:
     led();
 
     send_subcommand(SubCmd::en_rumble, enable);
-    // send_subcommand(SubCmd::en_imu, enable);
+    send_subcommand(SubCmd::en_imu, enable);
 
-    // HidApi::generic_packet<0x04> imu_args {0x03, 0x00, 0x00, 0x01};
-    // send_subcommand(SubCmd::set_imu, imu_args);
+    HidApi::generic_packet<0x04> imu_args {0x03, 0x00, 0x00, 0x01};
+    send_subcommand(SubCmd::set_imu, imu_args);
 
-    // HidApi::generic_packet<0x01> report_mode {0x30};
-    // send_subcommand(SubCmd::set_in_report, report_mode);
+    HidApi::generic_packet<0x01> report_mode {0x30};
+    send_subcommand(SubCmd::set_in_report, report_mode);
 
     hid.set_non_blocking();
     usleep(100 * 1000);
@@ -68,7 +68,8 @@ public:
   }
 
   ProInputParser request_input() {
-    return send_command(Cmd::get_input, empty);
+    //return send_command(Cmd::get_input, empty);
+    return ProInputParser(hid.read(5));
   }
 
   void led(int number = -1){
@@ -123,7 +124,7 @@ public:
 
   void close() {
     hid.set_blocking();
-    // send_subcommand(SubCmd::en_imu, disable);
+    send_subcommand(SubCmd::en_imu, disable);
 
     send_uart(Uart::turn_off_hid);
     send_uart(Uart::reset);

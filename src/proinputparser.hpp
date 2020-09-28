@@ -239,7 +239,7 @@ public:
       PrintColor::red();
       redcol = true;
     }
-    for (size_t i = 0; i < 0x20; ++i) {
+    for (size_t i = 0; i < 0x32; ++i) {
       if (arr[i] == 0x00) {
         PrintColor::blue();
       } else {
