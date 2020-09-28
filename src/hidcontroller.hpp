@@ -17,15 +17,32 @@ public:
                 : hid(device_info), n_controller(n_controll) {
     hid.set_blocking();
 
+    HidApi::default_packet stus = send_uart(Uart::status, 100);
+    if (stus[0x00] != 0x81) {
+      send_uart(Uart::reset);
+      throw std::runtime_error("USB connection wasn't closed properly.");
+    }
+    if (stus[0x03] == 0x03) {
+      // mac address
+    }
+
     send_uart(Uart::handshake);
     send_uart(Uart::inc_baudrate);
     send_uart(Uart::handshake);
-
     // the next part will sometimes fail, then need to reopen device via hidapi
     send_uart(Uart::hid_only);
 
+
+    led();
+
     send_subcommand(SubCmd::en_rumble, enable);
     // send_subcommand(SubCmd::en_imu, enable);
+
+    // HidApi::generic_packet<0x04> imu_args {0x03, 0x00, 0x00, 0x01};
+    // send_subcommand(SubCmd::set_imu, imu_args);
+
+    // HidApi::generic_packet<0x01> report_mode {0x30};
+    // send_subcommand(SubCmd::set_in_report, report_mode);
 
     hid.set_non_blocking();
     usleep(100 * 1000);
@@ -105,7 +122,11 @@ public:
   }
 
   void close() {
+    hid.set_blocking();
+    // send_subcommand(SubCmd::en_imu, disable);
+
     send_uart(Uart::turn_off_hid);
+    send_uart(Uart::reset);
   }
 
 private:
@@ -121,7 +142,7 @@ private:
     inc_baudrate  = 0x03,
     hid_only      = 0x04,
     turn_off_hid  = 0x05,
-    //reset         = 0x06,
+    reset         = 0x06,
     //prehand_cmd   = 0x91,
     uart_cmd      = 0x92,
   };
@@ -135,18 +156,19 @@ private:
 
   enum SubCmd {
     //req_dev_info  = 0x02,
-    //set_in_report = 0x03, /// Set input report mode
+    set_in_report = 0x03, /// Set input report mode
     set_leds      = 0x30,
     get_leds      = 0x31,
     //set_home_led  = 0x38,
     en_imu        = 0x40,
+    set_imu       = 0x41,
     en_rumble     = 0x48,
-    //get_voltage   = 0x50, /// Get regullated voltage. Useful to know battery status
+    //get_voltage   = 0x50, /// Get regullated voltage.
   };
 
-  HidApi::default_packet send_uart(Uart uart){
+  HidApi::default_packet send_uart(Uart uart, int milliseconds=-1){
     HidApi::generic_packet<0x02> packet {Protocols::nintendo, uart};
-    return hid.exchange(packet);
+    return hid.exchange(packet, milliseconds);
   }
 
   template <size_t length>
@@ -212,7 +234,8 @@ private:
   const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
 
   const HidApi::generic_packet<0> empty{{}};
-  const HidApi::generic_packet<1> enable{{0x01}};
+  const HidApi::generic_packet<1> disable{{0x00}};
+  const HidApi::generic_packet<1> enable {{0x01}};
 
   // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
   const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};

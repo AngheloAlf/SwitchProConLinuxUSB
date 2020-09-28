@@ -120,9 +120,8 @@ public:
     // }
     auto remaining_arr = uinput_ctrl->update_time(delta_milis);
 
-    hid_ctrl->led();
-
     ProInputParser parser = hid_ctrl->request_input();
+    // parser.print();
     if (parser.detect_useless_data()) {
       return;
     }
