@@ -67,9 +67,9 @@ public:
     usleep(1000 * 1000);
   }
 
-  ProInputParser request_input() {
+  ProInputParser::Parser request_input() {
     //return send_command(Cmd::get_input, empty);
-    return ProInputParser(hid.read(5));
+    return ProInputParser::Parser(hid.read(5));
   }
 
   void led(int number = -1){
@@ -92,7 +92,7 @@ public:
     send_subcommand(SubCmd::set_leds, blink_command);
   }
 
-  ProInputParser send_rumble(uint8_t large_motor, uint8_t small_motor) {
+  ProInputParser::Parser send_rumble(uint8_t large_motor, uint8_t small_motor) {
     HidApi::generic_packet<9> buf{
       static_cast<uint8_t>(rumble_counter++ & 0xF),
       0x80, 0x00, 0x40, 0x40, 0x80, 0x00, 0x40, 0x40};
@@ -104,12 +104,12 @@ public:
       buf[1] = buf[5] = 0x10;
       buf[2] = buf[6] = small_motor;
     }
-    ProInputParser ret = send_command(Cmd::rumble_only, buf);
+    ProInputParser::Parser ret = send_command(Cmd::rumble_only, buf);
     ret.print();
     return ret;
   }
 
-  ProInputParser rumble(/*int frequency, int intensity*/) {
+  ProInputParser::Parser rumble(/*int frequency, int intensity*/) {
     HidApi::generic_packet<8> buf;
 
     buf[0] = buf[0+4] = 0x00;
@@ -117,7 +117,7 @@ public:
     buf[2] = buf[2+4] = 0x40;
     buf[3] = buf[3+4] = 0x40;
 
-    ProInputParser ret = send_command(Cmd::rumble_only, buf);
+    ProInputParser::Parser ret = send_command(Cmd::rumble_only, buf);
     //ret.print();
     return ret;
   }
@@ -188,7 +188,7 @@ private:
   }
 
   template <size_t length>
-  ProInputParser send_command(Cmd command,
+  ProInputParser::Parser send_command(Cmd command,
                               HidApi::generic_packet<length> const &data) {
     HidApi::generic_packet<length + 0x01> buffer;
     buffer.fill(0);
@@ -196,11 +196,11 @@ private:
     if (length > 0) {
       memcpy(buffer.data() + 0x01, data.data(), length);
     }
-    return ProInputParser(send_uart(buffer));
+    return ProInputParser::Parser(send_uart(buffer));
   }
 
   template <size_t length>
-  ProInputParser send_subcommand(SubCmd subcommand,
+  ProInputParser::Parser send_subcommand(SubCmd subcommand,
                                  HidApi::generic_packet<length> const &data) {
     HidApi::generic_packet<length + 10> buffer{
       static_cast<uint8_t>(rumble_counter++ & 0xF),
@@ -214,7 +214,7 @@ private:
   }
 
   bool try_read_bad_data() {
-    ProInputParser dat = request_input();
+    ProInputParser::Parser dat = request_input();
 
     if (dat.detect_useless_data()) {
       return false;
