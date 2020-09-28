@@ -125,8 +125,8 @@ size_t Device::read(size_t len, uint8_t *data, int milliseconds) {
   return ret;
 }
 
-std::array<uint8_t, default_length> Device::read(int milliseconds) {
-  std::array<uint8_t, default_length> ret;
+default_packet Device::read(int milliseconds) {
+  default_packet ret;
   read(default_length, ret.data(), milliseconds);
   return ret;
 }
@@ -143,8 +143,8 @@ size_t Device::exchange(size_t read_len, uint8_t *buf, size_t write_len, const u
   return ret;
 }
 
-std::array<uint8_t, default_length> Device::exchange(size_t write_len, const uint8_t *data_to_write, int milliseconds) {
-  std::array<uint8_t, default_length> ret;
+default_packet Device::exchange(size_t write_len, const uint8_t *data_to_write, int milliseconds) {
+  default_packet ret;
   ret.fill(0);
   exchange(default_length, ret.data(), write_len, data_to_write, milliseconds);
 
