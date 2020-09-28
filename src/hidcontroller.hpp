@@ -25,7 +25,7 @@ public:
     hid.exchange(hid_only_mode, 100);
 
     std::array<uint8_t, 1> rumble_enable{{0x01}};
-    send_subcommand(0x01, 0x48, rumble_enable);
+    send_subcommand(SubCmd::en_rumble, rumble_enable);
 
     hid.set_non_blocking();
     usleep(100 * 1000);
@@ -99,7 +99,7 @@ public:
     buf[2] = buf[2+4] = 0x40;
     buf[3] = buf[3+4] = 0x40;
 
-    ProInputParser ret = send_command(0x10, buf);
+    ProInputParser ret = send_command(Cmd::rumble_only, buf);
     //ret.print();
     return ret;
   }
@@ -128,6 +128,7 @@ private:
   enum SubCmd {
     set_leds      = 0x30,
     get_leds      = 0x31,
+    en_rumble     = 0x48,
   };
 
   template <size_t length>
