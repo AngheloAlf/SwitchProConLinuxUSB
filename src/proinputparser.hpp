@@ -33,6 +33,20 @@ namespace ProInputParser {
     R3,
     None
   };
+  static const std::array<BUTTONS, 14> btns_ids = {
+    ProInputParser::A, ProInputParser::B, ProInputParser::X, ProInputParser::Y,
+    ProInputParser::plus, ProInputParser::minus, 
+    ProInputParser::home, ProInputParser::share,
+    ProInputParser::L1, ProInputParser::L2, ProInputParser::L3,
+    ProInputParser::R1, ProInputParser::R2, ProInputParser::R3,
+  };
+
+  const char *button_name(BUTTONS button);
+
+  uint8_t buttons_bit_position(BUTTONS button);
+  uint8_t buttons_byte_button_value(BUTTONS button);
+  size_t  buttons_data_address(BUTTONS button, PacketType packet);
+
 
   enum AXIS {
     axis_lx,
@@ -41,6 +55,16 @@ namespace ProInputParser {
     axis_ry,
     axis_none
   };
+  const std::array<AXIS, 4> axis_ids = {
+    ProInputParser::axis_lx, ProInputParser::axis_ly, 
+    ProInputParser::axis_rx, ProInputParser::axis_ry,
+  };
+
+  const char *axis_name(AXIS axis);
+
+  size_t axis_data_address_high(AXIS axis, PacketType packet);
+  size_t axis_data_address_low(AXIS axis, PacketType packet);
+
 
   enum DPAD {
     d_left,
@@ -49,6 +73,19 @@ namespace ProInputParser {
     d_down,
     d_none
   };
+  static const std::array<DPAD, 4> dpad_ids = {
+    ProInputParser::d_left, ProInputParser::d_right, 
+    ProInputParser::d_up, ProInputParser::d_down,
+  };
+
+  const char *dpad_name(DPAD dpad);
+
+  uint8_t dpad_bit_position(DPAD dpad);
+  uint8_t dpad_byte_value(DPAD dpad);
+  size_t dpad_data_address(DPAD dpad, PacketType packet);
+
+  void print_exchange_array(HidApi::default_packet arr, PacketType type);
+
 
   class Parser {
   public:
@@ -71,40 +108,12 @@ namespace ProInputParser {
 
     void print() const;
 
-    static uint8_t buttons_bit_position(BUTTONS button);
-
-    static uint8_t buttons_byte_button_value(BUTTONS button);
-
-    static size_t buttons_data_address(BUTTONS button, PacketType packet);
     size_t buttons_data_address(BUTTONS button) const;
 
-
-    static size_t axis_data_address_high(AXIS axis, PacketType packet);
-    static size_t axis_data_address_low(AXIS axis, PacketType packet);
     size_t axis_data_address_high(AXIS axis) const;
     size_t axis_data_address_low(AXIS axis) const;
 
-
-    static uint8_t dpad_bit_position(DPAD dpad);
-
-    static uint8_t dpad_byte_value(DPAD dpad);
-
-    static size_t dpad_data_address(DPAD dpad, PacketType packet);
     size_t dpad_data_address(DPAD dpad) const;
-
-
-    static void print_exchange_array(HidApi::default_packet arr, PacketType type);
-
-    static const char *button_name(BUTTONS button);
-
-    static const char *axis_name(AXIS axis);
-
-    static const char *dpad_name(DPAD dpad);
-
-    static const std::array<BUTTONS, 14> btns_ids;
-    static const std::array<AXIS, 4> axis_ids;
-    static const std::array<DPAD, 4> dpad_ids;
-
   private:
     HidApi::default_packet dat;
     PacketType type = PacketType::packet_none;

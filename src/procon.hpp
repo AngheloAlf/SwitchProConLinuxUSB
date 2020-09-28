@@ -86,30 +86,30 @@ public:
   // }
 
   void print_sticks() const {
-    for (const ProInputParser::AXIS &id: ProInputParser::Parser::axis_ids) {
-      printf("%s %03x ", ProInputParser::Parser::axis_name(id), axis_values[id]);
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      printf("%s %03x ", ProInputParser::axis_name(id), axis_values[id]);
     }
   }
 
   void print_buttons() const {
-    for (const ProInputParser::BUTTONS &id: ProInputParser::Parser::btns_ids) {
+    for (const ProInputParser::BUTTONS &id: ProInputParser::btns_ids) {
       if (buttons_pressed[id]) {
-        printf("%s ", ProInputParser::Parser::button_name(id));
+        printf("%s ", ProInputParser::button_name(id));
       }
     }
   }
 
   void print_dpad() const {
-    for (const ProInputParser::DPAD &id: ProInputParser::Parser::dpad_ids) {
+    for (const ProInputParser::DPAD &id: ProInputParser::dpad_ids) {
       if (dpad_pressed[id]) {
-        printf("%s ", ProInputParser::Parser::dpad_name(id));
+        printf("%s ", ProInputParser::dpad_name(id));
       }
     }
   }
 
   void print_calibration_values() const {
-    for (const ProInputParser::AXIS &id: ProInputParser::Parser::axis_ids) {
-      printf("%s %03x,%03x,%03x   ", ProInputParser::Parser::axis_name(id), axis_min[id], axis_cen[id], axis_max[id]);
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      printf("%s %03x,%03x,%03x   ", ProInputParser::axis_name(id), axis_min[id], axis_cen[id], axis_max[id]);
     }
   }
 
@@ -190,7 +190,7 @@ public:
   }
 
   void decalibrate() {
-    for (const ProInputParser::AXIS &id: ProInputParser::Parser::axis_ids) {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       axis_min[id] = center;
       axis_max[id] = center;
       axis_cen[id] = center;
@@ -216,7 +216,7 @@ public:
 
 private:
   bool perform_calibration(const ProInputParser::Parser &parser) {
-    for (const ProInputParser::AXIS &id: ProInputParser::Parser::axis_ids) {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       uint16_t value = parser.get_axis_status(id);
       if (value < axis_min[id]) axis_min[id] = value;
       if (value > axis_max[id]) axis_max[id] = value;
@@ -226,7 +226,7 @@ private:
       return false;
     }
 
-    for (const ProInputParser::AXIS &id: ProInputParser::Parser::axis_ids) {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       axis_cen[id] = parser.get_axis_status(id);
     }
 
@@ -239,7 +239,7 @@ private:
     myReadFile.open(calibration_filename,
                     std::ios::in | std::ios::binary);
     if (myReadFile) {
-      for (const ProInputParser::AXIS &id: ProInputParser::Parser::axis_ids) {
+      for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
         myReadFile.read((char *)&axis_min[id], sizeof(uint16_t));
         myReadFile.read((char *)&axis_max[id], sizeof(uint16_t));
         myReadFile.read((char *)&axis_cen[id], sizeof(uint16_t));
@@ -255,7 +255,7 @@ private:
     std::ofstream calibration_file;
     calibration_file.open(calibration_filename,
                           std::ios::out | std::ios::binary);
-    for (const ProInputParser::AXIS &id: ProInputParser::Parser::axis_ids) {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       calibration_file.write((char *)&axis_min[id], sizeof(uint16_t));
       calibration_file.write((char *)&axis_max[id], sizeof(uint16_t));
       calibration_file.write((char *)&axis_cen[id], sizeof(uint16_t));
@@ -340,7 +340,7 @@ private:
       axis_values[ProInputParser::axis_ry] = clamp_int(axis_values[ProInputParser::axis_ry] + config.dribble_cam_value - 0x7FF);
     }
 
-    for (const ProInputParser::AXIS &id: ProInputParser::Parser::axis_ids) {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       uinput_ctrl->write_single_joystick(axis_values[id], axis_map[id]);
     }
 
@@ -349,7 +349,7 @@ private:
 
   void update_input_state(const ProInputParser::Parser &parser) {
     /// Buttons
-    for (const ProInputParser::BUTTONS &id: ProInputParser::Parser::btns_ids) {
+    for (const ProInputParser::BUTTONS &id: ProInputParser::btns_ids) {
       /// Store last state
       last_pressed[id] = buttons_pressed[id];
       /// Update value
@@ -357,12 +357,12 @@ private:
     }
 
     /// Axis
-    for (const ProInputParser::AXIS &id: ProInputParser::Parser::axis_ids) {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       axis_values[id] = parser.get_axis_status(id);
     }
 
     /// dpad
-    for (const ProInputParser::DPAD &id: ProInputParser::Parser::dpad_ids) {
+    for (const ProInputParser::DPAD &id: ProInputParser::dpad_ids) {
       /// Store last state
       dpad_last[id] = dpad_pressed[id];
       /// Update value
@@ -399,7 +399,7 @@ private:
   }
 
   void map_sticks() {
-    for (const ProInputParser::AXIS &id: ProInputParser::Parser::axis_ids) {
+    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       long double val;
       if (axis_values[id] < axis_cen[id]) {
         val = (long double)(axis_values[id] - axis_min[id]) /

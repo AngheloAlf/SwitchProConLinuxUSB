@@ -14,31 +14,31 @@
 #define KWHT "\x1B[37m"
 
 namespace PrintColor{
-  void red() {
+  static void red() {
     printf("%s", KRED);
     fflush(stdout);
   }
-  void normal() {
+  static void normal() {
     printf("%s", KNRM);
     fflush(stdout);
   }
-  void blue() {
+  static void blue() {
     printf("%s", KBLU);
     fflush(stdout);
   }
-  void yellow() {
+  static void yellow() {
     printf("%s", KYEL);
     fflush(stdout);
   }
-  void green() {
+  static void green() {
     printf("%s", KGRN);
     fflush(stdout);
   }
-  void magenta() {
+  static void magenta() {
     printf("%s", KMAG);
     fflush(stdout);
   }
-  void cyan() {
+  static void cyan() {
     printf("%s", KCYN);
     fflush(stdout);
   }
