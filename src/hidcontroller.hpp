@@ -17,12 +17,15 @@ public:
                 : hid(device_info), n_controller(n_controll) {
     hid.set_blocking();
 
-    hid.exchange(handshake);
-    hid.exchange(switch_baudrate);
-    hid.exchange(handshake);
+    send_uart(Uart::handshake);
+    send_uart(Uart::inc_baudrate);
+    send_uart(Uart::handshake);
 
     // the next part will sometimes fail, then need to reopen device via hidapi
-    hid.exchange(hid_only_mode, 100);
+    send_uart(Uart::hid_only);
+
+    send_subcommand(SubCmd::en_rumble, enable);
+    // send_subcommand(SubCmd::en_imu, enable);
 
     hid.set_non_blocking();
     usleep(100 * 1000);
@@ -48,16 +51,16 @@ public:
   }
 
   ProInputParser request_input() {
-    return send_command(get_input, empty);
+    return send_command(Cmd::get_input, empty);
   }
 
   void led(int number = -1){
-    std::array<uint8_t, 1> value {
+    HidApi::generic_packet<1> value {
       number < 0 ?
       player_led[n_controller] : 
       static_cast<uint8_t>(number)};
     
-    send_subcommand(0x1, led_command, value);
+    send_subcommand(SubCmd::set_leds, value);
   }
 
   void blink() {
@@ -67,12 +70,12 @@ public:
         blink_position = 0;
       }
     }
-    std::array<uint8_t,1> blink_command{{blink_array[blink_position]}};
-    send_subcommand(0x1, led_command, blink_command);
+    HidApi::generic_packet<1> blink_command{{blink_array[blink_position]}};
+    send_subcommand(SubCmd::set_leds, blink_command);
   }
 
   ProInputParser send_rumble(uint8_t large_motor, uint8_t small_motor) {
-    std::array<uint8_t, 9> buf{
+    HidApi::generic_packet<9> buf{
       static_cast<uint8_t>(rumble_counter++ & 0xF),
       0x80, 0x00, 0x40, 0x40, 0x80, 0x00, 0x40, 0x40};
 
@@ -83,47 +86,112 @@ public:
       buf[1] = buf[5] = 0x10;
       buf[2] = buf[6] = small_motor;
     }
-    ProInputParser ret = send_command(0x10, buf);
+    ProInputParser ret = send_command(Cmd::rumble_only, buf);
     ret.print();
     return ret;
   }
 
+  ProInputParser rumble(/*int frequency, int intensity*/) {
+    HidApi::generic_packet<8> buf;
+
+    buf[0] = buf[0+4] = 0x00;
+    buf[1] = buf[1+4] = 0x01;
+    buf[2] = buf[2+4] = 0x40;
+    buf[3] = buf[3+4] = 0x40;
+
+    ProInputParser ret = send_command(Cmd::rumble_only, buf);
+    //ret.print();
+    return ret;
+  }
+
   void close() {
-    hid.exchange(msg_close);
+    send_uart(Uart::turn_off_hid);
   }
 
 private:
-  template <size_t length>
-  ProInputParser send_command(uint8_t command,
-                              std::array<uint8_t, length> const &data) {
-    std::array<uint8_t, length + 0x9> buffer;
-    buffer.fill(0);
-    buffer[0x0] = 0x80;
-    buffer[0x1] = 0x92;
-    buffer[0x3] = 0x31;
-    buffer[0x8] = command;
-    if (length > 0) {
-      memcpy(buffer.data() + 0x9, data.data(), length);
-    }
-    return ProInputParser(hid.exchange(buffer));
+  enum Protocols {
+    zero_one      = 0x01,
+    one_zero      = 0x10,
+    nintendo      = 0x80,
+  };
+
+  enum Uart {
+    status        = 0x01,
+    handshake     = 0x02,
+    inc_baudrate  = 0x03,
+    hid_only      = 0x04,
+    turn_off_hid  = 0x05,
+    //reset         = 0x06,
+    //prehand_cmd   = 0x91,
+    uart_cmd      = 0x92,
+  };
+
+  enum Cmd {
+    sub_command   = 0x01,
+    rumble_only   = 0x10,
+    //nfc_ir_req    = 0x11,
+    get_input     = 0x1f, // ?
+  };
+
+  enum SubCmd {
+    //req_dev_info  = 0x02,
+    //set_in_report = 0x03, /// Set input report mode
+    set_leds      = 0x30,
+    get_leds      = 0x31,
+    //set_home_led  = 0x38,
+    en_imu        = 0x40,
+    en_rumble     = 0x48,
+    //get_voltage   = 0x50, /// Get regullated voltage. Useful to know battery status
+  };
+
+  HidApi::default_packet send_uart(Uart uart){
+    HidApi::generic_packet<0x02> packet {Protocols::nintendo, uart};
+    return hid.exchange(packet);
   }
 
   template <size_t length>
-  ProInputParser send_subcommand(uint8_t command, uint8_t subcommand,
-                                 std::array<uint8_t, length> const &data) {
-    std::array<uint8_t, length + 10> buffer{
-        static_cast<uint8_t>(rumble_counter++ & 0xF),
-        0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40,
-        subcommand};
+  HidApi::default_packet 
+  send_uart(const HidApi::generic_packet<length> &data){
+    HidApi::generic_packet<length + 0x08> packet;
+    packet.fill(0);
+    packet[0x00] = Protocols::nintendo;
+    packet[0x01] = Uart::uart_cmd;
+    packet[0x02] = 0x00; // length?
+    packet[0x03] = 0x31; // length?
+    if (length > 0) {
+      memcpy(packet.data() + 0x8, data.data(), length);
+    }
+    return hid.exchange(packet);
+  }
+
+  template <size_t length>
+  ProInputParser send_command(Cmd command,
+                              HidApi::generic_packet<length> const &data) {
+    HidApi::generic_packet<length + 0x01> buffer;
+    buffer.fill(0);
+    buffer[0x00] = command;
+    if (length > 0) {
+      memcpy(buffer.data() + 0x01, data.data(), length);
+    }
+    return ProInputParser(send_uart(buffer));
+  }
+
+  template <size_t length>
+  ProInputParser send_subcommand(SubCmd subcommand,
+                                 HidApi::generic_packet<length> const &data) {
+    HidApi::generic_packet<length + 10> buffer{
+      static_cast<uint8_t>(rumble_counter++ & 0xF),
+      0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40,
+      subcommand};
 
     if (length > 0) {
       memcpy(buffer.data() + 10, data.data(), length);
     }
-    return send_command(command, buffer);
+    return send_command(Cmd::sub_command, buffer);
   }
 
   bool try_read_bad_data() {
-    ProInputParser dat = send_command(get_input, empty);
+    ProInputParser dat = request_input();
 
     if (dat.detect_useless_data()) {
       return false;
@@ -142,27 +210,16 @@ private:
 
   uint8_t rumble_counter{0};
   const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
-  const std::array<uint8_t, 0> empty{{}};
 
-  const std::array<uint8_t, 2> handshake{{0x80, 0x02}};
-  const std::array<uint8_t, 2> switch_baudrate{{0x80, 0x03}};
-  /** 
-   * Forces the Pro Controller to only talk over USB HID without any timeouts. 
-   * This is required for the Pro Controller to not time out and revert to Bluetooth.
-   */
-  const std::array<uint8_t, 2> hid_only_mode{{0x80, 0x04}};
-  const std::array<uint8_t, 2> msg_close{{0x80, 0x05}};
+  const HidApi::generic_packet<0> empty{{}};
+  const HidApi::generic_packet<1> enable{{0x01}};
 
   // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
   const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
 
-
   uint blink_position = 0;
   size_t blink_counter = 0;
   const size_t blink_length = 8;
-
-  static constexpr uint8_t led_command{0x30};
-  static constexpr uint8_t get_input{0x1f};
 };
 
 #endif

@@ -4,11 +4,11 @@
 
 #include <array>
 
+#include "hidapi_wrapper.hpp"
+
+
 class ProInputParser{
 public:
-  static constexpr size_t exchange_length{0x400};
-  using exchange_array = std::array<uint8_t, exchange_length>;
-
   enum BUTTONS {
     A,
     B,
@@ -43,7 +43,7 @@ public:
     d_none
   };
 
-  ProInputParser(exchange_array data): dat(data) {
+  ProInputParser(HidApi::default_packet data): dat(data) {
 
   }
 
@@ -231,7 +231,7 @@ public:
   }
 
 
-  static void print_exchange_array(exchange_array arr) {
+  static void print_exchange_array(HidApi::default_packet arr) {
     bool redcol = false;
     if (arr[0] != 0x30)
       PrintColor::yellow();
@@ -332,7 +332,7 @@ public:
   static const std::array<DPAD, 4> dpad_ids;
 
 private:
-  exchange_array dat;
+  HidApi::default_packet dat;
 
 };
 
