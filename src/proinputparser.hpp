@@ -84,12 +84,12 @@ namespace ProInputParser {
   uint8_t dpad_byte_value(DPAD dpad);
   size_t dpad_data_address(DPAD dpad, PacketType packet);
 
-  void print_exchange_array(HidApi::default_packet arr, PacketType type);
+  void print_exchange_array(size_t packet_len, HidApi::default_packet arr);
 
 
   class Parser {
   public:
-    Parser(HidApi::default_packet data);
+    Parser(size_t packet_len, HidApi::default_packet data);
 
     bool is_button_pressed(BUTTONS button) const;
 
@@ -117,6 +117,7 @@ namespace ProInputParser {
 
     size_t dpad_data_address(DPAD dpad) const;
   private:
+    size_t len = 0;
     HidApi::default_packet dat;
     PacketType type = PacketType::packet_none;
   };

@@ -69,7 +69,9 @@ public:
 
   ProInputParser::Parser request_input() {
     //return send_command(Cmd::get_input, empty);
-    return ProInputParser::Parser(hid.read(5));
+    HidApi::default_packet input;
+    size_t len = hid.read(input, 5);
+    return ProInputParser::Parser(len, input);
   }
 
   void led(int number = -1){
@@ -172,19 +174,19 @@ private:
     return hid.exchange(packet, milliseconds);
   }
 
-  template <size_t length>
-  HidApi::default_packet 
-  send_uart(const HidApi::generic_packet<length> &data){
-    HidApi::generic_packet<length + 0x08> packet;
+  template <size_t input_len, size_t output_len>
+  size_t 
+  send_uart(HidApi::generic_packet<input_len> input, const HidApi::generic_packet<output_len> &data){
+    HidApi::generic_packet<output_len + 0x08> packet;
     packet.fill(0);
     packet[0x00] = Protocols::nintendo;
     packet[0x01] = Uart::uart_cmd;
     packet[0x02] = 0x00; // length?
     packet[0x03] = 0x31; // length?
-    if (length > 0) {
-      memcpy(packet.data() + 0x8, data.data(), length);
+    if (output_len > 0) {
+      memcpy(packet.data() + 0x8, data.data(), output_len);
     }
-    return hid.exchange(packet);
+    return hid.exchange(input, packet);
   }
 
   template <size_t length>
@@ -196,7 +198,9 @@ private:
     if (length > 0) {
       memcpy(buffer.data() + 0x01, data.data(), length);
     }
-    return ProInputParser::Parser(send_uart(buffer));
+    HidApi::default_packet input;
+    size_t len = send_uart(input, buffer);
+    return ProInputParser::Parser(len, input);
   }
 
   template <size_t length>

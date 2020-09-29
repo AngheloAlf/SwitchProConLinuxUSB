@@ -300,8 +300,7 @@ size_t ProInputParser::dpad_data_address(DPAD dpad, PacketType packet) {
 }
 
 
-// TODO: re-enable colors
-void ProInputParser::print_exchange_array(HidApi::default_packet arr, PacketType type) {
+void ProInputParser::print_exchange_array(size_t packet_len, HidApi::default_packet arr) {
   bool redcol = false;
   if (arr[0] != 0x30) {
     PrintColor::yellow();
@@ -310,8 +309,7 @@ void ProInputParser::print_exchange_array(HidApi::default_packet arr, PacketType
     PrintColor::red();
     redcol = true;
   }
-  size_t len = (type == PacketType::standard_input_report ? 0x32 : 0x20);
-  for (size_t i = 0; i < len; ++i) {
+  for (size_t i = 0; i < packet_len; ++i) {
     if (arr[i] == 0x00) {
       PrintColor::blue();
     } else {
@@ -329,15 +327,22 @@ void ProInputParser::print_exchange_array(HidApi::default_packet arr, PacketType
 }
 
 
-Parser::Parser(HidApi::default_packet data): dat(data) {
+Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len), dat(data) {
   switch (dat[0x00]) {
   case 0x00:
     type = PacketType::zeros;
     break;
 
-  case 0x21:
+  case 0x21: // ?
   case 0x30:
-  case 0x31:
+  case 0x31: // ?
+    if (len < 13) {
+      /// maybe throw?
+      type = PacketType::unknown;
+      //printf("unknown packet\n");
+      //print();
+      break;
+    }
     type = PacketType::standard_input_report;
     break;
 
@@ -348,8 +353,8 @@ Parser::Parser(HidApi::default_packet data): dat(data) {
   default:
     /// maybe throw?
     type = PacketType::unknown;
-    printf("unknown packet\n");
-    print();
+    //printf("unknown packet\n");
+    //print();
     break;
   }
 }
@@ -402,7 +407,7 @@ bool Parser::has_button_and_axis_data() const {
 }
 
 void Parser::print() const {
-  print_exchange_array(dat, type);
+  print_exchange_array(len, dat);
 }
 
 size_t Parser::buttons_data_address(BUTTONS button) const {

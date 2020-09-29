@@ -68,7 +68,7 @@ namespace HidApi{
 
     template <size_t len>
     size_t read(generic_packet<len> &data, int milliseconds=-1) {
-      return read(len, data.data());
+      return read(len, data.data(), milliseconds);
     }
 
     default_packet read(int milliseconds=-1);
