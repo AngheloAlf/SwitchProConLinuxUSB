@@ -118,7 +118,7 @@ size_t  ProInputParser::buttons_data_address(BUTTONS button, PacketType packet) 
     address[0x02] = 0x0f;
     break;
   default:
-    throw std::domain_error("Error: This packet type does not contain button data.");
+    throw std::domain_error("Error: This packet type (" + std::to_string(packet) + ") does not contain button data.");
   }
   switch (button) {
   case BUTTONS::A:
@@ -395,6 +395,10 @@ bool Parser::detect_useless_data() const {
   if (dat == 0x00)
     n_bad_data_zero++;*/
   return (/*dat[0] == 0x30 ||*/ dat[0] == 0x00);
+}
+
+bool Parser::has_button_and_axis_data() const {
+  return type == PacketType::standard_input_report || type == PacketType::packet_req;
 }
 
 void Parser::print() const {

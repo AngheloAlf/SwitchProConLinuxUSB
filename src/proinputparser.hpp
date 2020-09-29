@@ -9,10 +9,10 @@
 
 namespace ProInputParser {
   enum PacketType {
-    zeros,                  /// A packet with all data zero'ed.
+    unknown = -1,           /// For unrecognized packets.
+    zeros   =  0,           /// A packet with all data zero'ed.
     standard_input_report,  /// Standard input report format. [0] == x21 || x30 || x31
     packet_req,             /// ?
-    unknown,                /// For unrecognized packets.
     packet_none,
   };
 
@@ -105,6 +105,8 @@ namespace ProInputParser {
     /* If this returns true, there is no controller information in this package,
     * we can skip it*/
     bool detect_useless_data() const;
+
+    bool has_button_and_axis_data() const;
 
     void print() const;
 

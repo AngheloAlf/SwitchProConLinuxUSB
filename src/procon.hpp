@@ -125,6 +125,9 @@ public:
     if (parser.detect_useless_data()) {
       return;
     }
+    if (!parser.has_button_and_axis_data()) {
+      return;
+    }
     update_input_state(parser);
 
     if (buttons_pressed[ProInputParser::home] &&
@@ -169,6 +172,9 @@ public:
       return;
     }
 
+    if (!parser.has_button_and_axis_data()) {
+      return;
+    }
     update_input_state(parser);
     // parser.print();
 
