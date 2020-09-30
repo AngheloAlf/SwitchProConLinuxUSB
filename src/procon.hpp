@@ -39,6 +39,7 @@ public:
     }
 
     bool opened = false;
+    int retries = 0;
     while(!opened){
       try {
         hid_ctrl = new HidController(device_info, n_controller);
@@ -46,11 +47,14 @@ public:
       } catch (const std::ios_base::failure &e) {
         throw;
       } catch (const std::runtime_error &e) {
-        usleep(1000 * 10);
+        ++retries;
+        if (retries > 10) {
+          throw;
+        }
+        usleep(1000 * 1000);
         PrintColor::red();
-        printf("%s", e.what());
+        printf("%s\nRetrying... (%i/%i)\n\n", e.what(), retries, 10);
         PrintColor::normal();
-        printf("\n");
       }
     }
     
@@ -120,15 +124,30 @@ public:
     // }
     auto remaining_arr = uinput_ctrl->update_time(delta_milis);
 
-    ProInputParser::Parser parser = hid_ctrl->request_input();
-    // parser.print();
-    if (parser.detect_useless_data()) {
+    try {
+      ProInputParser::Parser parser = hid_ctrl->request_input();
+      // parser.print();
+      if (parser.detect_useless_data()) {
+        return;
+      }
+      if (!parser.has_button_and_axis_data()) {
+        return;
+      }
+      update_input_state(parser);
+    }
+    catch (const ProInputParser::PacketLengthError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();*/
       return;
     }
-    if (!parser.has_button_and_axis_data()) {
-      return;
+    catch (const ProInputParser::PacketTypeError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();
+      return;*/
+      throw;
     }
-    update_input_state(parser);
 
     if (buttons_pressed[ProInputParser::home] &&
         buttons_pressed[ProInputParser::share]) {
@@ -167,31 +186,46 @@ public:
   void calibrate() {
     hid_ctrl->blink();
 
-    ProInputParser::Parser parser = hid_ctrl->request_input();
-    if (parser.detect_useless_data()) {
-      return;
-    }
-
-    if (!parser.has_button_and_axis_data()) {
-      return;
-    }
-    update_input_state(parser);
-    // parser.print();
-
-    if (!share_button_free) {
-      if (!buttons_pressed[ProInputParser::share]) {
-        share_button_free = true;
+    try {
+      ProInputParser::Parser parser = hid_ctrl->request_input();
+      if (parser.detect_useless_data()) {
+        return;
       }
+
+      if (!parser.has_button_and_axis_data()) {
+        return;
+      }
+      update_input_state(parser);
+      // parser.print();
+
+      if (!share_button_free) {
+        if (!buttons_pressed[ProInputParser::share]) {
+          share_button_free = true;
+        }
+        return;
+      }
+
+      if (perform_calibration(parser)) {
+        // send_rumble(0,255);
+        calibrated = true;
+        hid_ctrl->led();
+        write_calibration_to_file();
+        // print_calibration_values();
+        // printf("\n");
+      }
+    }
+    catch (const ProInputParser::PacketLengthError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();*/
       return;
     }
-
-    if (perform_calibration(parser)) {
-      // send_rumble(0,255);
-      calibrated = true;
-      hid_ctrl->led();
-      write_calibration_to_file();
-      // print_calibration_values();
-      // printf("\n");
+    catch (const ProInputParser::PacketTypeError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();
+      return;*/
+      throw;
     }
   }
 

@@ -4,6 +4,42 @@ using namespace ProInputParser;
 #include <cstdio>
 #include "print_color.hpp"
 
+void copy_string_to_char(char **dst, const std::string &src);
+
+ParserError::ParserError(): std::runtime_error("ParserError: Unspecified error") {
+  std::string aux = std::string("ParserError: ") + "Unspecified error";
+  copy_string_to_char(&str, aux);
+}
+
+ParserError::ParserError(const std::string& what_arg): std::runtime_error(what_arg) {
+  std::string aux = std::string("ParserError: ") + what_arg;
+  copy_string_to_char(&str, aux);
+}
+ParserError::ParserError(const char* what_arg): std::runtime_error(what_arg) {
+  std::string aux = std::string("ParserError: ") + what_arg;
+  copy_string_to_char(&str, aux);
+}
+
+ParserError::~ParserError() {
+  if (str != nullptr) {
+    free(str);
+    str = nullptr;
+  }
+}
+
+
+PacketLengthError::PacketLengthError(): PacketTypeError(), std::length_error("ParserError: Unspecified error") {
+}
+
+PacketLengthError::PacketLengthError(const std::string& what_arg): PacketTypeError(what_arg), std::length_error(what_arg) {
+}
+PacketLengthError::PacketLengthError(const char* what_arg): PacketTypeError(what_arg), std::length_error(what_arg) {
+}
+
+
+const char *ParserError::what() const noexcept {
+  return str;
+}
 
 const char *ProInputParser::button_name(BUTTONS button) {
   switch (button) {
@@ -35,10 +71,8 @@ const char *ProInputParser::button_name(BUTTONS button) {
     return "R2";
   case R3:
     return "R3";
-  case None:
-    return "None";
   default:
-    return nullptr;
+    throw ButtonError("ButtonError: Tried to get the name of unknown button.");
   }
 }
 
@@ -46,30 +80,28 @@ uint8_t ProInputParser::buttons_bit_position(BUTTONS button) {
   switch (button) {
   case Y:
   case minus:
-    return 0x01;
+    return 0x00;
   case X:
   case plus:
-    return 0x02;
+    return 0x01;
   case B:
   case R3:
-    return 0x03;
+    return 0x02;
   case A:
   case L3:
-    return 0x04;
+    return 0x03;
   case home:
-    return 0x05;
+    return 0x04;
   case share:
-    return 0x06;
+    return 0x05;
   case L1:
   case R1:
-    return 0x07;
+    return 0x06;
   case L2:
   case R2:
-    return 0x08;
-  case None:
-    return 0x00;
+    return 0x07;
   default:
-    throw std::domain_error("ERROR: Tried to find bitpos of unknown button!");
+    throw ButtonError("ButtonError: Tried to find bitpos of unknown button.");
   }
 }
 
@@ -97,10 +129,8 @@ uint8_t ProInputParser::buttons_byte_button_value(BUTTONS button) {
   case L2:
   case R2:
     return 0x80;
-  case None:
-    return 0x00;
   default:
-    throw std::domain_error("ERROR: Tried to find bytepos of unknown button!");
+    throw ButtonError("ButtonError: Tried to find bytepos of unknown button.");
   }
 }
 
@@ -118,7 +148,7 @@ size_t  ProInputParser::buttons_data_address(BUTTONS button, PacketType packet) 
     address[0x02] = 0x0f;
     break;
   default:
-    throw std::domain_error("Error: This packet type (" + std::to_string(packet) + ") does not contain button data.");
+    throw ButtonError("ButtonError: This packet type (" + std::to_string(packet) + ") does not contain button data.");
   }
   switch (button) {
   case BUTTONS::A:
@@ -139,7 +169,7 @@ size_t  ProInputParser::buttons_data_address(BUTTONS button, PacketType packet) 
   case BUTTONS::L2:
     return address[0x02];
   default:
-    throw std::domain_error("ERROR: Tried to find address of unknown button!");
+    throw ButtonError("ButtonError: Tried to find address of unknown button.");
   }
 }
 
@@ -154,10 +184,8 @@ const char *ProInputParser::axis_name(AXIS axis) {
     return "axis_rx";
   case axis_ry:
     return "axis_ry";
-  case axis_none:
-    return "axis_none";
   default:
-    return nullptr;
+    throw AxisError("AxisError: Tried to get the name of unknown axis.");
   }
 }
 
@@ -177,7 +205,7 @@ size_t ProInputParser::axis_data_address_high(AXIS axis, PacketType packet) {
     address[0x03] = 0x15;
     break;
   default:
-    throw std::domain_error("Error: This packet type does not contain axis data.");
+    throw AxisError("AxisError: This packet type (" + std::to_string(packet) + ") does not contain axis data.");
   }
   switch (axis) {
   case AXIS::axis_lx:
@@ -189,7 +217,7 @@ size_t ProInputParser::axis_data_address_high(AXIS axis, PacketType packet) {
   case AXIS::axis_ry:
     return address[0x03];
   default:
-    throw std::domain_error("ERROR: Tried to find address of unknown axis.");
+    throw AxisError("AxisError: Tried to find address of unknown axis.");
   }
 }
 size_t ProInputParser::axis_data_address_low(AXIS axis, PacketType packet) {
@@ -208,7 +236,7 @@ size_t ProInputParser::axis_data_address_low(AXIS axis, PacketType packet) {
     address[0x03] = 0x14;
     break;
   default:
-    throw std::domain_error("Error: This packet type does not contain axis data.");
+    throw AxisError("AxisError: This packet type (" + std::to_string(packet) + ") does not contain axis data.");
   }
   switch (axis) {
   case AXIS::axis_lx:
@@ -220,7 +248,7 @@ size_t ProInputParser::axis_data_address_low(AXIS axis, PacketType packet) {
   case AXIS::axis_ry:
     return address[0x03];
   default:
-    throw std::domain_error("ERROR: Tried to find address of unknown axis.");
+    throw AxisError("AxisError: Tried to find address of unknown axis.");
   }
 }
 
@@ -235,44 +263,38 @@ const char *ProInputParser::dpad_name(DPAD dpad) {
     return "d_up";
   case d_down:
     return "d_down";
-  case d_none:
-    return "None";
   default:
-    return nullptr;
+    throw DpadError("DpadError: Tried to get the name of unknown dpad.");
   }
 }
 
 uint8_t ProInputParser::dpad_bit_position(DPAD dpad) {
   switch (dpad) {
-  case d_left:
-    return 0x04;
-  case d_right:
-    return 0x03;
-  case d_up:
-    return 0x02;
   case d_down:
-    return 0x01;
-  case d_none:
     return 0x00;
+  case d_up:
+    return 0x01;
+  case d_right:
+    return 0x02;
+  case d_left:
+    return 0x03;
   default:
-    throw std::domain_error("ERROR: Tried to find bitpos of unknown dpad button!");
+    throw DpadError("DpadError: Tried to find bitpos of unknown dpad button.");
   }
 }
 
 uint8_t ProInputParser::dpad_byte_value(DPAD dpad) {
   switch (dpad) {
-  case d_left:
-    return 0x08;
-  case d_right:
-    return 0x04;
-  case d_up:
-    return 0x02;
   case d_down:
     return 0x01;
-  case d_none:
-    return 0x00;
+  case d_up:
+    return 0x02;
+  case d_right:
+    return 0x04;
+  case d_left:
+    return 0x08;
   default:
-    throw std::domain_error("ERROR: Tried to find bytepos of unknown dpad button!");
+    throw DpadError("DpadError: Tried to find bytepos of unknown dpad button.");
   }
 }
 
@@ -286,16 +308,16 @@ size_t ProInputParser::dpad_data_address(DPAD dpad, PacketType packet) {
     address[0x00] = 0x0f;
     break;
   default:
-    throw std::domain_error("Error: This packet type does not contain dpad data.");
+    throw DpadError("DpadError: This packet type (" + std::to_string(packet) + ") does not contain dpad data.");
   }
   switch (dpad) {
-  case DPAD::d_left:
-  case DPAD::d_right:
-  case DPAD::d_up:
   case DPAD::d_down:
+  case DPAD::d_up:
+  case DPAD::d_right:
+  case DPAD::d_left:
     return address[0x00];
   default:
-    throw std::domain_error("ERROR: Tried to find address of unknown dpad button.");
+    throw DpadError("DpadError: Tried to find address of unknown dpad button.");
   }
 }
 
@@ -331,7 +353,7 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
   type = PacketType::unknown;
 
   if (packet_len == 0) {
-    //throw std::domain_error("Parser: packet can't have zero length.");
+    throw PacketLengthError("PacketLengthError: Packet can't have zero length.");
   }
 
   switch (dat[0x00]) {
@@ -361,10 +383,10 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
   }
 
   if (type == PacketType::unknown) {
-    /// maybe throw?
     type = PacketType::unknown;
     printf("unknown packet\n");
     print();
+    throw PacketTypeError("PacketTypeError: Unrecognized packet.");
   }
 }
 

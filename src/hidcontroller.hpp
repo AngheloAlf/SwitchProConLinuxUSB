@@ -48,11 +48,11 @@ public:
     usleep(100 * 1000);
 
     // TEST FOR BAD DATA
-    for (size_t i = 0; i < TEST_BAD_DATA_CYCLES; ++i) {
+    /*for (size_t i = 0; i < TEST_BAD_DATA_CYCLES; ++i) {
       if (try_read_bad_data()) {
         throw std::runtime_error("Detected bad data stream. Trying again...");
       }
-    }
+    }*/
   }
 
   ~HidController(){
