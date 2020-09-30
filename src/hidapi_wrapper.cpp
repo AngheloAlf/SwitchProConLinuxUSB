@@ -62,7 +62,7 @@ const char *HidApiError::what() const noexcept {
 Enumerate::Enumerate(uint16_t vendor_id, uint16_t product_id) {
   ptr = hid_enumerate(vendor_id, product_id);
   if (ptr == nullptr) {
-    throw HidApiError("Unable to find any requested device.");
+    throw EnumerateError("EnumerateError: Unable to find any requested device.");
   }
 }
 
@@ -80,7 +80,7 @@ const struct hid_device_info *Enumerate::device_info() const {
 Device::Device(const struct hid_device_info *device_info) {
   ptr = hid_open_path(device_info->path);
   if (ptr == nullptr) {
-    throw HidApiError(ptr, "open_path()");
+    throw OpenError(ptr, "OpenError: open_path()");
   }
 }
 
@@ -90,7 +90,7 @@ Device::Device(const Enumerate &info): Device(info.device_info()) {
 Device::Device(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number) {
   ptr = hid_open(vendor_id, product_id, serial_number);
   if (ptr == nullptr) {
-    throw HidApiError(ptr, "open()");
+    throw OpenError(ptr, "OpenError: open()");
   }
 }
 
@@ -104,7 +104,7 @@ Device::~Device(){
 size_t Device::write(size_t len, const uint8_t *data) {
   int ret = hid_write(ptr, data, len);
   if (ret < 0) {
-    throw HidApiError(ptr, "write() returned " + std::to_string(ret));
+    throw WriteError(ptr, "WriteError: write() returned " + std::to_string(ret));
   }
   return ret;
 }
@@ -120,7 +120,7 @@ size_t Device::read(size_t len, uint8_t *data, int milliseconds) {
   }
 
   if (ret < 0) {
-    throw HidApiError(ptr, "read() returned " + std::to_string(ret));
+    throw ReadError(ptr, "ReadError: read() returned " + std::to_string(ret));
   }
   return ret;
 }
@@ -137,7 +137,7 @@ size_t Device::exchange(size_t read_len, uint8_t *buf, size_t write_len, const u
 
   size_t ret = read(read_len, buf, milliseconds);
   if (milliseconds >= 0 && ret == 0) {
-    throw HidApiError("Didn't receive exchange packet after " + std::to_string(milliseconds) + " milliseconds.");
+    throw IOError("IOError: Didn't receive exchange packet after " + std::to_string(milliseconds) + " milliseconds.");
   }
 
   return ret;
@@ -154,14 +154,14 @@ default_packet Device::exchange(size_t write_len, const uint8_t *data_to_write, 
 
 void Device::set_non_blocking() {
   if (hid_set_nonblocking(ptr, 1) < 0) {
-    throw HidApiError("Couldn't set non-blocking mode.");
+    throw StateChangeError("StateChangeError: Couldn't set non-blocking mode.");
   }
   blocking = false;
 }
 
 void Device::set_blocking() {
   if (hid_set_nonblocking(ptr, 0) < 0) {
-    throw HidApiError("Couldn't set blocking mode.");
+    throw StateChangeError("StateChangeError: Couldn't set blocking mode.");
   }
   blocking = true;
 }
@@ -170,7 +170,7 @@ void Device::set_blocking() {
 std::string Device::get_manufacturer() const {
   std::array<wchar_t, maxlen+1> buf;
   if (hid_get_manufacturer_string(ptr, buf.data(), maxlen) < 0) {
-    throw HidApiError("Couldn't get manufacturer string.");
+    throw GetterError("GetterError: Couldn't get manufacturer string.");
   }
   return wide_to_string(buf.data());
 }
@@ -178,7 +178,7 @@ std::string Device::get_manufacturer() const {
 std::string Device::get_product() const {
   std::array<wchar_t, maxlen+1> buf;
   if (hid_get_product_string(ptr, buf.data(), maxlen) < 0) {
-    throw HidApiError("Couldn't get product string.");
+    throw GetterError("GetterError: Couldn't get product string.");
   }
   return wide_to_string(buf.data());
 }
@@ -186,7 +186,7 @@ std::string Device::get_product() const {
 std::string Device::get_serial_number() const {
   std::array<wchar_t, maxlen+1> buf;
   if (hid_get_serial_number_string(ptr, buf.data(), maxlen) < 0) {
-    throw HidApiError("Couldn't get serial number string.");
+    throw GetterError("GetterError: Couldn't get serial number string.");
   }
   return wide_to_string(buf.data());
 }
@@ -194,7 +194,7 @@ std::string Device::get_serial_number() const {
 std::string Device::get_indexed(int string_index) const {
   std::array<wchar_t, maxlen+1> buf;
   if (hid_get_indexed_string(ptr, string_index, buf.data(), maxlen) < 0) {
-    throw HidApiError("Couldn't get ndexed string.");
+    throw GetterError("GetterError: Couldn't get ndexed string.");
   }
   return wide_to_string(buf.data());
 }
@@ -202,13 +202,13 @@ std::string Device::get_indexed(int string_index) const {
 
 void HidApi::init() {
   if (hid_init() < 0) {
-    throw HidApiError("Hid init error");
+    throw HidApiError("InitError: Hid init error");
   }
 }
 
 void HidApi::exit() {
   if (hid_exit() < 0) {
-    throw HidApiError("Hid exit error");
+    throw ExitError("ExitError: Hid exit error");
   }
 }
 
