@@ -202,7 +202,7 @@ std::string Device::get_indexed(int string_index) const {
 
 void HidApi::init() {
   if (hid_init() < 0) {
-    throw HidApiError("InitError: Hid init error");
+    throw InitError("InitError: Hid init error");
   }
 }
 

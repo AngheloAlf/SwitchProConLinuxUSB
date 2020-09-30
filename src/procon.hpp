@@ -44,7 +44,7 @@ public:
       try {
         hid_ctrl = new HidController(device_info, n_controller);
         opened = true;
-      } catch (const std::ios_base::failure &e) {
+      } catch (const HidApi::OpenError &e) {
         throw;
       } catch (const std::runtime_error &e) {
         ++retries;

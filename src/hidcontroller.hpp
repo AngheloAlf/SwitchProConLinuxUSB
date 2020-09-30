@@ -56,7 +56,6 @@ public:
   }
 
   ~HidController(){
-    hid.set_blocking();
     try {
       close();
     }

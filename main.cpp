@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
   try {
     HidApi::init();
   }
-  catch (const std::runtime_error &e) {
+  catch (const HidApi::InitError &e) {
     PrintColor::red();
     printf("%s\n", e.what());
     PrintColor::normal();
@@ -179,7 +179,13 @@ int main(int argc, char *argv[]) {
     // Don't trust hidapi, returns non-matching devices sometimes
     HidApi::Enumerate iter(NINTENDO_ID, PROCON_ID);
     handle_controller(iter, config);
-  } catch (const std::ios_base::failure &e) {
+  }
+  catch (const HidApi::EnumerateError &e) {
+    PrintColor::red();
+    printf("No controller found:\n  %s\n", e.what());
+    PrintColor::normal();
+  }
+  catch (const std::ios_base::failure &e) {
     PrintColor::red();
     printf("%s\n", e.what());
 
@@ -194,18 +200,11 @@ int main(int argc, char *argv[]) {
     printf("%s\n", e.what());
     PrintColor::normal();
   }
-  #if 0
-  catch (const std::runtime_error &e) {
-    PrintColor::red();
-    printf("No controller found: %s\n", e.what());
-    return -1;
-  }
-  #endif
 
   try {
-   HidApi::exit();
+    HidApi::exit();
   }
-  catch (const std::runtime_error &e) {
+  catch (const HidApi::ExitError &e) {
     PrintColor::red();
     printf("%s\n", e.what());
     return -1;
