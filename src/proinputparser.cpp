@@ -328,6 +328,12 @@ void ProInputParser::print_exchange_array(size_t packet_len, HidApi::default_pac
 
 
 Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len), dat(data) {
+  type = PacketType::unknown;
+
+  if (packet_len == 0) {
+    //throw std::domain_error("Parser: packet can't have zero length.");
+  }
+
   switch (dat[0x00]) {
   case 0x00:
     type = PacketType::zeros;
@@ -337,10 +343,9 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
   case 0x30:
   case 0x31: // ?
     if (len < 13) {
-      /// maybe throw?
       type = PacketType::unknown;
-      //printf("unknown packet\n");
-      //print();
+      printf("invalid_packet\n");
+      print();
       break;
     }
     type = PacketType::standard_input_report;
@@ -351,11 +356,15 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
     break;
 
   default:
+    type = PacketType::unknown;
+    break;
+  }
+
+  if (type == PacketType::unknown) {
     /// maybe throw?
     type = PacketType::unknown;
-    //printf("unknown packet\n");
-    //print();
-    break;
+    printf("unknown packet\n");
+    print();
   }
 }
 

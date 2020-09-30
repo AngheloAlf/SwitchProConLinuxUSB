@@ -70,6 +70,7 @@ public:
   ProInputParser::Parser request_input() {
     //return send_command(Cmd::get_input, empty);
     HidApi::default_packet input;
+    input.fill(0);
     size_t len = hid.read(input, 5);
     return ProInputParser::Parser(len, input);
   }
@@ -199,6 +200,7 @@ private:
       memcpy(buffer.data() + 0x01, data.data(), length);
     }
     HidApi::default_packet input;
+    input.fill(0);
     size_t len = send_uart(input, buffer);
     return ProInputParser::Parser(len, input);
   }
