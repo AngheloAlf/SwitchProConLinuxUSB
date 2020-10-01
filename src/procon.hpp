@@ -17,10 +17,10 @@
 #include <unistd.h>
 
 #include "config.hpp"
-#include "print_color.hpp"
 #include "hidcontroller.hpp"
 #include "uinputcontroller.hpp"
 #include "proinputparser.hpp"
+#include "utils.hpp"
 
 #define PROCON_DRIVER_VERSION "1.0 alpha2"
 
@@ -39,18 +39,22 @@ public:
     }
 
     bool opened = false;
+    int retries = 0;
     while(!opened){
       try {
         hid_ctrl = new HidController(device_info, n_controller);
         opened = true;
-      } catch (const std::ios_base::failure &e) {
+      } catch (const HidApi::OpenError &e) {
         throw;
       } catch (const std::runtime_error &e) {
-        usleep(1000 * 10);
-        PrintColor::red();
-        printf("%s", e.what());
-        PrintColor::normal();
-        printf("\n");
+        ++retries;
+        if (retries > 10) {
+          throw;
+        }
+        usleep(1000 * 1000);
+        Utils::PrintColor::red();
+        printf("%s\nRetrying... (%i/%i)\n\n", e.what(), retries, 10);
+        Utils::PrintColor::normal();
       }
     }
     
@@ -120,13 +124,30 @@ public:
     // }
     auto remaining_arr = uinput_ctrl->update_time(delta_milis);
 
-    hid_ctrl->led();
-
-    ProInputParser parser = hid_ctrl->request_input();
-    if (parser.detect_useless_data()) {
+    try {
+      ProInputParser::Parser parser = hid_ctrl->request_input();
+      // parser.print();
+      if (parser.detect_useless_data()) {
+        return;
+      }
+      if (!parser.has_button_and_axis_data()) {
+        return;
+      }
+      update_input_state(parser);
+    }
+    catch (const ProInputParser::PacketLengthError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();*/
       return;
     }
-    update_input_state(parser);
+    catch (const ProInputParser::PacketTypeError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();
+      return;*/
+      throw;
+    }
 
     if (buttons_pressed[ProInputParser::home] &&
         buttons_pressed[ProInputParser::share]) {
@@ -165,28 +186,46 @@ public:
   void calibrate() {
     hid_ctrl->blink();
 
-    ProInputParser parser = hid_ctrl->request_input();
-    if (parser.detect_useless_data()) {
-      return;
-    }
-
-    update_input_state(parser);
-    // parser.print();
-
-    if (!share_button_free) {
-      if (!buttons_pressed[ProInputParser::share]) {
-        share_button_free = true;
+    try {
+      ProInputParser::Parser parser = hid_ctrl->request_input();
+      if (parser.detect_useless_data()) {
+        return;
       }
+
+      if (!parser.has_button_and_axis_data()) {
+        return;
+      }
+      update_input_state(parser);
+      // parser.print();
+
+      if (!share_button_free) {
+        if (!buttons_pressed[ProInputParser::share]) {
+          share_button_free = true;
+        }
+        return;
+      }
+
+      if (perform_calibration(parser)) {
+        // send_rumble(0,255);
+        calibrated = true;
+        hid_ctrl->led();
+        write_calibration_to_file();
+        // print_calibration_values();
+        // printf("\n");
+      }
+    }
+    catch (const ProInputParser::PacketLengthError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();*/
       return;
     }
-
-    if (perform_calibration(parser)) {
-      // send_rumble(0,255);
-      calibrated = true;
-      hid_ctrl->led();
-      write_calibration_to_file();
-      // print_calibration_values();
-      // printf("\n");
+    catch (const ProInputParser::PacketTypeError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();
+      return;*/
+      throw;
     }
   }
 
@@ -216,7 +255,7 @@ public:
   }
 
 private:
-  bool perform_calibration(const ProInputParser &parser) {
+  bool perform_calibration(const ProInputParser::Parser &parser) {
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
       uint16_t value = parser.get_axis_status(id);
       if (value < axis_min[id]) axis_min[id] = value;
@@ -348,7 +387,7 @@ private:
     uinput_ctrl->send_report();
   }
 
-  void update_input_state(const ProInputParser &parser) {
+  void update_input_state(const ProInputParser::Parser &parser) {
     /// Buttons
     for (const ProInputParser::BUTTONS &id: ProInputParser::btns_ids) {
       /// Store last state

@@ -1,6 +1,6 @@
 #include "procon.hpp"
 #include "config.hpp"
-#include "print_color.hpp"
+#include "utils.hpp"
 
 #include <chrono>
 #include <signal.h>
@@ -15,9 +15,9 @@ bool controller_loop = true;
 void exit_handler(int ignored){
   (void)ignored;
   controller_loop = false;
-  PrintColor::magenta();
+  Utils::PrintColor::magenta();
   printf("\nExiting...\n");
-  PrintColor::normal();
+  Utils::PrintColor::normal();
 }
 
 void print_help() {
@@ -46,12 +46,12 @@ void print_header(){
   printf("\n--------------------------------------------------------------------"
          "------\n");
   printf("| ");
-  PrintColor::cyan();
+  Utils::PrintColor::cyan();
   printf("Nintendo Switch Pro-Controller USB uinput driver. ");
-  PrintColor::cyan();
+  Utils::PrintColor::cyan();
   printf("Version: ");
   printf(PROCON_DRIVER_VERSION);
-  PrintColor::normal();
+  Utils::PrintColor::normal();
 
   printf("  |\n"
          "-------------------------------------------------------------------"
@@ -65,19 +65,19 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
 
   ProController controller(n_controller, iter, config);
 
-  PrintColor::green();
+  Utils::PrintColor::green();
   printf("Opened controller!\n");
 
   if (!controller.needs_first_calibration()) {
     controller.calibrate_from_file();
-    PrintColor::green();
+    Utils::PrintColor::green();
     printf("Read calibration data from file!");
-    PrintColor::cyan();
+    Utils::PrintColor::cyan();
     printf("Press 'share' and 'home' to calibrate again or start with "
            "--calibrate or -c.\n");
-    PrintColor::green();
+    Utils::PrintColor::green();
     printf("Now entering input mode!\n");
-    PrintColor::normal();
+    Utils::PrintColor::normal();
   }
 
   printf("\n");
@@ -87,14 +87,14 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
   while (controller_loop) {
     if (!controller.is_calibrated()) {
       fflush(stdout);
-      PrintColor::blue();
+      Utils::PrintColor::blue();
       printf("Starting calibration mode.\n");
-      PrintColor::cyan();
+      Utils::PrintColor::cyan();
       printf("Move both control sticks to their maximum positions "
             "(i.e. turn them in a circle once slowly.).\n"
             "Then leave both control sticks at their center and press the " 
             "square 'share' button!\n");
-      PrintColor::normal();
+      Utils::PrintColor::normal();
       while (!controller.is_calibrated()) {
         if (!controller_loop) {
           return;
@@ -107,10 +107,10 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
           printf("\r\e[K");
         }
       }
-      PrintColor::green();
+      Utils::PrintColor::green();
       printf("Wrote calibration data to file!\n");
       printf("Calibrated Controller! Now entering input mode!\n");
-      PrintColor::normal();
+      Utils::PrintColor::normal();
     }
 
     controller.poll_input(delta_milis);
@@ -132,7 +132,9 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
 
     int64_t now = current_time_micro();
     delta_milis = (now-last)/1000.L;
-    //printf("%02.2Lf ms\n", delta_milis);
+    //printf("%02.2Lf ms", delta_milis);
+    //fflush(stdout);
+    //printf("\r\e[K");
     last = now;
   }
 }
@@ -155,19 +157,19 @@ int main(int argc, char *argv[]) {
   print_header();
 
   if (config.found_dribble_cam_value) {
-    PrintColor::cyan();
+    Utils::PrintColor::cyan();
     printf("Dribble mode enabled!\n");
     printf("Value: %i\n\n", config.dribble_cam_value);
-    PrintColor::normal();
+    Utils::PrintColor::normal();
   }
 
   try {
     HidApi::init();
   }
-  catch (const std::runtime_error &e) {
-    PrintColor::red();
+  catch (const HidApi::InitError &e) {
+    Utils::PrintColor::red();
     printf("%s\n", e.what());
-    PrintColor::normal();
+    Utils::PrintColor::normal();
     return -1;
   }
 
@@ -177,34 +179,33 @@ int main(int argc, char *argv[]) {
     // Don't trust hidapi, returns non-matching devices sometimes
     HidApi::Enumerate iter(NINTENDO_ID, PROCON_ID);
     handle_controller(iter, config);
-  } catch (const std::ios_base::failure &e) {
-    PrintColor::red();
+  }
+  catch (const HidApi::EnumerateError &e) {
+    Utils::PrintColor::red();
+    printf("No controller found:\n  %s\n", e.what());
+    Utils::PrintColor::normal();
+  }
+  catch (const std::ios_base::failure &e) {
+    Utils::PrintColor::red();
     printf("%s\n", e.what());
 
-    PrintColor::magenta();
+    Utils::PrintColor::magenta();
     printf("\nTry unplugging and plugging again the usb to the controller.\n");
 
-    PrintColor::yellow();
+    Utils::PrintColor::yellow();
     printf("Exiting...\n");
-    PrintColor::normal();
+    Utils::PrintColor::normal();
   } catch (const std::exception &e) {
-    PrintColor::red();
+    Utils::PrintColor::red();
     printf("%s\n", e.what());
-    PrintColor::normal();
+    Utils::PrintColor::normal();
   }
-  #if 0
-  catch (const std::runtime_error &e) {
-    PrintColor::red();
-    printf("No controller found: %s\n", e.what());
-    return -1;
-  }
-  #endif
 
   try {
-   HidApi::exit();
+    HidApi::exit();
   }
-  catch (const std::runtime_error &e) {
-    PrintColor::red();
+  catch (const HidApi::ExitError &e) {
+    Utils::PrintColor::red();
     printf("%s\n", e.what());
     return -1;
   }
