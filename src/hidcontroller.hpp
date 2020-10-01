@@ -176,7 +176,7 @@ private:
 
   template <size_t input_len, size_t output_len>
   size_t 
-  send_uart(HidApi::generic_packet<input_len> input, const HidApi::generic_packet<output_len> &data){
+  send_uart(HidApi::generic_packet<input_len> &input, const HidApi::generic_packet<output_len> &data){
     HidApi::generic_packet<output_len + 0x08> packet;
     packet.fill(0);
     packet[0x00] = Protocols::nintendo;
