@@ -33,6 +33,36 @@ namespace HidApi{
     char *str = nullptr;
   };
 
+  class InitError: public HidApiError {
+    using HidApiError::HidApiError;
+  };
+  class ExitError: public HidApiError {
+    using HidApiError::HidApiError;
+  };
+  class EnumerateError: public HidApiError {
+    using HidApiError::HidApiError;
+  };
+  class OpenError: public HidApiError {
+    using HidApiError::HidApiError;
+  };
+  class StateChangeError: public HidApiError {
+    using HidApiError::HidApiError;
+  };
+  class GetterError: public HidApiError {
+    using HidApiError::HidApiError;
+  };
+
+  class IOError: public HidApiError {
+    using HidApiError::HidApiError;
+  };
+  class WriteError: public IOError {
+    using IOError::IOError;
+  };
+  class ReadError: public IOError {
+    using IOError::IOError;
+  };
+
+
   class Enumerate{
   public:
     Enumerate(uint16_t vendor_id, uint16_t product_id);
@@ -68,7 +98,7 @@ namespace HidApi{
 
     template <size_t len>
     size_t read(generic_packet<len> &data, int milliseconds=-1) {
-      return read(len, data.data());
+      return read(len, data.data(), milliseconds);
     }
 
     default_packet read(int milliseconds=-1);

@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A _lot_ of code cleanup.
 - The calibration process now stores the center position of the axis.
 - `--swap_buttons` to `--swap-buttons`.
+- Improved the comunication protocol to the pro controller.
+- Lowered avareage response time from 15ms to 5ms.
+- Error handling.
 
 ### Fixed
 

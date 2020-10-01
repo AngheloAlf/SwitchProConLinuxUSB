@@ -17,10 +17,10 @@
 #include <unistd.h>
 
 #include "config.hpp"
-#include "print_color.hpp"
 #include "hidcontroller.hpp"
 #include "uinputcontroller.hpp"
 #include "proinputparser.hpp"
+#include "utils.hpp"
 
 #define PROCON_DRIVER_VERSION "1.0 alpha2"
 
@@ -39,18 +39,22 @@ public:
     }
 
     bool opened = false;
+    int retries = 0;
     while(!opened){
       try {
         hid_ctrl = new HidController(device_info, n_controller);
         opened = true;
-      } catch (const std::ios_base::failure &e) {
+      } catch (const HidApi::OpenError &e) {
         throw;
       } catch (const std::runtime_error &e) {
-        usleep(1000 * 10);
-        PrintColor::red();
-        printf("%s", e.what());
-        PrintColor::normal();
-        printf("\n");
+        ++retries;
+        if (retries > 10) {
+          throw;
+        }
+        usleep(1000 * 1000);
+        Utils::PrintColor::red();
+        printf("%s\nRetrying... (%i/%i)\n\n", e.what(), retries, 10);
+        Utils::PrintColor::normal();
       }
     }
     
@@ -87,7 +91,7 @@ public:
 
   void print_sticks() const {
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-      printf("%s %03i ", ProInputParser::axis_name(id), axis_values[id]);
+      printf("%s %03x ", ProInputParser::axis_name(id), axis_values[id]);
     }
   }
 
@@ -109,7 +113,7 @@ public:
 
   void print_calibration_values() const {
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-      printf("%s %03i,%03i,%03i   ", ProInputParser::axis_name(id), axis_min[id], axis_cen[id], axis_max[id]);
+      printf("%s %03x,%03x,%03x   ", ProInputParser::axis_name(id), axis_min[id], axis_cen[id], axis_max[id]);
     }
   }
 
@@ -120,13 +124,30 @@ public:
     // }
     auto remaining_arr = uinput_ctrl->update_time(delta_milis);
 
-    hid_ctrl->led();
-
-    ProInputParser parser = hid_ctrl->request_input();
-    if (parser.detect_useless_data()) {
+    try {
+      ProInputParser::Parser parser = hid_ctrl->request_input();
+      // parser.print();
+      if (parser.detect_useless_data()) {
+        return;
+      }
+      if (!parser.has_button_and_axis_data()) {
+        return;
+      }
+      update_input_state(parser);
+    }
+    catch (const ProInputParser::PacketLengthError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();*/
       return;
     }
-    update_input_state(parser);
+    catch (const ProInputParser::PacketTypeError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();
+      return;*/
+      throw;
+    }
 
     if (buttons_pressed[ProInputParser::home] &&
         buttons_pressed[ProInputParser::share]) {
@@ -165,28 +186,46 @@ public:
   void calibrate() {
     hid_ctrl->blink();
 
-    ProInputParser parser = hid_ctrl->request_input();
-    if (parser.detect_useless_data()) {
-      return;
-    }
-
-    update_input_state(parser);
-    // parser.print();
-
-    if (!share_button_free) {
-      if (!buttons_pressed[ProInputParser::share]) {
-        share_button_free = true;
+    try {
+      ProInputParser::Parser parser = hid_ctrl->request_input();
+      if (parser.detect_useless_data()) {
+        return;
       }
+
+      if (!parser.has_button_and_axis_data()) {
+        return;
+      }
+      update_input_state(parser);
+      // parser.print();
+
+      if (!share_button_free) {
+        if (!buttons_pressed[ProInputParser::share]) {
+          share_button_free = true;
+        }
+        return;
+      }
+
+      if (perform_calibration(parser)) {
+        // send_rumble(0,255);
+        calibrated = true;
+        hid_ctrl->led();
+        write_calibration_to_file();
+        // print_calibration_values();
+        // printf("\n");
+      }
+    }
+    catch (const ProInputParser::PacketLengthError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();*/
       return;
     }
-
-    if (perform_calibration(parser)) {
-      // send_rumble(0,255);
-      calibrated = true;
-      hid_ctrl->led();
-      write_calibration_to_file();
-      // print_calibration_values();
-      // printf("\n");
+    catch (const ProInputParser::PacketTypeError &e) {
+      /*PrintColor::magenta();
+      printf("%s\n", e.what());
+      PrintColor::normal();
+      return;*/
+      throw;
     }
   }
 
@@ -216,9 +255,9 @@ public:
   }
 
 private:
-  bool perform_calibration(const ProInputParser &parser) {
+  bool perform_calibration(const ProInputParser::Parser &parser) {
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-      uint8_t value = parser.get_axis_status(id);
+      uint16_t value = parser.get_axis_status(id);
       if (value < axis_min[id]) axis_min[id] = value;
       if (value > axis_max[id]) axis_max[id] = value;
     }
@@ -241,9 +280,9 @@ private:
                     std::ios::in | std::ios::binary);
     if (myReadFile) {
       for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-        myReadFile.read((char *)&axis_min[id], sizeof(uint8_t));
-        myReadFile.read((char *)&axis_max[id], sizeof(uint8_t));
-        myReadFile.read((char *)&axis_cen[id], sizeof(uint8_t));
+        myReadFile.read((char *)&axis_min[id], sizeof(uint16_t));
+        myReadFile.read((char *)&axis_max[id], sizeof(uint16_t));
+        myReadFile.read((char *)&axis_cen[id], sizeof(uint16_t));
       }
       file_readed = true;
     }
@@ -257,9 +296,9 @@ private:
     calibration_file.open(calibration_filename,
                           std::ios::out | std::ios::binary);
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-      calibration_file.write((char *)&axis_min[id], sizeof(uint8_t));
-      calibration_file.write((char *)&axis_max[id], sizeof(uint8_t));
-      calibration_file.write((char *)&axis_cen[id], sizeof(uint8_t));
+      calibration_file.write((char *)&axis_min[id], sizeof(uint16_t));
+      calibration_file.write((char *)&axis_max[id], sizeof(uint16_t));
+      calibration_file.write((char *)&axis_cen[id], sizeof(uint16_t));
     }
     calibration_file.close();
   }
@@ -330,15 +369,15 @@ private:
     }
 
     // do triggers here as well
-    uinput_ctrl->write_single_joystick(buttons_pressed[ProInputParser::L2]*255, ABS_Z);
-    uinput_ctrl->write_single_joystick(buttons_pressed[ProInputParser::R2]*255, ABS_RZ);
+    uinput_ctrl->write_single_joystick(buttons_pressed[ProInputParser::L2]*0xFFF, ABS_Z);
+    uinput_ctrl->write_single_joystick(buttons_pressed[ProInputParser::R2]*0xFFF, ABS_RZ);
 
     uinput_ctrl->send_report();
   }
 
   void manage_joysticks() {
     if (dribble_mode) {
-      axis_values[ProInputParser::axis_ry] = clamp_int(axis_values[ProInputParser::axis_ry] + config.dribble_cam_value - 127);
+      axis_values[ProInputParser::axis_ry] = clamp_int(axis_values[ProInputParser::axis_ry] + config.dribble_cam_value - 0x7FF);
     }
 
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
@@ -348,7 +387,7 @@ private:
     uinput_ctrl->send_report();
   }
 
-  void update_input_state(const ProInputParser &parser) {
+  void update_input_state(const ProInputParser::Parser &parser) {
     /// Buttons
     for (const ProInputParser::BUTTONS &id: ProInputParser::btns_ids) {
       /// Store last state
@@ -393,10 +432,10 @@ private:
     }
 
     // Invert axis
-    if (config.invert_lx) axis_values[ProInputParser::axis_lx] = 255 - axis_values[ProInputParser::axis_lx];
-    if (config.invert_ly) axis_values[ProInputParser::axis_ly] = 255 - axis_values[ProInputParser::axis_ly];
-    if (config.invert_rx) axis_values[ProInputParser::axis_rx] = 255 - axis_values[ProInputParser::axis_rx];
-    if (config.invert_ry) axis_values[ProInputParser::axis_ry] = 255 - axis_values[ProInputParser::axis_ry];
+    if (config.invert_lx) axis_values[ProInputParser::axis_lx] = 0xFFF - axis_values[ProInputParser::axis_lx];
+    if (config.invert_ly) axis_values[ProInputParser::axis_ly] = 0xFFF - axis_values[ProInputParser::axis_ly];
+    if (config.invert_rx) axis_values[ProInputParser::axis_rx] = 0xFFF - axis_values[ProInputParser::axis_rx];
+    if (config.invert_ry) axis_values[ProInputParser::axis_ry] = 0xFFF - axis_values[ProInputParser::axis_ry];
   }
 
   void map_sticks() {
@@ -410,23 +449,23 @@ private:
               (long double)(axis_max[id] - axis_cen[id]) / 2.L;
         val += 0.5L;
       }
-      axis_values[id] = clamp(val * 0xFF);
+      axis_values[id] = clamp(val * 0xFFF);
     }
   }
 
-  static uint8_t clamp(long double inp) {
+  static uint16_t clamp(long double inp) {
     if (inp < 0.5f)
       return 0;
-    if (inp > 254.5f) {
-      return 255;
+    if (inp > 4094.5f) {
+      return 0xFFF;
     }
     return inp;
   }
   static int clamp_int(int inp) {
     if (inp < 0)
       return 0;
-    if (inp > 255) {
-      return 255;
+    if (inp > 0xFFF) {
+      return 0xFFF;
     }
     return inp;
   }
@@ -488,13 +527,13 @@ private:
       true; // will be set to false in decalibrate or with flags
   bool share_button_free = false; // used for recalibration (press share & home)
 
-  static constexpr uint8_t center{0x7f};
-  std::array<uint8_t, 4> axis_min{center};
-  std::array<uint8_t, 4> axis_max{center};
-  std::array<uint8_t, 4> axis_cen{center};
+  static constexpr uint16_t center{0x7ff};
+  std::array<uint16_t, 4> axis_min{center};
+  std::array<uint16_t, 4> axis_max{center};
+  std::array<uint16_t, 4> axis_cen{center};
 
   std::array<int, 4> axis_map = make_axis_map();
-  std::array<uint8_t, 4> axis_values{center};
+  std::array<uint16_t, 4> axis_values{center};
 
   std::array<int, 14> btns_map = make_button_map();
   const std::array<ProInputParser::BUTTONS, 12> xbox_btns_ids{
