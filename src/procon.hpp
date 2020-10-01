@@ -17,10 +17,10 @@
 #include <unistd.h>
 
 #include "config.hpp"
-#include "print_color.hpp"
 #include "hidcontroller.hpp"
 #include "uinputcontroller.hpp"
 #include "proinputparser.hpp"
+#include "utils.hpp"
 
 #define PROCON_DRIVER_VERSION "1.0 alpha2"
 
@@ -52,9 +52,9 @@ public:
           throw;
         }
         usleep(1000 * 1000);
-        PrintColor::red();
+        Utils::PrintColor::red();
         printf("%s\nRetrying... (%i/%i)\n\n", e.what(), retries, 10);
-        PrintColor::normal();
+        Utils::PrintColor::normal();
       }
     }
     

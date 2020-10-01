@@ -2,7 +2,7 @@
 using namespace ProInputParser;
 
 #include <cstdio>
-#include "print_color.hpp"
+#include "utils.hpp"
 
 void copy_string_to_char(char **dst, const std::string &src);
 
@@ -325,25 +325,25 @@ size_t ProInputParser::dpad_data_address(DPAD dpad, PacketType packet) {
 void ProInputParser::print_exchange_array(size_t packet_len, HidApi::default_packet arr) {
   bool redcol = false;
   if (arr[0] != 0x30) {
-    PrintColor::yellow();
+    Utils::PrintColor::yellow();
   }
   else {
-    PrintColor::red();
+    Utils::PrintColor::red();
     redcol = true;
   }
   for (size_t i = 0; i < packet_len; ++i) {
     if (arr[i] == 0x00) {
-      PrintColor::blue();
+      Utils::PrintColor::blue();
     } else {
       if (redcol) {
-        PrintColor::red();
+        Utils::PrintColor::red();
       } else {
-        PrintColor::yellow();
+        Utils::PrintColor::yellow();
       }
     }
     printf("%02X ", arr[i]);
   }
-  PrintColor::normal();
+  Utils::PrintColor::normal();
   printf("\n");
   fflush(stdout);
 }
