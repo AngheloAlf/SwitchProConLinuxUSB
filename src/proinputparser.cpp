@@ -1,23 +1,21 @@
 #include "proinputparser.hpp"
 using namespace ProInputParser;
 
-#include <cstdio>
 #include "utils.hpp"
 
-void copy_string_to_char(char **dst, const std::string &src);
 
 ParserError::ParserError(): std::runtime_error("ParserError: Unspecified error") {
   std::string aux = std::string("ParserError: ") + "Unspecified error";
-  copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(&str, aux);
 }
 
 ParserError::ParserError(const std::string& what_arg): std::runtime_error(what_arg) {
   std::string aux = std::string("ParserError: ") + what_arg;
-  copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(&str, aux);
 }
 ParserError::ParserError(const char* what_arg): std::runtime_error(what_arg) {
   std::string aux = std::string("ParserError: ") + what_arg;
-  copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(&str, aux);
 }
 
 ParserError::~ParserError() {

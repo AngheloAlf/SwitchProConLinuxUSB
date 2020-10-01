@@ -3,6 +3,7 @@
 #define UTILS_HPP
 
 #include <cstdio>
+#include <string>
 
 
 namespace Utils {
@@ -31,6 +32,12 @@ namespace Utils {
 
     void white(FILE *f);
     void white();
+  };
+
+  namespace Str{
+    std::string wide_to_string(const wchar_t *wide);
+
+    void copy_string_to_char(char **dst, const std::string &src);
   };
 
 };

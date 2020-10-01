@@ -1,52 +1,47 @@
 #include "hidapi_wrapper.hpp"
+using namespace HidApi;
 
-#include <cstdlib>
-#include <cstring>
-#include <vector>
+#include "utils.hpp"
 
 constexpr size_t maxlen = 1024;
 
-using namespace HidApi;
-
-std::string wide_to_string(const wchar_t *wide);
-void copy_string_to_char(char **dst, const std::string &src);
 
 HidApiError::HidApiError(): std::runtime_error("Unspecified error") {
   std::string aux = std::string("HidApi: ") + "Unspecified error";
-  copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(&str, aux);
 }
 
 HidApiError::HidApiError(const std::string& what_arg): std::runtime_error(what_arg) {
   std::string aux = std::string("HidApi: ") + what_arg;
-  copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(&str, aux);
 }
 HidApiError::HidApiError(const char* what_arg): std::runtime_error(what_arg) {
   std::string aux = std::string("HidApi: ") + what_arg;
-  copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(&str, aux);
 }
 HidApiError::HidApiError(hid_device *ptr): std::runtime_error("") {
   const wchar_t *er = hid_error(ptr);
   if (er == nullptr) {
-    copy_string_to_char(&str, "HidApi: Unknown error");
+    Utils::Str::copy_string_to_char(&str, "HidApi: Unknown error");
     return;
   }
-  copy_string_to_char(&str, std::string("HidApi: ") + wide_to_string(er));
+  Utils::Str::copy_string_to_char(&str, std::string("HidApi: ") + Utils::Str::wide_to_string(er));
 }
 HidApiError::HidApiError(hid_device *ptr, const std::string& what_arg): std::runtime_error(what_arg) {
   const wchar_t *er = hid_error(ptr);
   if (er == nullptr) {
-    copy_string_to_char(&str, std::string("HidApi: ") + what_arg);
+    Utils::Str::copy_string_to_char(&str, std::string("HidApi: ") + what_arg);
     return;
   }
-  copy_string_to_char(&str, std::string("HidApi: ") + what_arg + "\n" + wide_to_string(er));
+  Utils::Str::copy_string_to_char(&str, std::string("HidApi: ") + what_arg + "\n" + Utils::Str::wide_to_string(er));
 }
 HidApiError::HidApiError(hid_device *ptr, const char* what_arg): std::runtime_error(what_arg) {
   const wchar_t *er = hid_error(ptr);
   if (er == nullptr) {
-    copy_string_to_char(&str, std::string("HidApi: ") + what_arg);
+    Utils::Str::copy_string_to_char(&str, std::string("HidApi: ") + what_arg);
     return;
   }
-  copy_string_to_char(&str, std::string("HidApi: ") + what_arg + "\n" + wide_to_string(er));
+  Utils::Str::copy_string_to_char(&str, std::string("HidApi: ") + what_arg + "\n" + Utils::Str::wide_to_string(er));
 }
 
 
@@ -172,7 +167,7 @@ std::string Device::get_manufacturer() const {
   if (hid_get_manufacturer_string(ptr, buf.data(), maxlen) < 0) {
     throw GetterError("GetterError: Couldn't get manufacturer string.");
   }
-  return wide_to_string(buf.data());
+  return Utils::Str::wide_to_string(buf.data());
 }
 
 std::string Device::get_product() const {
@@ -180,7 +175,7 @@ std::string Device::get_product() const {
   if (hid_get_product_string(ptr, buf.data(), maxlen) < 0) {
     throw GetterError("GetterError: Couldn't get product string.");
   }
-  return wide_to_string(buf.data());
+  return Utils::Str::wide_to_string(buf.data());
 }
 
 std::string Device::get_serial_number() const {
@@ -188,7 +183,7 @@ std::string Device::get_serial_number() const {
   if (hid_get_serial_number_string(ptr, buf.data(), maxlen) < 0) {
     throw GetterError("GetterError: Couldn't get serial number string.");
   }
-  return wide_to_string(buf.data());
+  return Utils::Str::wide_to_string(buf.data());
 }
 
 std::string Device::get_indexed(int string_index) const {
@@ -196,7 +191,7 @@ std::string Device::get_indexed(int string_index) const {
   if (hid_get_indexed_string(ptr, string_index, buf.data(), maxlen) < 0) {
     throw GetterError("GetterError: Couldn't get ndexed string.");
   }
-  return wide_to_string(buf.data());
+  return Utils::Str::wide_to_string(buf.data());
 }
 
 
@@ -210,21 +205,4 @@ void HidApi::exit() {
   if (hid_exit() < 0) {
     throw ExitError("ExitError: Hid exit error");
   }
-}
-
-
-std::string wide_to_string(const wchar_t *wide) {
-  size_t len = wcslen(wide);
-  std::vector<char> mbstr(len);
-
-  std::mbstate_t state;
-  std::wcsrtombs(&mbstr[0], &wide, mbstr.size(), &state);
-
-  return std::string(&mbstr[0]);
-}
-
-void copy_string_to_char(char **dst, const std::string &src) {
-  size_t sz = src.size() + 1;
-  *dst = (char *)malloc(sz);
-  strncpy(*dst, src.c_str(), sz);
 }

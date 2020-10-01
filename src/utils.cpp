@@ -1,6 +1,9 @@
 #include "utils.hpp"
 using namespace Utils;
 
+#include <cstring>
+#include <vector>
+
 #define KNRM "\x1B[0m"
 #define KRED "\x1B[31m"
 #define KGRN "\x1B[32m"
@@ -65,5 +68,24 @@ void PrintColor::white(FILE *f) {
 }
 void PrintColor::white() {
   PrintColor::white(stdout);
+}
+
+
+
+
+std::string Str::wide_to_string(const wchar_t *wide) {
+  size_t len = wcslen(wide);
+  std::vector<char> mbstr(len);
+
+  std::mbstate_t state;
+  std::wcsrtombs(&mbstr[0], &wide, mbstr.size(), &state);
+
+  return std::string(&mbstr[0]);
+}
+
+void Str::copy_string_to_char(char **dst, const std::string &src) {
+  size_t sz = src.size() + 1;
+  *dst = (char *)malloc(sz);
+  strncpy(*dst, src.c_str(), sz);
 }
 
