@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Option to only swap A and B buttons (`--swap-ab`) and option to only swap X and Y buttons (`--swap-xy`).
 - Send a 'close connection' message to controller when exiting the program.
   - This way the led turns off at exit.
+- Improve axis precision from 8 bits to 12 bits.
+- Add rudimentary rumble support (basic force feedback).
 - Exceptions.
 - A changelog.
 
