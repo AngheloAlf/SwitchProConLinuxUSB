@@ -129,7 +129,7 @@ public:
     send_subcommand(SubCmd::en_imu, disable);
 
     send_uart(Uart::turn_off_hid);
-    send_uart(Uart::reset);
+    //send_uart(Uart::reset);
   }
 
 private:

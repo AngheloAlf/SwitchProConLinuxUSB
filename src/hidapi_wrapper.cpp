@@ -8,40 +8,40 @@ constexpr size_t maxlen = 1024;
 
 HidApiError::HidApiError(): std::runtime_error("Unspecified error") {
   std::string aux = std::string("HidApi: ") + "Unspecified error";
-  Utils::Str::copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(str, aux);
 }
 
 HidApiError::HidApiError(const std::string& what_arg): std::runtime_error(what_arg) {
   std::string aux = std::string("HidApi: ") + what_arg;
-  Utils::Str::copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(str, aux);
 }
 HidApiError::HidApiError(const char* what_arg): std::runtime_error(what_arg) {
   std::string aux = std::string("HidApi: ") + what_arg;
-  Utils::Str::copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(str, aux);
 }
 HidApiError::HidApiError(hid_device *ptr): std::runtime_error("") {
   const wchar_t *er = hid_error(ptr);
   if (er == nullptr) {
-    Utils::Str::copy_string_to_char(&str, "HidApi: Unknown error");
+    Utils::Str::copy_string_to_char(str, "HidApi: Unknown error");
     return;
   }
-  Utils::Str::copy_string_to_char(&str, std::string("HidApi: ") + Utils::Str::wide_to_string(er));
+  Utils::Str::copy_string_to_char(str, std::string("HidApi: ") + Utils::Str::wide_to_string(er));
 }
 HidApiError::HidApiError(hid_device *ptr, const std::string& what_arg): std::runtime_error(what_arg) {
   const wchar_t *er = hid_error(ptr);
   if (er == nullptr) {
-    Utils::Str::copy_string_to_char(&str, std::string("HidApi: ") + what_arg);
+    Utils::Str::copy_string_to_char(str, std::string("HidApi: ") + what_arg);
     return;
   }
-  Utils::Str::copy_string_to_char(&str, std::string("HidApi: ") + what_arg + "\n" + Utils::Str::wide_to_string(er));
+  Utils::Str::copy_string_to_char(str, std::string("HidApi: ") + what_arg + "\n" + Utils::Str::wide_to_string(er));
 }
 HidApiError::HidApiError(hid_device *ptr, const char* what_arg): std::runtime_error(what_arg) {
   const wchar_t *er = hid_error(ptr);
   if (er == nullptr) {
-    Utils::Str::copy_string_to_char(&str, std::string("HidApi: ") + what_arg);
+    Utils::Str::copy_string_to_char(str, std::string("HidApi: ") + what_arg);
     return;
   }
-  Utils::Str::copy_string_to_char(&str, std::string("HidApi: ") + what_arg + "\n" + Utils::Str::wide_to_string(er));
+  Utils::Str::copy_string_to_char(str, std::string("HidApi: ") + what_arg + "\n" + Utils::Str::wide_to_string(er));
 }
 
 

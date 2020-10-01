@@ -1,8 +1,11 @@
 #include "utils.hpp"
 using namespace Utils;
 
+#include <cerrno>
 #include <cstring>
 #include <vector>
+#include <stdexcept>
+#include <system_error>
 
 #define KNRM "\x1B[0m"
 #define KRED "\x1B[31m"
@@ -78,14 +81,19 @@ std::string Str::wide_to_string(const wchar_t *wide) {
   std::vector<char> mbstr(len);
 
   std::mbstate_t state;
-  std::wcsrtombs(&mbstr[0], &wide, mbstr.size(), &state);
+  if (std::wcsrtombs(&mbstr[0], &wide, mbstr.size(), &state) == static_cast<size_t>(-1)) {
+    throw std::system_error(errno, std::generic_category());
+  }
 
   return std::string(&mbstr[0]);
 }
 
-void Str::copy_string_to_char(char **dst, const std::string &src) {
+void Str::copy_string_to_char(char *&dst, const std::string &src) {
   size_t sz = src.size() + 1;
-  *dst = (char *)malloc(sz);
-  strncpy(*dst, src.c_str(), sz);
+  dst = (char *)malloc(sz);
+  if (dst == nullptr) {
+    throw std::bad_alloc();
+  }
+  strncpy(dst, src.c_str(), sz);
 }
 

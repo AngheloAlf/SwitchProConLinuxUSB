@@ -6,16 +6,16 @@ using namespace ProInputParser;
 
 ParserError::ParserError(): std::runtime_error("ParserError: Unspecified error") {
   std::string aux = std::string("ParserError: ") + "Unspecified error";
-  Utils::Str::copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(str, aux);
 }
 
 ParserError::ParserError(const std::string& what_arg): std::runtime_error(what_arg) {
   std::string aux = std::string("ParserError: ") + what_arg;
-  Utils::Str::copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(str, aux);
 }
 ParserError::ParserError(const char* what_arg): std::runtime_error(what_arg) {
   std::string aux = std::string("ParserError: ") + what_arg;
-  Utils::Str::copy_string_to_char(&str, aux);
+  Utils::Str::copy_string_to_char(str, aux);
 }
 
 ParserError::~ParserError() {
