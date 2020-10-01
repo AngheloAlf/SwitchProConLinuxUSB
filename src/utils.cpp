@@ -1,8 +1,6 @@
 #include "utils.hpp"
 using namespace Utils;
 
-#include <cstdio>
-
 #define KNRM "\x1B[0m"
 #define KRED "\x1B[31m"
 #define KGRN "\x1B[32m"
@@ -13,27 +11,59 @@ using namespace Utils;
 #define KWHT "\x1B[37m"
 
 
+void PrintColor::normal(FILE *f) {
+  fprintf(f, "%s", KNRM);
+}
 void PrintColor::normal() {
-  printf("%s", KNRM);
+  PrintColor::normal(stdout);
+}
+
+void PrintColor::red(FILE *f) {
+  fprintf(f, "%s", KRED);
 }
 void PrintColor::red() {
-  printf("%s", KRED);
+  PrintColor::red(stdout);
+}
+
+void PrintColor::green(FILE *f) {
+  fprintf(f, "%s", KGRN);
 }
 void PrintColor::green() {
-  printf("%s", KGRN);
+  PrintColor::green(stdout);
+}
+
+void PrintColor::yellow(FILE *f) {
+  fprintf(f, "%s", KYEL);
 }
 void PrintColor::yellow() {
-  printf("%s", KYEL);
+  PrintColor::yellow(stdout);
+}
+
+void PrintColor::blue(FILE *f) {
+  fprintf(f, "%s", KBLU);
 }
 void PrintColor::blue() {
-  printf("%s", KBLU);
+  PrintColor::blue(stdout);
+}
+
+void PrintColor::magenta(FILE *f) {
+  fprintf(f, "%s", KMAG);
 }
 void PrintColor::magenta() {
-  printf("%s", KMAG);
+  PrintColor::magenta(stdout);
+}
+
+void PrintColor::cyan(FILE *f) {
+  fprintf(f, "%s", KCYN);
 }
 void PrintColor::cyan() {
-  printf("%s", KCYN);
+  PrintColor::cyan(stdout);
+}
+
+void PrintColor::white(FILE *f) {
+  fprintf(f, "%s", KWHT);
 }
 void PrintColor::white() {
-  printf("%s", KWHT);
+  PrintColor::white(stdout);
 }
+
