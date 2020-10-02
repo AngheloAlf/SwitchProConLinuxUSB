@@ -85,7 +85,6 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
   int64_t last = current_time_micro();
   long double delta_milis = 16;
   while (controller_loop) {
-    #if 0
     if (!controller.is_calibrated()) {
       fflush(stdout);
       Utils::PrintColor::blue();
@@ -114,7 +113,6 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
       printf("Calibrated Controller! Now entering input mode!\n");
       Utils::PrintColor::normal();
     }
-    #endif
 
     controller.poll_input(delta_milis);
 

@@ -505,10 +505,6 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
   }
 
   switch (dat[0x00]) {
-  case 0x00:
-    type = PacketType::zeros;
-    break;
-
   case 0x21: // ?
   case 0x30:
   case 0x31: // ?
