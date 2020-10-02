@@ -77,6 +77,9 @@ void PrintColor::white() {
 
 
 std::string Str::wide_to_string(const wchar_t *wide) {
+  if (wide == nullptr) {
+    throw std::invalid_argument("wide_to_string(): `wide` parameter can't be null.");
+  }
   size_t len = wcslen(wide);
   std::vector<char> mbstr(len+1);
   mbstr.assign(len+1, 0);

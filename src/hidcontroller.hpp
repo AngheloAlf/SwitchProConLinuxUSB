@@ -22,16 +22,16 @@ public:
     }
     hid.set_blocking();
 
-    HidApi::default_packet stus = send_uart(Uart::status, 100);
-    if (!bluetooth && stus[0x00] != 0x81) {
-      send_uart(Uart::reset);
-      throw std::runtime_error("USB connection wasn't closed properly.");
-    }
-    if (stus[0x03] == 0x03) {
-      // mac address
-    }
-
     if (!bluetooth) {
+      HidApi::default_packet stus = send_uart(Uart::status, 100);
+      if (!bluetooth && stus[0x00] != 0x81) {
+        send_uart(Uart::reset);
+        throw std::runtime_error("USB connection wasn't closed properly.");
+      }
+      if (stus[0x03] == 0x03) {
+        // mac address
+      }
+
       send_uart(Uart::handshake);
       send_uart(Uart::inc_baudrate);
       send_uart(Uart::handshake);
@@ -48,6 +48,7 @@ public:
     HidApi::generic_packet<0x04> imu_args {0x03, 0x00, 0x00, 0x01};
     send_subcommand(SubCmd::set_imu, imu_args);
 
+    #if 0
     HidApi::generic_packet<0x01> report_mode {0x30};
     send_subcommand(SubCmd::set_in_report, report_mode);
 
@@ -55,6 +56,7 @@ public:
       HidApi::generic_packet<1> msg_increase_datarate_bt{{0x31}};
       send_subcommand(SubCmd::set_in_report, msg_increase_datarate_bt);
     }
+    #endif
     hid.set_non_blocking();
     usleep(100 * 1000);
 
@@ -140,8 +142,15 @@ public:
   }
 
   void close() {
+    if (closed) {
+      return;
+    }
+    closed = true;
+    #if 0
     hid.set_blocking();
     send_subcommand(SubCmd::en_imu, disable);
+    // send_subcommand(SubCmd::en_rumble, disable);
+    #endif
 
     if (!bluetooth) {
       send_uart(Uart::turn_off_hid);
@@ -261,6 +270,7 @@ private:
   bool bluetooth = false;
 
   unsigned short n_controller;
+  bool closed = false;
 
   uint8_t rumble_counter{0};
   const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
