@@ -46,7 +46,10 @@ HidApiError::HidApiError(hid_device *ptr, const char* what_arg): std::runtime_er
 
 
 HidApiError::~HidApiError() {
-  free(str);
+  if (str != nullptr) {
+    free(str);
+    str = nullptr;
+  }
 }
 
 const char *HidApiError::what() const noexcept {
@@ -92,6 +95,7 @@ Device::Device(unsigned short vendor_id, unsigned short product_id, const wchar_
 Device::~Device(){
   if (ptr != nullptr) {
     hid_close(ptr);
+    ptr = nullptr;
   }
 }
 

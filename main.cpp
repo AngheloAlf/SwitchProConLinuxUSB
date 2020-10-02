@@ -95,6 +95,7 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
             "Then leave both control sticks at their center and press the " 
             "square 'share' button!\n");
       Utils::PrintColor::normal();
+      fflush(stdout);
       while (!controller.is_calibrated()) {
         if (!controller_loop) {
           return;

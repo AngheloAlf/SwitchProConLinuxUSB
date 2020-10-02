@@ -26,12 +26,12 @@ ParserError::~ParserError() {
 }
 
 
-PacketLengthError::PacketLengthError(): PacketTypeError(), std::length_error("ParserError: Unspecified error") {
+PacketLengthError::PacketLengthError(): PacketTypeError() {
 }
 
-PacketLengthError::PacketLengthError(const std::string& what_arg): PacketTypeError(what_arg), std::length_error(what_arg) {
+PacketLengthError::PacketLengthError(const std::string& what_arg): PacketTypeError(what_arg) {
 }
-PacketLengthError::PacketLengthError(const char* what_arg): PacketTypeError(what_arg), std::length_error(what_arg) {
+PacketLengthError::PacketLengthError(const char* what_arg): PacketTypeError(what_arg) {
 }
 
 
@@ -371,6 +371,10 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
     type = PacketType::standard_input_report;
     break;
 
+  case 0x3F:
+    type = PacketType::normal_ctrl_report;
+    break;
+
   case 0x81:
     type = PacketType::packet_req;
     break;
@@ -384,7 +388,7 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
     type = PacketType::unknown;
     printf("unknown packet\n");
     print();
-    throw PacketTypeError("PacketTypeError: Unrecognized packet.");
+    throw PacketTypeError("PacketTypeError: Unrecognized packet (" + Utils::Str::to_hexstr(dat[0x00]) + ")." );
   }
 }
 

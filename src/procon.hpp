@@ -184,9 +184,9 @@ public:
   }
 
   void calibrate() {
-    hid_ctrl->blink();
-
     try {
+      hid_ctrl->blink();
+
       ProInputParser::Parser parser = hid_ctrl->request_input();
       if (parser.detect_useless_data()) {
         return;

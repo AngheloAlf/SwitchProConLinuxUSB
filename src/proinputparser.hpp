@@ -28,7 +28,7 @@ namespace ProInputParser {
     using ParserError::ParserError;
   };
 
-  class PacketLengthError: public PacketTypeError, std::length_error {
+  class PacketLengthError: public PacketTypeError {
   public:
     PacketLengthError();
     PacketLengthError(const std::string& what_arg);
@@ -68,6 +68,7 @@ namespace ProInputParser {
     unknown = -1,           /// For unrecognized packets.
     zeros   =  0,           /// A packet with all data zero'ed.
     standard_input_report,  /// Standard input report format. [0] == x21 || x30 || x31
+    normal_ctrl_report,     /// [0] == x3F
     packet_req,             /// ?
     packet_none,
   };
