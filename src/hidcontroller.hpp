@@ -15,23 +15,30 @@ class HidController{
 public:
   HidController(const HidApi::Enumerate &device_info, unsigned short n_controll)
                 : hid(device_info), n_controller(n_controll) {
+    printf("serial number: %s\n", hid.get_serial_number().c_str());
+    if (hid.get_serial_number() != "000000000001") {
+      printf("Bluetooth!\n");
+      bluetooth = true;
+    }
     hid.set_blocking();
 
-    HidApi::default_packet stus = send_uart(Uart::status, 100);
-    if (stus[0x00] != 0x81) {
-      send_uart(Uart::reset);
-      throw std::runtime_error("USB connection wasn't closed properly.");
-    }
-    if (stus[0x03] == 0x03) {
-      // mac address
-    }
+    if (!bluetooth) {
+      HidApi::default_packet stus = send_uart(Uart::status, 100);
+      if (!bluetooth && stus[0x00] != 0x81) {
+        send_uart(Uart::reset);
+        throw std::runtime_error("USB connection wasn't closed properly.");
+      }
+      if (stus[0x03] == 0x03) {
+        // mac address
+      }
 
-    send_uart(Uart::handshake);
-    send_uart(Uart::inc_baudrate);
-    send_uart(Uart::handshake);
-    // the next part will sometimes fail, then need to reopen device via hidapi
-    send_uart(Uart::hid_only);
+      send_uart(Uart::handshake);
+      send_uart(Uart::inc_baudrate);
+      send_uart(Uart::handshake);
 
+      // the next part will sometimes fail, then need to reopen device via hidapi
+      send_uart(Uart::hid_only);
+    }
 
     led();
 
@@ -44,6 +51,12 @@ public:
     HidApi::generic_packet<0x01> report_mode {0x30};
     send_subcommand(SubCmd::set_in_report, report_mode);
 
+    #if 0
+    if (bluetooth) {
+      HidApi::generic_packet<1> msg_increase_datarate_bt{{0x31}};
+      send_subcommand(SubCmd::set_in_report, msg_increase_datarate_bt);
+    }
+    #endif
     hid.set_non_blocking();
     usleep(100 * 1000);
 
@@ -67,7 +80,11 @@ public:
   }
 
   ProInputParser::Parser request_input() {
+    /*if (bluetooth) {
+      return send_subcommand(SubCmd::zero, empty);
+    }*/
     //return send_command(Cmd::get_input, empty);
+    
     HidApi::default_packet input;
     input.fill(0);
     size_t len = hid.read(input, 5);
@@ -125,11 +142,18 @@ public:
   }
 
   void close() {
+    if (closed) {
+      return;
+    }
+    closed = true;
     hid.set_blocking();
     send_subcommand(SubCmd::en_imu, disable);
+    // send_subcommand(SubCmd::en_rumble, disable);
 
-    send_uart(Uart::turn_off_hid);
-    //send_uart(Uart::reset);
+    if (!bluetooth) {
+      send_uart(Uart::turn_off_hid);
+      send_uart(Uart::reset);
+    }
   }
 
 private:
@@ -158,6 +182,7 @@ private:
   };
 
   enum SubCmd {
+    zero          = 0x00, // ??
     //req_dev_info  = 0x02,
     set_in_report = 0x03, /// Set input report mode
     set_leds      = 0x30,
@@ -176,7 +201,7 @@ private:
 
   template <size_t input_len, size_t output_len>
   size_t 
-  send_uart(HidApi::generic_packet<input_len> input, const HidApi::generic_packet<output_len> &data){
+  send_uart(HidApi::generic_packet<input_len> &input, const HidApi::generic_packet<output_len> &data){
     HidApi::generic_packet<output_len + 0x08> packet;
     packet.fill(0);
     packet[0x00] = Protocols::nintendo;
@@ -198,9 +223,16 @@ private:
     if (length > 0) {
       memcpy(buffer.data() + 0x01, data.data(), length);
     }
+
     HidApi::default_packet input;
     input.fill(0);
-    size_t len = send_uart(input, buffer);
+    size_t len;
+
+    if (bluetooth) {
+      len = hid.exchange(input, buffer);
+      return ProInputParser::Parser(len, input);
+    }
+    len = send_uart(input, buffer);
     return ProInputParser::Parser(len, input);
   }
 
@@ -221,9 +253,6 @@ private:
   bool try_read_bad_data() {
     ProInputParser::Parser dat = request_input();
 
-    if (dat.detect_useless_data()) {
-      return false;
-    }
     if (dat.detect_bad_data()) {
       // print_exchange_array(dat);
       return true;
@@ -233,8 +262,10 @@ private:
   }
 
   HidApi::Device hid;
+  bool bluetooth = false;
 
   unsigned short n_controller;
+  bool closed = false;
 
   uint8_t rumble_counter{0};
   const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};

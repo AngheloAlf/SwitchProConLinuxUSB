@@ -95,6 +95,7 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
             "Then leave both control sticks at their center and press the " 
             "square 'share' button!\n");
       Utils::PrintColor::normal();
+      fflush(stdout);
       while (!controller.is_calibrated()) {
         if (!controller_loop) {
           return;
@@ -195,7 +196,16 @@ int main(int argc, char *argv[]) {
     Utils::PrintColor::yellow();
     printf("Exiting...\n");
     Utils::PrintColor::normal();
-  } catch (const std::exception &e) {
+  } 
+  catch (const HidApi::OpenError &e) {
+    Utils::PrintColor::red();
+    printf("%s\n", e.what());
+    Utils::PrintColor::yellow();
+    printf("Unable to create a connection with controller.\n");
+    printf("You could try running with sudo.\n");
+    Utils::PrintColor::normal();
+  }
+  catch (const std::exception &e) {
     Utils::PrintColor::red();
     printf("%s\n", e.what());
     Utils::PrintColor::normal();

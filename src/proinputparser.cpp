@@ -26,12 +26,12 @@ ParserError::~ParserError() {
 }
 
 
-PacketLengthError::PacketLengthError(): PacketTypeError(), std::length_error("ParserError: Unspecified error") {
+PacketLengthError::PacketLengthError(): PacketTypeError() {
 }
 
-PacketLengthError::PacketLengthError(const std::string& what_arg): PacketTypeError(what_arg), std::length_error(what_arg) {
+PacketLengthError::PacketLengthError(const std::string& what_arg): PacketTypeError(what_arg) {
 }
-PacketLengthError::PacketLengthError(const char* what_arg): PacketTypeError(what_arg), std::length_error(what_arg) {
+PacketLengthError::PacketLengthError(const char* what_arg): PacketTypeError(what_arg) {
 }
 
 
@@ -74,7 +74,50 @@ const char *ProInputParser::button_name(BUTTONS button) {
   }
 }
 
-uint8_t ProInputParser::buttons_bit_position(BUTTONS button) {
+uint8_t ProInputParser::buttons_bit_position(BUTTONS button, PacketType packet) {
+  /// Joycons layout
+  /*if (packet == PacketType::normal_ctrl_report) {
+    switch (button) {
+    case home:
+      return 0x04;
+    case share:
+      return 0x05;
+    case L1:
+    case R1:
+      return 0x06;
+    case L2:
+    case R2:
+      return 0x07;
+    }
+  }*/
+  if (packet == PacketType::normal_ctrl_report) {
+    switch (button) {
+    case B:
+    case minus:
+      return 0x00;
+    case A:
+    case plus:
+      return 0x01;
+    case Y:
+    case L3:
+      return 0x02;
+    case X:
+    case R3:
+      return 0x03;
+    case home:
+    case L1:
+      return 0x04;
+    case share:
+    case R1:
+      return 0x05;
+    case L2:
+      return 0x06;
+    case R2:
+      return 0x07;
+    default:
+      throw ButtonError("ButtonError: Tried to find bytepos of unknown button.");
+    }
+  }
   switch (button) {
   case Y:
   case minus:
@@ -103,7 +146,50 @@ uint8_t ProInputParser::buttons_bit_position(BUTTONS button) {
   }
 }
 
-uint8_t ProInputParser::buttons_byte_button_value(BUTTONS button) {
+uint8_t ProInputParser::buttons_byte_button_value(BUTTONS button, PacketType packet) {
+  /// Joycons layout
+  /*if (packet == PacketType::normal_ctrl_report) {
+    switch (button) {
+    case home:
+      return 0x10;
+    case share:
+      return 0x20;
+    case L1:
+    case R1:
+      return 0x40;
+    case L2:
+    case R2:
+      return 0x80;
+    }
+  }*/
+  if (packet == PacketType::normal_ctrl_report) {
+    switch (button) {
+    case B:
+    case minus:
+      return 0x01;
+    case A:
+    case plus:
+      return 0x02;
+    case Y:
+    case L3:
+      return 0x04;
+    case X:
+    case R3:
+      return 0x08;
+    case home:
+    case L1:
+      return 0x10;
+    case share:
+    case R1:
+      return 0x20;
+    case L2:
+      return 0x40;
+    case R2:
+      return 0x80;
+    default:
+      throw ButtonError("ButtonError: Tried to find bytepos of unknown button.");
+    }
+  }
   switch (button) {
   case Y:
   case minus:
@@ -133,6 +219,49 @@ uint8_t ProInputParser::buttons_byte_button_value(BUTTONS button) {
 }
 
 size_t  ProInputParser::buttons_data_address(BUTTONS button, PacketType packet) {
+  /// Joycons layout
+  /*if (packet == PacketType::normal_ctrl_report) {
+    switch (button) {
+    case BUTTONS::A:
+    case BUTTONS::B:
+    case BUTTONS::X:
+    case BUTTONS::Y:
+      return 0x01;
+    case BUTTONS::plus:
+    case BUTTONS::minus:
+    case BUTTONS::home:
+    case BUTTONS::share:
+    case BUTTONS::L1:
+    case BUTTONS::L2:
+    case BUTTONS::L3:
+    case BUTTONS::R1:
+    case BUTTONS::R2:
+    case BUTTONS::R3:
+      return 0x02;
+    }
+  }*/
+  if (packet == PacketType::normal_ctrl_report) {
+    switch (button) {
+    case BUTTONS::A:
+    case BUTTONS::B:
+    case BUTTONS::X:
+    case BUTTONS::Y:
+    case BUTTONS::L1:
+    case BUTTONS::L2:
+    case BUTTONS::R1:
+    case BUTTONS::R2:
+      return 0x01;
+    case BUTTONS::plus:
+    case BUTTONS::minus:
+    case BUTTONS::home:
+    case BUTTONS::share:
+    case BUTTONS::L3:
+    case BUTTONS::R3:
+      return 0x02;
+    default:
+      throw ButtonError("ButtonError: Tried to find address of unknown button.");
+    }
+  }
   std::array<size_t, 3> address;
   switch (packet) {
   case PacketType::standard_input_report:
@@ -196,6 +325,12 @@ size_t ProInputParser::axis_data_address_high(AXIS axis, PacketType packet) {
     address[0x02] = 0x0A;
     address[0x03] = 0x0B;
     break;
+  case PacketType::normal_ctrl_report:
+    address[0x00] = 0x05;
+    address[0x01] = 0x07;
+    address[0x02] = 0x09;
+    address[0x03] = 0x0B;
+    break;
   case PacketType::packet_req:
     address[0x00] = 0x11;
     address[0x01] = 0x12;
@@ -207,13 +342,13 @@ size_t ProInputParser::axis_data_address_high(AXIS axis, PacketType packet) {
   }
   switch (axis) {
   case AXIS::axis_lx:
-    return address[0x00];
+    return address[0];
   case AXIS::axis_ly:
-    return address[0x01];
+    return address[1];
   case AXIS::axis_rx:
-    return address[0x02];
+    return address[2];
   case AXIS::axis_ry:
-    return address[0x03];
+    return address[3];
   default:
     throw AxisError("AxisError: Tried to find address of unknown axis.");
   }
@@ -227,6 +362,12 @@ size_t ProInputParser::axis_data_address_low(AXIS axis, PacketType packet) {
     address[0x02] = 0x09;
     address[0x03] = 0x0A;
     break;
+  case PacketType::normal_ctrl_report:
+    address[0x00] = 0x04;
+    address[0x01] = 0x06;
+    address[0x02] = 0x08;
+    address[0x03] = 0x0A;
+    break;
   case PacketType::packet_req:
     address[0x00] = 0x10;
     address[0x01] = 0x11;
@@ -238,13 +379,13 @@ size_t ProInputParser::axis_data_address_low(AXIS axis, PacketType packet) {
   }
   switch (axis) {
   case AXIS::axis_lx:
-    return address[0x00];
+    return address[0];
   case AXIS::axis_ly:
-    return address[0x01];
+    return address[1];
   case AXIS::axis_rx:
-    return address[0x02];
+    return address[2];
   case AXIS::axis_ry:
-    return address[0x03];
+    return address[3];
   default:
     throw AxisError("AxisError: Tried to find address of unknown axis.");
   }
@@ -266,7 +407,10 @@ const char *ProInputParser::dpad_name(DPAD dpad) {
   }
 }
 
-uint8_t ProInputParser::dpad_bit_position(DPAD dpad) {
+uint8_t ProInputParser::dpad_bit_position(DPAD dpad, PacketType packet) {
+  if (packet != PacketType::standard_input_report && packet != PacketType::packet_req) {
+    throw DpadError("AxisError: This packet type (" + std::to_string(packet) + ") does not map dpad to specific bits.");
+  }
   switch (dpad) {
   case d_down:
     return 0x00;
@@ -281,7 +425,10 @@ uint8_t ProInputParser::dpad_bit_position(DPAD dpad) {
   }
 }
 
-uint8_t ProInputParser::dpad_byte_value(DPAD dpad) {
+uint8_t ProInputParser::dpad_byte_value(DPAD dpad, PacketType packet) {
+  if (packet != PacketType::standard_input_report && packet != PacketType::packet_req) {
+    throw DpadError("AxisError: This packet type (" + std::to_string(packet) + ") does not map dpad to specific bits.");
+  }
   switch (dpad) {
   case d_down:
     return 0x01;
@@ -301,6 +448,9 @@ size_t ProInputParser::dpad_data_address(DPAD dpad, PacketType packet) {
   switch (packet) {
   case PacketType::standard_input_report:
     address[0x00] = 0x05;
+    break;
+  case PacketType::normal_ctrl_report:
+    address[0x00] = 0x03;
     break;
   case PacketType::packet_req:
     address[0x00] = 0x0f;
@@ -355,10 +505,6 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
   }
 
   switch (dat[0x00]) {
-  case 0x00:
-    type = PacketType::zeros;
-    break;
-
   case 0x21: // ?
   case 0x30:
   case 0x31: // ?
@@ -369,6 +515,11 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
       break;
     }
     type = PacketType::standard_input_report;
+    break;
+
+  case 0x3F:
+    type = PacketType::normal_ctrl_report;
+    // print();
     break;
 
   case 0x81:
@@ -384,7 +535,7 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
     type = PacketType::unknown;
     printf("unknown packet\n");
     print();
-    throw PacketTypeError("PacketTypeError: Unrecognized packet.");
+    throw PacketTypeError("PacketTypeError: Unrecognized packet (" + Utils::Str::to_hexstr(dat[0x00]) + ")." );
   }
 }
 
@@ -397,21 +548,74 @@ uint16_t Parser::get_axis_status(AXIS axis) const {
   size_t high, low;
   high = axis_data_address_high(axis);
   low  = axis_data_address_low(axis);
+  uint16_t value = (dat[high] << 8) | dat[low];
+
+  if (type == PacketType::normal_ctrl_report) {
+    /// This packet reports the y-axis inverted.
+    return value >> 4;
+  }
   switch (axis) {
   case axis_lx:
   case axis_rx:
-    return ((dat[high] & 0x0F) << 8) |   dat[low];
+    return value & 0x0FFF;
   case axis_ly:
   case axis_ry:
-    return  (dat[high] << 4)         | ((dat[low] & 0xF0) >> 4);
+    return value >> 4;
   default:
-    return 0;
+    return 0x07FF;
   }
 }
 
 bool Parser::is_dpad_pressed(DPAD dpad) const {
-  uint8_t pos = dpad_data_address(dpad);
-  return dat[pos] & dpad_byte_value(dpad);
+  size_t pos = dpad_data_address(dpad);
+  uint8_t byte = dat[pos];
+  if (type == PacketType::normal_ctrl_report) {
+    switch (dpad) {
+    case DPAD::d_down:
+      switch (byte) {
+      case 5:
+      case 4:
+      case 3:
+        return true;
+      default:
+        return false;
+      }
+
+    case DPAD::d_up:
+      switch (byte) {
+      case 7:
+      case 0:
+      case 1:
+        return true;
+      default:
+        return false;
+      }
+
+    case DPAD::d_right:
+      switch (byte) {
+      case 1:
+      case 2:
+      case 3:
+        return true;
+      default:
+        return false;
+      }
+
+    case DPAD::d_left:
+      switch (byte) {
+      case 7:
+      case 6:
+      case 5:
+        return true;
+      default:
+        return false;
+      }
+
+    default:
+      throw DpadError("DpadError: Tried to get state of unknown dpad button.");
+    }
+  }
+  return byte & dpad_byte_value(dpad);
 }
 
 
@@ -421,25 +625,29 @@ bool Parser::detect_bad_data() const {
   return dat[1] == 0x01 && dat[0] == 0x81;
 }
 
-/* If this returns true, there is no controller information in this package,
-  * we can skip it*/
-bool Parser::detect_useless_data() const {
-  /*if (dat == 0x30)
-    n_bad_data_thirty++;
-  if (dat == 0x00)
-    n_bad_data_zero++;*/
-  return (/*dat[0] == 0x30 ||*/ dat[0] == 0x00);
-}
-
 bool Parser::has_button_and_axis_data() const {
-  return type == PacketType::standard_input_report || type == PacketType::packet_req;
+  switch (type) {
+  case PacketType::standard_input_report:
+  case PacketType::normal_ctrl_report:
+  case PacketType::packet_req:
+    return true;
+
+  default:
+    return false;
+  }
 }
 
 void Parser::print() const {
   print_exchange_array(len, dat);
 }
 
-size_t Parser::buttons_data_address(BUTTONS button) const {
+uint8_t Parser::buttons_bit_position(BUTTONS button) const {
+  return ProInputParser::buttons_bit_position(button, type);
+}
+uint8_t Parser::buttons_byte_button_value(BUTTONS button) const {
+  return ProInputParser::buttons_byte_button_value(button, type);
+}
+size_t  Parser::buttons_data_address(BUTTONS button) const {
   return ProInputParser::buttons_data_address(button, type);
 }
 
@@ -451,6 +659,12 @@ size_t Parser::axis_data_address_low(AXIS axis) const {
 }
 
 
-size_t Parser::dpad_data_address(DPAD dpad) const {
+uint8_t Parser::dpad_bit_position(DPAD dpad) const {
+  return ProInputParser::dpad_bit_position(dpad, type);
+}
+uint8_t Parser::dpad_byte_value(DPAD dpad) const {
+  return ProInputParser::dpad_byte_value(dpad, type);
+}
+size_t  Parser::dpad_data_address(DPAD dpad) const {
   return ProInputParser::dpad_data_address(dpad, type);
 }

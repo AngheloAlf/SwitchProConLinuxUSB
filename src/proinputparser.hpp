@@ -28,7 +28,7 @@ namespace ProInputParser {
     using ParserError::ParserError;
   };
 
-  class PacketLengthError: public PacketTypeError, std::length_error {
+  class PacketLengthError: public PacketTypeError {
   public:
     PacketLengthError();
     PacketLengthError(const std::string& what_arg);
@@ -66,8 +66,8 @@ namespace ProInputParser {
 
   enum PacketType {
     unknown = -1,           /// For unrecognized packets.
-    zeros   =  0,           /// A packet with all data zero'ed.
     standard_input_report,  /// Standard input report format. [0] == x21 || x30 || x31
+    normal_ctrl_report,     /// [0] == x3F
     packet_req,             /// ?
     packet_none,
   };
@@ -99,8 +99,8 @@ namespace ProInputParser {
 
   const char *button_name(BUTTONS button);
 
-  uint8_t buttons_bit_position(BUTTONS button);
-  uint8_t buttons_byte_button_value(BUTTONS button);
+  uint8_t buttons_bit_position(BUTTONS button, PacketType packet);
+  uint8_t buttons_byte_button_value(BUTTONS button, PacketType packet);
   size_t  buttons_data_address(BUTTONS button, PacketType packet);
 
 
@@ -136,8 +136,8 @@ namespace ProInputParser {
 
   const char *dpad_name(DPAD dpad);
 
-  uint8_t dpad_bit_position(DPAD dpad);
-  uint8_t dpad_byte_value(DPAD dpad);
+  uint8_t dpad_bit_position(DPAD dpads, PacketType packet);
+  uint8_t dpad_byte_value(DPAD dpads, PacketType packet);
   size_t dpad_data_address(DPAD dpad, PacketType packet);
 
   void print_exchange_array(size_t packet_len, HidApi::default_packet arr);
@@ -158,20 +158,20 @@ namespace ProInputParser {
     Nothing to do here, need to reopen device :(*/
     bool detect_bad_data() const;
 
-    /* If this returns true, there is no controller information in this package,
-    * we can skip it*/
-    bool detect_useless_data() const;
-
     bool has_button_and_axis_data() const;
 
     void print() const;
 
-    size_t buttons_data_address(BUTTONS button) const;
+    uint8_t buttons_bit_position(BUTTONS button) const;
+    uint8_t buttons_byte_button_value(BUTTONS button) const;
+    size_t  buttons_data_address(BUTTONS button) const;
 
     size_t axis_data_address_high(AXIS axis) const;
     size_t axis_data_address_low(AXIS axis) const;
 
-    size_t dpad_data_address(DPAD dpad) const;
+    uint8_t dpad_bit_position(DPAD dpads) const;
+    uint8_t dpad_byte_value(DPAD dpads) const;
+    size_t  dpad_data_address(DPAD dpad) const;
   private:
     size_t len = 0;
     HidApi::default_packet dat;

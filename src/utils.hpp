@@ -4,6 +4,8 @@
 
 #include <cstdio>
 #include <string>
+#include <sstream>
+#include <iomanip>
 
 
 namespace Utils {
@@ -38,6 +40,16 @@ namespace Utils {
     std::string wide_to_string(const wchar_t *wide);
 
     void copy_string_to_char(char *&dst, const std::string &src);
+
+    /// https://stackoverflow.com/a/5100745/6292472
+    template<typename T>
+    std::string to_hexstr(T i) {
+      std::stringstream stream;
+      stream << "0x" 
+             << std::setfill('0') << std::setw(sizeof(T)*2) 
+             << std::hex << i;
+      return stream.str();
+    }
   };
 
 };
