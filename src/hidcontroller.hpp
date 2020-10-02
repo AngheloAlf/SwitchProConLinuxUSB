@@ -48,10 +48,10 @@ public:
     HidApi::generic_packet<0x04> imu_args {0x03, 0x00, 0x00, 0x01};
     send_subcommand(SubCmd::set_imu, imu_args);
 
-    #if 0
     HidApi::generic_packet<0x01> report_mode {0x30};
     send_subcommand(SubCmd::set_in_report, report_mode);
 
+    #if 0
     if (bluetooth) {
       HidApi::generic_packet<1> msg_increase_datarate_bt{{0x31}};
       send_subcommand(SubCmd::set_in_report, msg_increase_datarate_bt);
@@ -146,15 +146,13 @@ public:
       return;
     }
     closed = true;
-    #if 0
     hid.set_blocking();
     send_subcommand(SubCmd::en_imu, disable);
     // send_subcommand(SubCmd::en_rumble, disable);
-    #endif
 
     if (!bluetooth) {
       send_uart(Uart::turn_off_hid);
-      //send_uart(Uart::reset);
+      send_uart(Uart::reset);
     }
   }
 
@@ -255,9 +253,6 @@ private:
   bool try_read_bad_data() {
     ProInputParser::Parser dat = request_input();
 
-    if (dat.detect_useless_data()) {
-      return false;
-    }
     if (dat.detect_bad_data()) {
       // print_exchange_array(dat);
       return true;

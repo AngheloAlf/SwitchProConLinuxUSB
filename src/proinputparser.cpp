@@ -523,9 +523,7 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
 
   case 0x3F:
     type = PacketType::normal_ctrl_report;
-    //#if 0
-    print();
-    //#endif
+    // print();
     break;
 
   case 0x81:
@@ -554,17 +552,19 @@ uint16_t Parser::get_axis_status(AXIS axis) const {
   size_t high, low;
   high = axis_data_address_high(axis);
   low  = axis_data_address_low(axis);
+  uint16_t value = (dat[high] << 8) | dat[low];
+
   if (type == PacketType::normal_ctrl_report) {
     /// This packet reports the y-axis inverted.
-    return  (dat[high] << 4) | (dat[low] >> 4);
+    return value >> 4;
   }
   switch (axis) {
   case axis_lx:
   case axis_rx:
-    return ((dat[high] << 8) |  dat[low]) & 0x0FFF;
+    return value & 0x0FFF;
   case axis_ly:
   case axis_ry:
-    return  (dat[high] << 4) | (dat[low] >> 4);
+    return value >> 4;
   default:
     return 0x07FF;
   }
@@ -627,16 +627,6 @@ bool Parser::is_dpad_pressed(DPAD dpad) const {
 Nothing to do here, need to reopen device :(*/
 bool Parser::detect_bad_data() const {
   return dat[1] == 0x01 && dat[0] == 0x81;
-}
-
-/* If this returns true, there is no controller information in this package,
-  * we can skip it*/
-bool Parser::detect_useless_data() const {
-  /*if (dat == 0x30)
-    n_bad_data_thirty++;
-  if (dat == 0x00)
-    n_bad_data_zero++;*/
-  return (/*dat[0] == 0x30 ||*/ dat[0] == 0x00);
 }
 
 bool Parser::has_button_and_axis_data() const {

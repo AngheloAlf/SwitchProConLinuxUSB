@@ -127,9 +127,6 @@ public:
     try {
       ProInputParser::Parser parser = hid_ctrl->request_input();
       // parser.print();
-      if (parser.detect_useless_data()) {
-        return;
-      }
       if (!parser.has_button_and_axis_data()) {
         return;
       }
@@ -188,10 +185,6 @@ public:
       hid_ctrl->blink();
 
       ProInputParser::Parser parser = hid_ctrl->request_input();
-      if (parser.detect_useless_data()) {
-        return;
-      }
-
       if (!parser.has_button_and_axis_data()) {
         return;
       }

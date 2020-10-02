@@ -159,10 +159,6 @@ namespace ProInputParser {
     Nothing to do here, need to reopen device :(*/
     bool detect_bad_data() const;
 
-    /* If this returns true, there is no controller information in this package,
-    * we can skip it*/
-    bool detect_useless_data() const;
-
     bool has_button_and_axis_data() const;
 
     void print() const;
