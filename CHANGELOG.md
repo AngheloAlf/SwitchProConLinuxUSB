@@ -16,8 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Option to only swap A and B buttons (`--swap-ab`) and option to only swap X and Y buttons (`--swap-xy`).
 - Send a 'close connection' message to controller when exiting the program.
   - This way the led turns off at exit.
+  - This message is sended only in USB mode.
 - Improve axis precision from 8 bits to 12 bits.
-- Add rudimentary rumble support (basic force feedback).
+- Bluetooth compatibility.
 - Exceptions.
 - A changelog.
 
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--swap_buttons` to `--swap-buttons`.
 - Improved the comunication protocol to the pro controller.
 - Lowered avareage response time from 15ms to 5ms.
+- Hidapi backend, from libusb to hidraw.
 - Error handling.
 
 ### Fixed

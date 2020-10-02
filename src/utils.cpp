@@ -77,13 +77,19 @@ void PrintColor::white() {
 
 
 std::string Str::wide_to_string(const wchar_t *wide) {
+  if (wide == nullptr) {
+    throw std::invalid_argument("wide_to_string(): `wide` parameter can't be null.");
+  }
   size_t len = wcslen(wide);
-  std::vector<char> mbstr(len);
+  std::vector<char> mbstr(len+1);
+  mbstr.assign(len+1, 0);
 
-  std::mbstate_t state;
-  if (std::wcsrtombs(&mbstr[0], &wide, mbstr.size(), &state) == static_cast<size_t>(-1)) {
+  std::mbstate_t state = std::mbstate_t();
+  size_t bytes_written = std::wcsrtombs(&mbstr[0], &wide, len, &state);
+  if (bytes_written == static_cast<std::size_t>(-1)) {
     throw std::system_error(errno, std::generic_category());
   }
+  mbstr[len] = 0x00;
 
   return std::string(&mbstr[0]);
 }

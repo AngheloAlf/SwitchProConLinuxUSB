@@ -85,6 +85,7 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
   int64_t last = current_time_micro();
   long double delta_milis = 16;
   while (controller_loop) {
+    #if 0
     if (!controller.is_calibrated()) {
       fflush(stdout);
       Utils::PrintColor::blue();
@@ -95,6 +96,7 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
             "Then leave both control sticks at their center and press the " 
             "square 'share' button!\n");
       Utils::PrintColor::normal();
+      fflush(stdout);
       while (!controller.is_calibrated()) {
         if (!controller_loop) {
           return;
@@ -112,6 +114,7 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
       printf("Calibrated Controller! Now entering input mode!\n");
       Utils::PrintColor::normal();
     }
+    #endif
 
     controller.poll_input(delta_milis);
 
@@ -195,7 +198,16 @@ int main(int argc, char *argv[]) {
     Utils::PrintColor::yellow();
     printf("Exiting...\n");
     Utils::PrintColor::normal();
-  } catch (const std::exception &e) {
+  } 
+  catch (const HidApi::OpenError &e) {
+    Utils::PrintColor::red();
+    printf("%s\n", e.what());
+    Utils::PrintColor::yellow();
+    printf("Unable to create a connection with controller.\n");
+    printf("You could try running with sudo.\n");
+    Utils::PrintColor::normal();
+  }
+  catch (const std::exception &e) {
     Utils::PrintColor::red();
     printf("%s\n", e.what());
     Utils::PrintColor::normal();
