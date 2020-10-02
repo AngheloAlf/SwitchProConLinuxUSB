@@ -325,6 +325,12 @@ size_t ProInputParser::axis_data_address_high(AXIS axis, PacketType packet) {
     address[0x02] = 0x0A;
     address[0x03] = 0x0B;
     break;
+  case PacketType::normal_ctrl_report:
+    address[0x00] = 0x05;
+    address[0x01] = 0x07;
+    address[0x02] = 0x09;
+    address[0x03] = 0x0B;
+    break;
   case PacketType::packet_req:
     address[0x00] = 0x11;
     address[0x01] = 0x12;
@@ -336,13 +342,13 @@ size_t ProInputParser::axis_data_address_high(AXIS axis, PacketType packet) {
   }
   switch (axis) {
   case AXIS::axis_lx:
-    return address[0x00];
+    return address[0];
   case AXIS::axis_ly:
-    return address[0x01];
+    return address[1];
   case AXIS::axis_rx:
-    return address[0x02];
+    return address[2];
   case AXIS::axis_ry:
-    return address[0x03];
+    return address[3];
   default:
     throw AxisError("AxisError: Tried to find address of unknown axis.");
   }
@@ -356,6 +362,12 @@ size_t ProInputParser::axis_data_address_low(AXIS axis, PacketType packet) {
     address[0x02] = 0x09;
     address[0x03] = 0x0A;
     break;
+  case PacketType::normal_ctrl_report:
+    address[0x00] = 0x04;
+    address[0x01] = 0x06;
+    address[0x02] = 0x08;
+    address[0x03] = 0x0A;
+    break;
   case PacketType::packet_req:
     address[0x00] = 0x10;
     address[0x01] = 0x11;
@@ -367,13 +379,13 @@ size_t ProInputParser::axis_data_address_low(AXIS axis, PacketType packet) {
   }
   switch (axis) {
   case AXIS::axis_lx:
-    return address[0x00];
+    return address[0];
   case AXIS::axis_ly:
-    return address[0x01];
+    return address[1];
   case AXIS::axis_rx:
-    return address[0x02];
+    return address[2];
   case AXIS::axis_ry:
-    return address[0x03];
+    return address[3];
   default:
     throw AxisError("AxisError: Tried to find address of unknown axis.");
   }
@@ -511,9 +523,9 @@ Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len),
 
   case 0x3F:
     type = PacketType::normal_ctrl_report;
-    #if 0
+    //#if 0
     print();
-    #endif
+    //#endif
     break;
 
   case 0x81:
@@ -539,21 +551,22 @@ bool Parser::is_button_pressed(BUTTONS button) const {
 }
 
 uint16_t Parser::get_axis_status(AXIS axis) const {
-  if (type == PacketType::normal_ctrl_report) {
-    return 0x7FF;
-  }
   size_t high, low;
   high = axis_data_address_high(axis);
   low  = axis_data_address_low(axis);
+  if (type == PacketType::normal_ctrl_report) {
+    /// This packet reports the y-axis inverted.
+    return  (dat[high] << 4) | (dat[low] >> 4);
+  }
   switch (axis) {
   case axis_lx:
   case axis_rx:
-    return ((dat[high] & 0x0F) << 8) |   dat[low];
+    return ((dat[high] << 8) |  dat[low]) & 0x0FFF;
   case axis_ly:
   case axis_ry:
-    return  (dat[high] << 4)         | ((dat[low] & 0xF0) >> 4);
+    return  (dat[high] << 4) | (dat[low] >> 4);
   default:
-    return 0;
+    return 0x07FF;
   }
 }
 
