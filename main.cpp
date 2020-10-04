@@ -144,9 +144,9 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
 
     int64_t now = current_time_micro();
     delta_milis = (now-last)/1000.L;
-    //printf("%02.2Lf ms", delta_milis);
-    //fflush(stdout);
-    //printf("\r\e[K");
+    /*printf("%05.2Lf ms", delta_milis);
+    fflush(stdout);
+    printf("\r\e[K");*/
     last = now;
   }
 }

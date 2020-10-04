@@ -73,8 +73,8 @@ namespace OutputSender {
 
 
     template <size_t length>
-    size_t receive_input(HidApi::generic_packet<length> &buffer) {
-      return hidw.read(buffer);
+    size_t receive_input(HidApi::generic_packet<length> &buffer, int milliseconds=-1) {
+      return hidw.read(buffer, milliseconds);
     }
 
     template <size_t length>

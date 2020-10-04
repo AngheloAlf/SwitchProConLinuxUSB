@@ -69,7 +69,10 @@ public:
   ProInputParser::Parser receive_input() {
     /// TODO: do a waiting loop if a zero packet is received or something.
     HidApi::default_packet buff;
-    size_t len = sender.receive_input(buff);
+    size_t len;
+    do {
+      len = sender.receive_input(buff, 16);
+    } while (len == 0);
     return ProInputParser::Parser(len, buff);
   }
 

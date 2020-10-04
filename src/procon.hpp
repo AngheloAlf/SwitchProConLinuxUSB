@@ -132,16 +132,10 @@ public:
       }
       update_input_state(parser);
     }
-    catch (const ProInputParser::PacketLengthError &e) {
-      /*PrintColor::magenta();
-      printf("%s\n", e.what());
-      PrintColor::normal();*/
-      return;
-    }
     catch (const ProInputParser::PacketTypeError &e) {
-      /*PrintColor::magenta();
+      /*Utils::PrintColor::magenta();
       printf("%s\n", e.what());
-      PrintColor::normal();
+      Utils::PrintColor::normal();
       return;*/
       throw;
     }
@@ -207,16 +201,10 @@ public:
         // printf("\n");
       }
     }
-    catch (const ProInputParser::PacketLengthError &e) {
-      /*PrintColor::magenta();
-      printf("%s\n", e.what());
-      PrintColor::normal();*/
-      return;
-    }
     catch (const ProInputParser::PacketTypeError &e) {
-      /*PrintColor::magenta();
+      /*Utils::PrintColor::magenta();
       printf("%s\n", e.what());
-      PrintColor::normal();
+      Utils::PrintColor::normal();
       return;*/
       throw;
     }
