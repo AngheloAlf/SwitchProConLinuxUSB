@@ -1,6 +1,7 @@
 #include "hidapi_wrapper.hpp"
 using namespace HidApi;
 
+#include <cstring>
 #include "utils.hpp"
 
 constexpr size_t maxlen = 1024;
@@ -111,6 +112,7 @@ size_t Device::write(size_t len, const uint8_t *data) {
 
 size_t Device::read(size_t len, uint8_t *data, int milliseconds) {
   int ret;
+  memset(data, 0, len);
   if (milliseconds < 0) {
     ret = hid_read(ptr, data, len);
   }
@@ -163,6 +165,10 @@ void Device::set_blocking() {
     throw StateChangeError("StateChangeError: Couldn't set blocking mode.");
   }
   blocking = true;
+}
+
+bool Device::IsBlocking() const {
+  return blocking;
 }
 
 

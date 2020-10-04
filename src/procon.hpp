@@ -125,7 +125,7 @@ public:
     auto remaining_arr = uinput_ctrl->update_time(delta_milis);
 
     try {
-      ProInputParser::Parser parser = hid_ctrl->request_input();
+      ProInputParser::Parser parser = hid_ctrl->receive_input();
       // parser.print();
       if (!parser.has_button_and_axis_data()) {
         return;
@@ -184,7 +184,7 @@ public:
     try {
       hid_ctrl->blink();
 
-      ProInputParser::Parser parser = hid_ctrl->request_input();
+      ProInputParser::Parser parser = hid_ctrl->receive_input();
       if (!parser.has_button_and_axis_data()) {
         return;
       }

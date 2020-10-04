@@ -120,7 +120,7 @@ namespace HidApi{
 
     void set_non_blocking();
     void set_blocking();
-
+    bool IsBlocking() const;
 
     std::string get_manufacturer() const;
     std::string get_product() const;

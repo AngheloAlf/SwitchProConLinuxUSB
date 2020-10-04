@@ -142,6 +142,10 @@ namespace ProInputParser {
 
   void print_exchange_array(size_t packet_len, HidApi::default_packet arr);
 
+  struct ControllerMAC {
+    uint16_t controller_type;
+    std::array<uint8_t, 6> mac;
+  };
 
   class Parser {
   public:

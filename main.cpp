@@ -71,7 +71,7 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
   if (!controller.needs_first_calibration()) {
     controller.calibrate_from_file();
     Utils::PrintColor::green();
-    printf("Read calibration data from file!");
+    printf("Read calibration data from file! ");
     Utils::PrintColor::cyan();
     printf("Press 'share' and 'home' to calibrate again or start with "
            "--calibrate or -c.\n");
