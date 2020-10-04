@@ -28,31 +28,15 @@ public:
       printf("\n");
 
       sender.do_handshake();
-      receive_input().print();
       sender.increment_baudrate();
-      receive_input().print();
       sender.do_handshake();
-      receive_input().print();
 
-      // the next part will sometimes fail, then need to reopen device via hidapi
       sender.enable_hid_only_mode();
-      receive_input().print();
     }
 
-    // TODO
     led();
-    receive_input().print();
-
-    sender.toggle_rumble(true);
-    receive_input().print();
-    sender.toggle_imu(true);
-    receive_input().print();
-
-    sender.set_imu_sensitivity(0x03, 0x00, 0x00, 0x01);
-    receive_input().print();
 
     sender.set_input_report_mode(0x30);
-    receive_input().print();
 
     #if 0
     if (bluetooth) {
@@ -61,15 +45,14 @@ public:
       receive_input().print();
     }
     #endif
+
+    sender.toggle_imu(true);
+    sender.set_imu_sensitivity(0x03, 0x00, 0x00, 0x01);
+
+    sender.toggle_rumble(true);
+
     sender.setNonBlocking();
     usleep(100 * 1000);
-
-    // TEST FOR BAD DATA
-    /*for (size_t i = 0; i < TEST_BAD_DATA_CYCLES; ++i) {
-      if (try_read_bad_data()) {
-        throw std::runtime_error("Detected bad data stream. Trying again...");
-      }
-    }*/
   }
 
   ~HidController(){
@@ -104,6 +87,7 @@ public:
     }
 
     sender.set_player_leds(bitwise);
+    // sender.set_player_leds(bitwise);
   }
 
   void blink() {
@@ -143,8 +127,8 @@ public:
     }
     closed = true;
     sender.setBlocking();
+    sender.toggle_rumble(false);
     sender.toggle_imu(false);
-    // sender.toggle_rumble(false);
 
     if (!bluetooth) {
       sender.disable_hid_only_mode();
@@ -153,17 +137,6 @@ public:
   }
 
 private:
-  bool try_read_bad_data() {
-    ProInputParser::Parser dat = receive_input();
-
-    if (dat.detect_bad_data()) {
-      // print_exchange_array(dat);
-      return true;
-    }
-
-    return false;
-  }
-
   OutputSender::Sender sender;
   bool bluetooth = false;
 

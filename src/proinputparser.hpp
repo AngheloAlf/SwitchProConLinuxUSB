@@ -143,7 +143,7 @@ namespace ProInputParser {
   void print_exchange_array(size_t packet_len, HidApi::default_packet arr);
 
   struct ControllerMAC {
-    uint16_t controller_type;
+    uint8_t controller_type;
     std::array<uint8_t, 6> mac;
   };
 
@@ -152,15 +152,8 @@ namespace ProInputParser {
     Parser(size_t packet_len, HidApi::default_packet data);
 
     bool is_button_pressed(BUTTONS button) const;
-
     uint16_t get_axis_status(AXIS axis) const;
-
     bool is_dpad_pressed(DPAD dpad) const;
-
-
-    /* Hackishly detects when the controller is trapped in a bad loop.
-    Nothing to do here, need to reopen device :(*/
-    bool detect_bad_data() const;
 
     bool has_button_and_axis_data() const;
 

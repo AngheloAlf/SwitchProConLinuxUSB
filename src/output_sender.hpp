@@ -96,13 +96,12 @@ namespace OutputSender {
     void set_player_leds(uint8_t bitwise);
     //void get_player_leds();
 
+    void set_input_report_mode(uint8_t mode);
+
     void toggle_imu(bool en);
     void set_imu_sensitivity(uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4);
 
     void toggle_rumble(bool en);
-
-
-    void set_input_report_mode(uint8_t mode);
 
 
     void send_rumble(const HidApi::generic_packet<4> &left_rumble, 

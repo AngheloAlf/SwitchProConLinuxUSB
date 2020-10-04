@@ -201,8 +201,8 @@ public:
       if (perform_calibration(parser)) {
         // send_rumble(0,255);
         calibrated = true;
-        hid_ctrl->led();
         write_calibration_to_file();
+        hid_ctrl->led();
         // print_calibration_values();
         // printf("\n");
       }

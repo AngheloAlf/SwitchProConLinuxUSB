@@ -619,12 +619,6 @@ bool Parser::is_dpad_pressed(DPAD dpad) const {
 }
 
 
-/* Hackishly detects when the controller is trapped in a bad loop.
-Nothing to do here, need to reopen device :(*/
-bool Parser::detect_bad_data() const {
-  return dat[1] == 0x01 && dat[0] == 0x81;
-}
-
 bool Parser::has_button_and_axis_data() const {
   switch (type) {
   case PacketType::standard_input_report:
