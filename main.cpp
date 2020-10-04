@@ -13,11 +13,22 @@ int64_t current_time_micro() {
 
 bool controller_loop = true;
 void exit_handler(int ignored){
+  if (controller_loop == false) {
+    fflush(stdout);
+    Utils::PrintColor::red();
+    printf("\n\nHard exit.\n");
+    Utils::PrintColor::normal();
+    fflush(stdout);
+    signal(SIGINT, SIG_DFL);
+    raise(SIGINT);
+    return;
+  }
   (void)ignored;
   controller_loop = false;
   Utils::PrintColor::magenta();
   printf("\nExiting...\n");
   Utils::PrintColor::normal();
+  fflush(stdout);
 }
 
 void print_help() {
@@ -142,7 +153,6 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
 
 
 int main(int argc, char *argv[]) {
-
   Config config(argc, argv);
 
   if (config.help) {
