@@ -43,7 +43,7 @@ public:
 
     #if 0
     if (bluetooth) {
-      //HidApi::generic_packet<1> msg_increase_datarate_bt{{0x31}};
+      //HidApi::GenericPacket<1> msg_increase_datarate_bt{{0x31}};
       //send_subcommand(SubCmd::set_in_report, msg_increase_datarate_bt);
       sender.set_input_report_mode(0x31);
       receive_input().print();
@@ -69,7 +69,7 @@ public:
 
   ProInputParser::Parser receive_input() {
     /// TODO: do a waiting loop if a zero packet is received or something.
-    HidApi::default_packet buff;
+    HidApi::DefaultPacket buff;
     size_t len;
     do {
       len = sender.receive_input(buff, 16);
@@ -78,7 +78,7 @@ public:
   }
 
   ProInputParser::Parser request_input() {
-    HidApi::default_packet buff;
+    HidApi::DefaultPacket buff;
     size_t len = sender.request_input(buff);
     return ProInputParser::Parser(len, buff);
   }
@@ -106,8 +106,8 @@ public:
   }
 
   void send_rumble(uint8_t large_motor, uint8_t small_motor) {
-    HidApi::generic_packet<4> left {0x80, 0x00, 0x40, 0x40};
-    HidApi::generic_packet<4> right{0x80, 0x00, 0x40, 0x40};
+    HidApi::GenericPacket<4> left {0x80, 0x00, 0x40, 0x40};
+    HidApi::GenericPacket<4> right{0x80, 0x00, 0x40, 0x40};
 
     if (large_motor != 0) {
       left[1] = right[1] = 0x08;
@@ -121,7 +121,7 @@ public:
   }
 
   void rumble(/*int frequency, int intensity*/) {
-    HidApi::generic_packet<4> default_rumble{0x00, 0x01, 0x40, 0x40};
+    HidApi::GenericPacket<4> default_rumble{0x00, 0x01, 0x40, 0x40};
     sender.send_rumble(default_rumble, default_rumble);
   }
 

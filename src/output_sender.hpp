@@ -46,11 +46,12 @@ namespace OutputSender {
     //get_voltage   = 0x50, /// Get regullated voltage.
   };
 
-  const HidApi::generic_packet<0> empty{{}};
-  const HidApi::generic_packet<1> disable{{0x00}};
-  const HidApi::generic_packet<1> enable {{0x01}};
+  const HidApi::GenericPacket<0> empty  {{}};
 
-  const HidApi::generic_packet<4> no_rumble{0x00, 0x01, 0x40, 0x40};
+  const HidApi::GenericPacket<1> disable{{0x00}};
+  const HidApi::GenericPacket<1> enable {{0x01}};
+
+  const HidApi::GenericPacket<4> no_rumble{0x00, 0x01, 0x40, 0x40};
 
   class Sender {
   public:
@@ -73,13 +74,13 @@ namespace OutputSender {
 
 
     template <size_t length>
-    size_t receive_input(HidApi::generic_packet<length> &buffer, int milliseconds=-1) {
+    size_t receive_input(HidApi::GenericPacket<length> &buffer, int milliseconds=-1) {
       // send_subcommand(SubCmd::zero, empty, no_rumble, no_rumble);
       return hidw.read(buffer, milliseconds);
     }
 
     template <size_t length>
-    size_t request_input(HidApi::generic_packet<length> &buffer) {
+    size_t request_input(HidApi::GenericPacket<length> &buffer) {
       bool was_blocking = hidw.IsBlocking();
       setBlocking();
 
@@ -97,6 +98,7 @@ namespace OutputSender {
     void set_player_leds(uint8_t bitwise);
     //void get_player_leds();
 
+
     void set_input_report_mode(uint8_t mode);
 
     void toggle_imu(bool en);
@@ -105,16 +107,16 @@ namespace OutputSender {
     void toggle_rumble(bool en);
 
 
-    void send_rumble(const HidApi::generic_packet<4> &left_rumble, 
-                     const HidApi::generic_packet<4> &right_rumble);
+    void send_rumble(const HidApi::GenericPacket<4> &left_rumble, 
+                     const HidApi::GenericPacket<4> &right_rumble);
 
 
   private:
     size_t send_uart(Uart uart);
 
     template <size_t length>
-    size_t send_uart(const HidApi::generic_packet<length> &data){
-      HidApi::generic_packet<length + 8> packet;
+    size_t send_uart(const HidApi::GenericPacket<length> &data){
+      HidApi::GenericPacket<length + 8> packet;
       packet.fill(0);
       packet[0] = Protocols::nintendo;
       packet[1] = Uart::uart_cmd;
@@ -128,8 +130,8 @@ namespace OutputSender {
 
     template <size_t length>
     size_t send_command(Cmd command,
-                        HidApi::generic_packet<length> const &data) {
-      HidApi::generic_packet<length + 1> buffer;
+                        HidApi::GenericPacket<length> const &data) {
+      HidApi::GenericPacket<length + 1> buffer;
       buffer[0] = command;
       if (length > 0) {
         memcpy(buffer.data() + 1, data.data(), length);
@@ -144,10 +146,10 @@ namespace OutputSender {
 
     template <size_t length>
     size_t send_command_with_rumble_data(Cmd command,
-                           const HidApi::generic_packet<length> &data, 
-                           const HidApi::generic_packet<4> &left_rumble, 
-                           const HidApi::generic_packet<4> &right_rumble) {
-      HidApi::generic_packet<length + 9> buffer;
+                           const HidApi::GenericPacket<length> &data, 
+                           const HidApi::GenericPacket<4> &left_rumble, 
+                           const HidApi::GenericPacket<4> &right_rumble) {
+      HidApi::GenericPacket<length + 9> buffer;
       buffer[0] = timing_counter = (timing_counter + 1) & 0x0F;
       for(size_t i = 0; i < 4; ++i){
         buffer[1+i] =  left_rumble[i];
@@ -162,10 +164,10 @@ namespace OutputSender {
 
     template <size_t length>
     size_t send_subcommand(SubCmd subcommand,
-                           const HidApi::generic_packet<length> &data, 
-                           const HidApi::generic_packet<4> &left_rumble, 
-                           const HidApi::generic_packet<4> &right_rumble) {
-      HidApi::generic_packet<length + 1> buffer;
+                           const HidApi::GenericPacket<length> &data, 
+                           const HidApi::GenericPacket<4> &left_rumble, 
+                           const HidApi::GenericPacket<4> &right_rumble) {
+      HidApi::GenericPacket<length + 1> buffer;
       buffer[0] = subcommand;
       if (length > 0) {
         memcpy(buffer.data() + 1, data.data(), length);

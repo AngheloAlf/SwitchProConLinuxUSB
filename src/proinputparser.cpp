@@ -496,11 +496,11 @@ void ProInputParser::print_exchange_array(size_t packet_len, uint8_t *arr) {
   fflush(stdout);
 }
 
-void ProInputParser::print_exchange_array(size_t packet_len, HidApi::default_packet arr) {
+void ProInputParser::print_exchange_array(size_t packet_len, HidApi::DefaultPacket arr) {
   print_exchange_array(packet_len, arr.data());
 }
 
-Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len), dat(data) {
+Parser::Parser(size_t packet_len, HidApi::DefaultPacket data): len(packet_len), dat(data) {
   type = PacketType::unknown;
 
   if (packet_len == 0) {

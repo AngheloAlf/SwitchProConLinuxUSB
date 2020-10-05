@@ -141,7 +141,7 @@ namespace ProInputParser {
   size_t dpad_data_address(DPAD dpad, PacketType packet);
 
   void print_exchange_array(size_t packet_len, uint8_t *arr);
-  void print_exchange_array(size_t packet_len, HidApi::default_packet arr);
+  void print_exchange_array(size_t packet_len, HidApi::DefaultPacket arr);
 
   struct ControllerMAC {
     uint8_t controller_type;
@@ -150,7 +150,7 @@ namespace ProInputParser {
 
   class Parser {
   public:
-    Parser(size_t packet_len, HidApi::default_packet data);
+    Parser(size_t packet_len, HidApi::DefaultPacket data);
 
     bool is_button_pressed(BUTTONS button) const;
     uint16_t get_axis_status(AXIS axis) const;
@@ -172,7 +172,7 @@ namespace ProInputParser {
     size_t  dpad_data_address(DPAD dpad) const;
   private:
     size_t len = 0;
-    HidApi::default_packet dat;
+    HidApi::DefaultPacket dat;
     PacketType type = PacketType::packet_none;
   };
 };

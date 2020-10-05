@@ -104,7 +104,10 @@ Device::~Device(){
 size_t Device::write(size_t len, const uint8_t *data) {
   int ret = hid_write(ptr, data, len);
   if (ret < 0) {
-    throw WriteError(ptr, "WriteError: write() returned " + std::to_string(ret));
+    throw WriteError(ptr, "WriteError: write() returned " + std::to_string(ret) + ".");
+  }
+  if (len != (size_t)ret) {
+    throw WriteError(ptr, "WriteError: Couldn't write " + std::to_string(len) + " bytes. Wrote " + std::to_string(ret) + " bytes instead.");
   }
   return ret;
 }
@@ -126,8 +129,8 @@ size_t Device::read(size_t len, uint8_t *data, int milliseconds) {
   return ret;
 }
 
-default_packet Device::read(int milliseconds) {
-  default_packet ret;
+DefaultPacket Device::read(int milliseconds) {
+  DefaultPacket ret;
   read(default_length, ret.data(), milliseconds);
   return ret;
 }
@@ -144,8 +147,8 @@ size_t Device::exchange(size_t read_len, uint8_t *buf, size_t write_len, const u
   return ret;
 }
 
-default_packet Device::exchange(size_t write_len, const uint8_t *data_to_write, int milliseconds) {
-  default_packet ret;
+DefaultPacket Device::exchange(size_t write_len, const uint8_t *data_to_write, int milliseconds) {
+  DefaultPacket ret;
   ret.fill(0);
   exchange(default_length, ret.data(), write_len, data_to_write, milliseconds);
 

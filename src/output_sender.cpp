@@ -33,7 +33,7 @@ void Sender::setNonBlocking() {
 }
 
 ProInputParser::ControllerMAC Sender::request_mac(int milliseconds) {
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   size_t len = send_uart(Uart::status);
   if (len != 2) {
     // throw ;
@@ -58,7 +58,7 @@ ProInputParser::ControllerMAC Sender::request_mac(int milliseconds) {
   return data;
 }
 void Sender::do_handshake() {
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   size_t len = send_uart(Uart::handshake);
   if (len != 2) {
     // throw ;
@@ -74,7 +74,7 @@ void Sender::do_handshake() {
   }
 }
 void Sender::increment_baudrate() {
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   size_t len = send_uart(Uart::inc_baudrate);
   if (len != 2) {
     // throw ;
@@ -90,7 +90,7 @@ void Sender::increment_baudrate() {
   }
 }
 void Sender::enable_hid_only_mode() {
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   size_t len = send_uart(Uart::hid_only);
   if (len != 2) {
     // throw ;
@@ -99,7 +99,7 @@ void Sender::enable_hid_only_mode() {
   len = hidw.read(response);
 }
 void Sender::disable_hid_only_mode() {
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   size_t len = send_uart(Uart::turn_off_hid);
   if (len != 2) {
     // throw ;
@@ -108,7 +108,7 @@ void Sender::disable_hid_only_mode() {
   len = hidw.read(response);
 }
 void Sender::send_reset() {
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   size_t len = send_uart(Uart::reset);
   if (len != 2) {
     // throw ;
@@ -120,47 +120,47 @@ void Sender::send_reset() {
 
 
 void Sender::set_player_leds(uint8_t bitwise) {
-  HidApi::generic_packet<1> value {bitwise};
+  HidApi::GenericPacket<1> value {bitwise};
   send_subcommand(SubCmd::set_leds, value, no_rumble, no_rumble);
 
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   hidw.read(response);
 }
 /*void Sender::get_player_leds() {
 }*/
 
 void Sender::set_input_report_mode(uint8_t mode) {
-  HidApi::generic_packet<1> buff{mode};
+  HidApi::GenericPacket<1> buff{mode};
   send_subcommand(SubCmd::set_in_report, buff, no_rumble, no_rumble);
 
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   hidw.read(response);
 }
 
 void Sender::toggle_imu(bool en) {
   send_subcommand(SubCmd::en_imu, en ? enable : disable, no_rumble, no_rumble);
 
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   hidw.read(response);
 }
 void Sender::set_imu_sensitivity(uint8_t arg1, uint8_t arg2, uint8_t arg3, uint8_t arg4) {
-  HidApi::generic_packet<4> imu_args{arg1, arg2, arg3, arg4};
+  HidApi::GenericPacket<4> imu_args{arg1, arg2, arg3, arg4};
   send_subcommand(SubCmd::set_imu, imu_args, no_rumble, no_rumble);
 
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   hidw.read(response);
 }
 
 void Sender::toggle_rumble(bool en) {
   send_subcommand(SubCmd::en_rumble, en ? enable : disable, no_rumble, no_rumble);
 
-  HidApi::default_packet response;
+  HidApi::DefaultPacket response;
   hidw.read(response);
 }
 
 
-void Sender::send_rumble(const HidApi::generic_packet<4> &left_rumble, 
-                  const HidApi::generic_packet<4> &right_rumble) {
+void Sender::send_rumble(const HidApi::GenericPacket<4> &left_rumble, 
+                  const HidApi::GenericPacket<4> &right_rumble) {
   send_command_with_rumble_data(Cmd::rumble_only, empty, left_rumble, right_rumble);
   // TODO: check if controller answers
 }
@@ -168,6 +168,6 @@ void Sender::send_rumble(const HidApi::generic_packet<4> &left_rumble,
 
 
 size_t Sender::send_uart(Uart uart) {
-  HidApi::generic_packet<2> packet {Protocols::nintendo, uart};
+  HidApi::GenericPacket<2> packet {Protocols::nintendo, uart};
   return hidw.write(packet);
 }
