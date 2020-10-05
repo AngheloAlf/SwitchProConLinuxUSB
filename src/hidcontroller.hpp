@@ -34,25 +34,26 @@ public:
       sender.enable_hid_only_mode();
     }
 
-    led();
+    sender.toggle_rumble(true);
+    sender.toggle_imu(true);
+
+    // sender.set_imu_sensitivity(0x03, 0x00, 0x00, 0x01);
 
     sender.set_input_report_mode(0x30);
 
     #if 0
     if (bluetooth) {
-      HidApi::generic_packet<1> msg_increase_datarate_bt{{0x31}};
-      send_subcommand(SubCmd::set_in_report, msg_increase_datarate_bt);
+      //HidApi::generic_packet<1> msg_increase_datarate_bt{{0x31}};
+      //send_subcommand(SubCmd::set_in_report, msg_increase_datarate_bt);
+      sender.set_input_report_mode(0x31);
       receive_input().print();
     }
     #endif
 
-    sender.toggle_imu(true);
-    sender.set_imu_sensitivity(0x03, 0x00, 0x00, 0x01);
-
-    sender.toggle_rumble(true);
-
     sender.setNonBlocking();
     usleep(100 * 1000);
+
+    led();
   }
 
   ~HidController(){

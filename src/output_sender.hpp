@@ -74,6 +74,7 @@ namespace OutputSender {
 
     template <size_t length>
     size_t receive_input(HidApi::generic_packet<length> &buffer, int milliseconds=-1) {
+      // send_subcommand(SubCmd::zero, empty, no_rumble, no_rumble);
       return hidw.read(buffer, milliseconds);
     }
 
