@@ -140,6 +140,7 @@ namespace ProInputParser {
   uint8_t dpad_byte_value(DPAD dpads, PacketType packet);
   size_t dpad_data_address(DPAD dpad, PacketType packet);
 
+  void print_exchange_array(size_t packet_len, uint8_t *arr);
   void print_exchange_array(size_t packet_len, HidApi::default_packet arr);
 
   struct ControllerMAC {

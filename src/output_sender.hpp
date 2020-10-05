@@ -111,16 +111,16 @@ namespace OutputSender {
   private:
     size_t send_uart(Uart uart);
 
-    template <size_t output_len>
-    size_t send_uart(const HidApi::generic_packet<output_len> &data){
-      HidApi::generic_packet<output_len + 8> packet;
+    template <size_t length>
+    size_t send_uart(const HidApi::generic_packet<length> &data){
+      HidApi::generic_packet<length + 8> packet;
       packet.fill(0);
-      packet[0x00] = Protocols::nintendo;
-      packet[0x01] = Uart::uart_cmd;
-      packet[0x02] = 0x00; // length?
-      packet[0x03] = 0x31; // length?
-      if (output_len > 0) {
-        memcpy(packet.data() + 8, data.data(), output_len);
+      packet[0] = Protocols::nintendo;
+      packet[1] = Uart::uart_cmd;
+      packet[2] = 0x00; // length?
+      packet[3] = 0x31; // length?
+      if (length > 0) {
+        memcpy(packet.data() + 8, data.data(), length);
       }
       return hidw.write(packet);
     }
@@ -134,6 +134,7 @@ namespace OutputSender {
         memcpy(buffer.data() + 1, data.data(), length);
       }
 
+      // ProInputParser::print_exchange_array(length + 1, buffer.data());
       if (bluetooth) {
         return hidw.write(buffer);
       }

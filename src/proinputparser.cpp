@@ -470,7 +470,7 @@ size_t ProInputParser::dpad_data_address(DPAD dpad, PacketType packet) {
 }
 
 
-void ProInputParser::print_exchange_array(size_t packet_len, HidApi::default_packet arr) {
+void ProInputParser::print_exchange_array(size_t packet_len, uint8_t *arr) {
   bool redcol = false;
   if (arr[0] != 0x30) {
     Utils::PrintColor::yellow();
@@ -496,6 +496,9 @@ void ProInputParser::print_exchange_array(size_t packet_len, HidApi::default_pac
   fflush(stdout);
 }
 
+void ProInputParser::print_exchange_array(size_t packet_len, HidApi::default_packet arr) {
+  print_exchange_array(packet_len, arr.data());
+}
 
 Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len), dat(data) {
   type = PacketType::unknown;
