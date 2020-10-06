@@ -64,14 +64,23 @@ Enumerate::Enumerate(uint16_t vendor_id, uint16_t product_id) {
     throw EnumerateError("EnumerateError: Unable to find any requested device.");
   }
 }
+Enumerate::Enumerate(Enumerate &&other) noexcept: ptr(nullptr) {
+  std::swap(ptr, other.ptr);
+}
 
-Enumerate::~Enumerate() {
+Enumerate::~Enumerate() noexcept {
   if (ptr != nullptr) {
     hid_free_enumeration(ptr);
   }
 }
 
-const struct hid_device_info *Enumerate::device_info() const {
+Enumerate &Enumerate::operator=(Enumerate &&other) noexcept {
+  std::swap(ptr, other.ptr);
+  return *this;
+}
+
+
+const struct hid_device_info *Enumerate::device_info() const noexcept {
   return ptr;
 }
 
@@ -82,15 +91,17 @@ Device::Device(const struct hid_device_info *device_info) {
     throw OpenError(ptr, "OpenError: open_path()");
   }
 }
-
 Device::Device(const Enumerate &info): Device(info.device_info()) {
 }
-
 Device::Device(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number) {
   ptr = hid_open(vendor_id, product_id, serial_number);
   if (ptr == nullptr) {
     throw OpenError(ptr, "OpenError: open()");
   }
+}
+Device::Device(Device &&other) noexcept: ptr(nullptr) {
+  std::swap(ptr, other.ptr);
+  std::swap(blocking, other.blocking);
 }
 
 Device::~Device(){
@@ -98,6 +109,12 @@ Device::~Device(){
     hid_close(ptr);
     ptr = nullptr;
   }
+}
+
+Device &Device::operator=(Device &&other) noexcept {
+  std::swap(ptr, other.ptr);
+  std::swap(blocking, other.blocking);
+  return *this;
 }
 
 
@@ -170,7 +187,7 @@ void Device::set_blocking() {
   blocking = true;
 }
 
-bool Device::IsBlocking() const {
+bool Device::IsBlocking() const noexcept {
   return blocking;
 }
 

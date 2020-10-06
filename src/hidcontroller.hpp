@@ -15,10 +15,10 @@ class HidController{
 public:
   HidController(const HidApi::Enumerate &device_info, unsigned short n_controll)
                 : sender(device_info), n_controller(n_controll) {
-    bluetooth = sender.Bluetooth();
+    closed = false;
     sender.setBlocking();
 
-    if (!bluetooth) {
+    if (!sender.Bluetooth()) {
       ProInputParser::ControllerMAC mac = sender.request_mac();
       printf("controller_type: %02x\n", mac.controller_type);
       printf("mac: %02x", mac.mac[0]);
@@ -42,7 +42,7 @@ public:
     sender.set_input_report_mode(0x30);
 
     #if 0
-    if (bluetooth) {
+    if (sender.Bluetooth()) {
       //HidApi::GenericPacket<1> msg_increase_datarate_bt{{0x31}};
       //send_subcommand(SubCmd::set_in_report, msg_increase_datarate_bt);
       sender.set_input_report_mode(0x31);
@@ -55,16 +55,35 @@ public:
 
     led();
   }
+  HidController(const HidController &other) = delete;
+  HidController(HidController &&other) noexcept: 
+    sender(std::move(other.sender)), n_controller(std::move(other.n_controller)), 
+    blink_position(std::move(other.blink_position)), blink_counter(std::move(other.blink_counter)), 
+    closed(std::move(other.closed)) {
+  }
 
-  ~HidController(){
+  ~HidController() noexcept {
+    if (closed) {
+      return;
+    }
+
     try {
       close();
+      // Wait for controller to receive the close packet.
+      usleep(1000 * 1000);
     }
     catch (const HidApi::HidApiError &e) {
     }
+  }
 
-    // Wait for controller to receive the close packet.
-    usleep(1000 * 1000);
+  HidController &operator=(const HidController &other) = delete;
+  HidController &operator=(HidController &&other) noexcept {
+    std::swap(sender, other.sender);
+    std::swap(n_controller, other.n_controller);
+    std::swap(closed, other.closed);
+    std::swap(blink_position, other.blink_position);
+    std::swap(blink_counter, other.blink_counter);
+    return *this;
   }
 
   ProInputParser::Parser receive_input() {
@@ -134,7 +153,7 @@ public:
     sender.toggle_rumble(false);
     sender.toggle_imu(false);
 
-    if (!bluetooth) {
+    if (!sender.Bluetooth()) {
       sender.disable_hid_only_mode();
       sender.send_reset();
     }
@@ -142,19 +161,18 @@ public:
 
 private:
   OutputSender::Sender sender;
-  bool bluetooth = false;
-
   unsigned short n_controller;
-  bool closed = false;
+
+  uint blink_position = 0;
+  size_t blink_counter = 0;
+  const size_t blink_length = 8;
+
+  bool closed = true;
 
   const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
 
   // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
   const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
-
-  uint blink_position = 0;
-  size_t blink_counter = 0;
-  const size_t blink_length = 8;
 };
 
 #endif

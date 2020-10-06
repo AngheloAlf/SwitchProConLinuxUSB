@@ -66,10 +66,15 @@ namespace HidApi{
   class Enumerate{
   public:
     Enumerate(uint16_t vendor_id, uint16_t product_id);
+    Enumerate(const Enumerate &other) = delete;
+    Enumerate(Enumerate &&other) noexcept;
 
-    ~Enumerate();
+    ~Enumerate() noexcept;
 
-    const struct hid_device_info *device_info() const;
+    Enumerate &operator=(const Enumerate &other) = delete;
+    Enumerate &operator=(Enumerate &&other) noexcept;
+
+    const struct hid_device_info *device_info() const noexcept;
 
     static constexpr uint16_t any_vendor{0};
     static constexpr uint16_t any_product{0};
@@ -81,10 +86,15 @@ namespace HidApi{
   class Device {
   public:
     Device(const struct hid_device_info *device_info);
-    Device(const HidApi::Enumerate &info);
+    Device(const Enumerate &info);
     Device(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number);
+    Device(const Device &other) = delete;
+    Device(Device &&other) noexcept;
 
     ~Device();
+
+    Device &operator=(const Device &other) = delete;
+    Device &operator=(Device &&other) noexcept;
 
     size_t write(size_t len, const uint8_t *data);
 
@@ -120,7 +130,7 @@ namespace HidApi{
 
     void set_non_blocking();
     void set_blocking();
-    bool IsBlocking() const;
+    bool IsBlocking() const noexcept;
 
     std::string get_manufacturer() const;
     std::string get_product() const;

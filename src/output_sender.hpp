@@ -56,8 +56,13 @@ namespace OutputSender {
   class Sender {
   public:
     Sender(const HidApi::Enumerate &device_info);
+    Sender(const Sender &other) = delete;
+    Sender(Sender &&other) noexcept;
 
-    // const HidApi::Device &Hid() const;
+    ~Sender() noexcept;
+
+    Sender &operator=(const Sender &other) = delete;
+    Sender &operator=(Sender &&other) noexcept;
 
     bool Bluetooth() const;
     bool Usb() const;

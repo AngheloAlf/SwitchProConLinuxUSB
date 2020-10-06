@@ -9,10 +9,20 @@ Sender::Sender(const HidApi::Enumerate &device_info): hidw(device_info) {
     bluetooth = true;
   }
 }
+Sender::Sender(Sender &&other) noexcept: hidw(std::move(other.hidw)),
+  timing_counter(std::move(other.timing_counter)), bluetooth(std::move(bluetooth)) {
+}
 
-/*const HidApi::Device &Sender::Hid() const {
-  return hidw;
-}*/
+Sender::~Sender() noexcept {
+}
+
+Sender &Sender::operator=(Sender &&other) noexcept {
+  std::swap(hidw, other.hidw);
+  std::swap(timing_counter, other.timing_counter);
+  std::swap(bluetooth, other.bluetooth);
+  return *this;
+}
+
 
 bool Sender::Bluetooth() const {
   return bluetooth;

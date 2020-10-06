@@ -60,8 +60,10 @@ public:
     
     uinput_ctrl = new UInputController();
   }
+  ProController(const ProController &other) = delete;
+  // ProController(ProController &&other) noexcept ;
 
-  ~ProController(){
+  ~ProController() noexcept {
     if (hid_ctrl != nullptr) {
       delete hid_ctrl;
     }
@@ -70,24 +72,9 @@ public:
     }
   }
 
-  // void timer() {
+  ProController &operator=(const ProController &other) = delete;
+  // ProController &operator=(ProController &&other) noexcept;
 
-  //   using namespace std;
-  //   clock_t now = clock();
-
-  //   double elapsed_secs = double(now - last_time) / CLOCKS_PER_SEC;
-
-  //   last_time = now;
-
-  //   printf("Time for last %u polls: %f seconds\n", n_print_cycle,
-  //   elapsed_secs);
-  //   printf("Bad 0x00: %u\nBad 0x30: %u\n\n", n_bad_data_thirty,
-  //          n_bad_data_zero);
-
-  //   print_cycle_counter = 0;
-  //   n_bad_data_thirty = 0;
-  //   n_bad_data_zero = 0;
-  // }
 
   void print_sticks() const {
     for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
@@ -118,10 +105,6 @@ public:
   }
 
   void poll_input(long double delta_milis) {
-    // print_cycle_counter++;
-    // if(print_cycle_counter++ > n_print_cycle) {
-    //     timer();
-    // }
     auto remaining_arr = uinput_ctrl->update_time(delta_milis);
 
     try {
@@ -497,11 +480,6 @@ private:
   }
 
   const std::string calibration_filename = "procon_calibration_data";
-
-  uint n_print_cycle = 1000;
-  uint print_cycle_counter = 0;
-  uint n_bad_data_zero = 0;
-  uint n_bad_data_thirty = 0;
 
   bool calibrated = false;
   bool read_calibration_from_file =

@@ -21,6 +21,7 @@ public:
   static constexpr uint16_t max_effects{2};
 
   UInputController() {
+    closed = false;
     uinput_fd = open("/dev/uinput", O_RDWR | O_NONBLOCK);
     if (uinput_fd < 0) {
       throw std::system_error(errno, std::generic_category(), "Failed to open uinput device!");
@@ -103,11 +104,28 @@ public:
       throw std::system_error(errno, std::generic_category(), "Failed to create uinput device!");
     }
   }
+  UInputController(const UInputController &other) = delete;
+  UInputController(UInputController &&other) noexcept:
+    uinput_version(std::move(other.uinput_version)), uinput_rc(std::move(other.uinput_rc)),
+    uinput_fd(std::move(other.uinput_fd)), rumble_effects(std::move(other.rumble_effects)),
+    closed(std::move(other.closed)) {
+  }
 
-  ~UInputController() {
-    ioctl(uinput_fd, UI_DEV_DESTROY);
+  ~UInputController() noexcept {
+    if (!closed) {
+      ioctl(uinput_fd, UI_DEV_DESTROY);
+      close(uinput_fd);
+    }
+  }
 
-    close(uinput_fd);
+  UInputController &operator=(const UInputController &other) = delete;
+  UInputController &operator=(UInputController &&other) noexcept {
+    std::swap(uinput_version, other.uinput_version);
+    std::swap(uinput_rc, other.uinput_rc);
+    std::swap(uinput_fd, other.uinput_fd);
+    std::swap(rumble_effects, other.rumble_effects);
+    std::swap(closed, other.closed);
+    return *this;
   }
 
   void write_single_joystick(int val, int cod) {
@@ -261,8 +279,8 @@ private:
   }
 
   int uinput_version, uinput_rc, uinput_fd;
-
   std::array<RumbleData, max_effects> rumble_effects;
+  bool closed = true;
 };
 
 #endif
