@@ -1,6 +1,7 @@
 #include "hidapi_wrapper.hpp"
 using namespace HidApi;
 
+#include <cstring>
 #include "utils.hpp"
 
 constexpr size_t maxlen = 1024;
@@ -63,14 +64,23 @@ Enumerate::Enumerate(uint16_t vendor_id, uint16_t product_id) {
     throw EnumerateError("EnumerateError: Unable to find any requested device.");
   }
 }
+Enumerate::Enumerate(Enumerate &&other) noexcept: ptr(nullptr) {
+  std::swap(ptr, other.ptr);
+}
 
-Enumerate::~Enumerate() {
+Enumerate::~Enumerate() noexcept {
   if (ptr != nullptr) {
     hid_free_enumeration(ptr);
   }
 }
 
-const struct hid_device_info *Enumerate::device_info() const {
+Enumerate &Enumerate::operator=(Enumerate &&other) noexcept {
+  std::swap(ptr, other.ptr);
+  return *this;
+}
+
+
+const struct hid_device_info *Enumerate::device_info() const noexcept {
   return ptr;
 }
 
@@ -81,15 +91,17 @@ Device::Device(const struct hid_device_info *device_info) {
     throw OpenError(ptr, "OpenError: open_path()");
   }
 }
-
 Device::Device(const Enumerate &info): Device(info.device_info()) {
 }
-
 Device::Device(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number) {
   ptr = hid_open(vendor_id, product_id, serial_number);
   if (ptr == nullptr) {
     throw OpenError(ptr, "OpenError: open()");
   }
+}
+Device::Device(Device &&other) noexcept: ptr(nullptr) {
+  std::swap(ptr, other.ptr);
+  std::swap(blocking, other.blocking);
 }
 
 Device::~Device(){
@@ -99,11 +111,20 @@ Device::~Device(){
   }
 }
 
+Device &Device::operator=(Device &&other) noexcept {
+  std::swap(ptr, other.ptr);
+  std::swap(blocking, other.blocking);
+  return *this;
+}
+
 
 size_t Device::write(size_t len, const uint8_t *data) {
   int ret = hid_write(ptr, data, len);
   if (ret < 0) {
-    throw WriteError(ptr, "WriteError: write() returned " + std::to_string(ret));
+    throw WriteError(ptr, "WriteError: write() returned " + std::to_string(ret) + ".");
+  }
+  if (len != (size_t)ret) {
+    throw WriteError(ptr, "WriteError: Couldn't write " + std::to_string(len) + " bytes. Wrote " + std::to_string(ret) + " bytes instead.");
   }
   return ret;
 }
@@ -111,6 +132,7 @@ size_t Device::write(size_t len, const uint8_t *data) {
 
 size_t Device::read(size_t len, uint8_t *data, int milliseconds) {
   int ret;
+  memset(data, 0, len);
   if (milliseconds < 0) {
     ret = hid_read(ptr, data, len);
   }
@@ -124,8 +146,8 @@ size_t Device::read(size_t len, uint8_t *data, int milliseconds) {
   return ret;
 }
 
-default_packet Device::read(int milliseconds) {
-  default_packet ret;
+DefaultPacket Device::read(int milliseconds) {
+  DefaultPacket ret;
   read(default_length, ret.data(), milliseconds);
   return ret;
 }
@@ -142,8 +164,8 @@ size_t Device::exchange(size_t read_len, uint8_t *buf, size_t write_len, const u
   return ret;
 }
 
-default_packet Device::exchange(size_t write_len, const uint8_t *data_to_write, int milliseconds) {
-  default_packet ret;
+DefaultPacket Device::exchange(size_t write_len, const uint8_t *data_to_write, int milliseconds) {
+  DefaultPacket ret;
   ret.fill(0);
   exchange(default_length, ret.data(), write_len, data_to_write, milliseconds);
 
@@ -163,6 +185,10 @@ void Device::set_blocking() {
     throw StateChangeError("StateChangeError: Couldn't set blocking mode.");
   }
   blocking = true;
+}
+
+bool Device::IsBlocking() const noexcept {
+  return blocking;
 }
 
 

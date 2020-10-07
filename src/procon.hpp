@@ -17,9 +17,9 @@
 #include <unistd.h>
 
 #include "config.hpp"
-#include "hidcontroller.hpp"
+#include "real_controller.hpp"
+#include "real_controller_exceptions.hpp"
 #include "uinputcontroller.hpp"
-#include "proinputparser.hpp"
 #include "utils.hpp"
 
 #define PROCON_DRIVER_VERSION "1.0 alpha2"
@@ -42,7 +42,7 @@ public:
     int retries = 0;
     while(!opened){
       try {
-        hid_ctrl = new HidController(device_info, n_controller);
+        hid_ctrl = new RealController::Controller(device_info, n_controller);
         opened = true;
       } catch (const HidApi::OpenError &e) {
         throw;
@@ -60,8 +60,10 @@ public:
     
     uinput_ctrl = new UInputController();
   }
+  ProController(const ProController &other) = delete;
+  // ProController(ProController &&other) noexcept ;
 
-  ~ProController(){
+  ~ProController() noexcept {
     if (hid_ctrl != nullptr) {
       delete hid_ctrl;
     }
@@ -70,84 +72,59 @@ public:
     }
   }
 
-  // void timer() {
+  ProController &operator=(const ProController &other) = delete;
+  // ProController &operator=(ProController &&other) noexcept;
 
-  //   using namespace std;
-  //   clock_t now = clock();
-
-  //   double elapsed_secs = double(now - last_time) / CLOCKS_PER_SEC;
-
-  //   last_time = now;
-
-  //   printf("Time for last %u polls: %f seconds\n", n_print_cycle,
-  //   elapsed_secs);
-  //   printf("Bad 0x00: %u\nBad 0x30: %u\n\n", n_bad_data_thirty,
-  //          n_bad_data_zero);
-
-  //   print_cycle_counter = 0;
-  //   n_bad_data_thirty = 0;
-  //   n_bad_data_zero = 0;
-  // }
 
   void print_sticks() const {
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-      printf("%s %03x ", ProInputParser::axis_name(id), axis_values[id]);
+    for (const RealController::Axis &id: RealController::axis_ids) {
+      printf("%s %03x ", RealController::axis_name(id), axis_values[id]);
     }
   }
 
   void print_buttons() const {
-    for (const ProInputParser::BUTTONS &id: ProInputParser::btns_ids) {
+    for (const RealController::Buttons &id: RealController::btns_ids) {
       if (buttons_pressed[id]) {
-        printf("%s ", ProInputParser::button_name(id));
+        printf("%s ", RealController::button_name(id));
       }
     }
   }
 
   void print_dpad() const {
-    for (const ProInputParser::DPAD &id: ProInputParser::dpad_ids) {
+    for (const RealController::Dpad &id: RealController::dpad_ids) {
       if (dpad_pressed[id]) {
-        printf("%s ", ProInputParser::dpad_name(id));
+        printf("%s ", RealController::dpad_name(id));
       }
     }
   }
 
   void print_calibration_values() const {
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
-      printf("%s %03x,%03x,%03x   ", ProInputParser::axis_name(id), axis_min[id], axis_cen[id], axis_max[id]);
+    for (const RealController::Axis &id: RealController::axis_ids) {
+      printf("%s %03x,%03x,%03x   ", RealController::axis_name(id), axis_min[id], axis_cen[id], axis_max[id]);
     }
   }
 
   void poll_input(long double delta_milis) {
-    // print_cycle_counter++;
-    // if(print_cycle_counter++ > n_print_cycle) {
-    //     timer();
-    // }
     auto remaining_arr = uinput_ctrl->update_time(delta_milis);
 
     try {
-      ProInputParser::Parser parser = hid_ctrl->request_input();
+      RealController::Parser parser = hid_ctrl->receive_input();
       // parser.print();
       if (!parser.has_button_and_axis_data()) {
         return;
       }
       update_input_state(parser);
     }
-    catch (const ProInputParser::PacketLengthError &e) {
-      /*PrintColor::magenta();
+    catch (const RealController::PacketTypeError &e) {
+      /*Utils::PrintColor::magenta();
       printf("%s\n", e.what());
-      PrintColor::normal();*/
-      return;
-    }
-    catch (const ProInputParser::PacketTypeError &e) {
-      /*PrintColor::magenta();
-      printf("%s\n", e.what());
-      PrintColor::normal();
+      Utils::PrintColor::normal();
       return;*/
       throw;
     }
 
-    if (buttons_pressed[ProInputParser::home] &&
-        buttons_pressed[ProInputParser::share]) {
+    if (buttons_pressed[RealController::Buttons::home] &&
+        buttons_pressed[RealController::Buttons::share]) {
       decalibrate();
       return;
     }
@@ -184,7 +161,7 @@ public:
     try {
       hid_ctrl->blink();
 
-      ProInputParser::Parser parser = hid_ctrl->request_input();
+      RealController::Parser parser = hid_ctrl->receive_input();
       if (!parser.has_button_and_axis_data()) {
         return;
       }
@@ -192,7 +169,7 @@ public:
       // parser.print();
 
       if (!share_button_free) {
-        if (!buttons_pressed[ProInputParser::share]) {
+        if (!buttons_pressed[RealController::Buttons::share]) {
           share_button_free = true;
         }
         return;
@@ -201,29 +178,23 @@ public:
       if (perform_calibration(parser)) {
         // send_rumble(0,255);
         calibrated = true;
-        hid_ctrl->led();
         write_calibration_to_file();
+        hid_ctrl->led();
         // print_calibration_values();
         // printf("\n");
       }
     }
-    catch (const ProInputParser::PacketLengthError &e) {
-      /*PrintColor::magenta();
+    catch (const RealController::PacketTypeError &e) {
+      /*Utils::PrintColor::magenta();
       printf("%s\n", e.what());
-      PrintColor::normal();*/
-      return;
-    }
-    catch (const ProInputParser::PacketTypeError &e) {
-      /*PrintColor::magenta();
-      printf("%s\n", e.what());
-      PrintColor::normal();
+      Utils::PrintColor::normal();
       return;*/
       throw;
     }
   }
 
   void decalibrate() {
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+    for (const RealController::Axis &id: RealController::axis_ids) {
       axis_min[id] = center;
       axis_max[id] = center;
       axis_cen[id] = center;
@@ -248,18 +219,18 @@ public:
   }
 
 private:
-  bool perform_calibration(const ProInputParser::Parser &parser) {
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+  bool perform_calibration(const RealController::Parser &parser) {
+    for (const RealController::Axis &id: RealController::axis_ids) {
       uint16_t value = parser.get_axis_status(id);
       if (value < axis_min[id]) axis_min[id] = value;
       if (value > axis_max[id]) axis_max[id] = value;
     }
 
-    if (!buttons_pressed[ProInputParser::share]) {
+    if (!buttons_pressed[RealController::Buttons::share]) {
       return false;
     }
 
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+    for (const RealController::Axis &id: RealController::axis_ids) {
       axis_cen[id] = parser.get_axis_status(id);
     }
 
@@ -272,7 +243,7 @@ private:
     myReadFile.open(calibration_filename,
                     std::ios::in | std::ios::binary);
     if (myReadFile) {
-      for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+      for (const RealController::Axis &id: RealController::axis_ids) {
         myReadFile.read((char *)&axis_min[id], sizeof(uint16_t));
         myReadFile.read((char *)&axis_max[id], sizeof(uint16_t));
         myReadFile.read((char *)&axis_cen[id], sizeof(uint16_t));
@@ -288,7 +259,7 @@ private:
     std::ofstream calibration_file;
     calibration_file.open(calibration_filename,
                           std::ios::out | std::ios::binary);
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+    for (const RealController::Axis &id: RealController::axis_ids) {
       calibration_file.write((char *)&axis_min[id], sizeof(uint16_t));
       calibration_file.write((char *)&axis_max[id], sizeof(uint16_t));
       calibration_file.write((char *)&axis_cen[id], sizeof(uint16_t));
@@ -302,14 +273,14 @@ private:
 
   void manage_dpad() {
     int x = 0, y = 0;
-    if (dpad_pressed[ProInputParser::d_left]) {
+    if (dpad_pressed[RealController::Dpad::d_left]) {
       x = -1;
-    } else if (dpad_pressed[ProInputParser::d_right]) {
+    } else if (dpad_pressed[RealController::Dpad::d_right]) {
       x = 1;
     }
-    if (dpad_pressed[ProInputParser::d_down]) {
+    if (dpad_pressed[RealController::Dpad::d_down]) {
       y = -1;
-    } else if (dpad_pressed[ProInputParser::d_up]) {
+    } else if (dpad_pressed[RealController::Dpad::d_up]) {
       y = 1;
     }
 
@@ -319,19 +290,19 @@ private:
   }
 
   void manage_buttons() {
-    for (const ProInputParser::BUTTONS &id: xbox_btns_ids) {
+    for (const RealController::Buttons &id: xbox_btns_ids) {
       if (buttons_pressed[id] && !last_pressed[id]) {
         if (config.found_dribble_cam_value) {
           switch (id) {
-          case ProInputParser::X:
-            uinput_ctrl->button_press(btns_map[ProInputParser::X]);
+          case RealController::Buttons::X:
+            uinput_ctrl->button_press(btns_map[RealController::Buttons::X]);
             if (dribble_mode) toggle_dribble_mode(); // toggle off dribble mode
             continue;
-          case ProInputParser::Y:
+          case RealController::Buttons::Y:
             toggle_dribble_mode();
             continue;
-          case ProInputParser::share:
-            uinput_ctrl->button_press(btns_map[ProInputParser::Y]);
+          case RealController::Buttons::share:
+            uinput_ctrl->button_press(btns_map[RealController::Buttons::Y]);
             continue;
           default:
             break;
@@ -342,15 +313,15 @@ private:
       }
     }
 
-    for (const ProInputParser::BUTTONS &id: xbox_btns_ids) {
+    for (const RealController::Buttons &id: xbox_btns_ids) {
       if (!buttons_pressed[id] && last_pressed[id]) {
         if (config.found_dribble_cam_value) {
           switch (id) {
-          case ProInputParser::Y:
-            uinput_ctrl->button_release(btns_map[ProInputParser::X]);
+          case RealController::Buttons::Y:
+            uinput_ctrl->button_release(btns_map[RealController::Buttons::X]);
             continue;
-          case ProInputParser::share:
-            uinput_ctrl->button_release(btns_map[ProInputParser::Y]);
+          case RealController::Buttons::share:
+            uinput_ctrl->button_release(btns_map[RealController::Buttons::Y]);
             continue;
           default:
             break;
@@ -362,27 +333,27 @@ private:
     }
 
     // do triggers here as well
-    uinput_ctrl->write_single_joystick(buttons_pressed[ProInputParser::L2]*0xFFF, ABS_Z);
-    uinput_ctrl->write_single_joystick(buttons_pressed[ProInputParser::R2]*0xFFF, ABS_RZ);
+    uinput_ctrl->write_single_joystick(buttons_pressed[RealController::Buttons::L2]*0xFFF, ABS_Z);
+    uinput_ctrl->write_single_joystick(buttons_pressed[RealController::Buttons::R2]*0xFFF, ABS_RZ);
 
     uinput_ctrl->send_report();
   }
 
   void manage_joysticks() {
     if (dribble_mode) {
-      axis_values[ProInputParser::axis_ry] = clamp_int(axis_values[ProInputParser::axis_ry] + config.dribble_cam_value - 0x7FF);
+      axis_values[RealController::Axis::axis_ry] = clamp_int(axis_values[RealController::Axis::axis_ry] + config.dribble_cam_value - 0x7FF);
     }
 
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+    for (const RealController::Axis &id: RealController::axis_ids) {
       uinput_ctrl->write_single_joystick(axis_values[id], axis_map[id]);
     }
 
     uinput_ctrl->send_report();
   }
 
-  void update_input_state(const ProInputParser::Parser &parser) {
+  void update_input_state(const RealController::Parser &parser) {
     /// Buttons
-    for (const ProInputParser::BUTTONS &id: ProInputParser::btns_ids) {
+    for (const RealController::Buttons &id: RealController::btns_ids) {
       /// Store last state
       last_pressed[id] = buttons_pressed[id];
       /// Update value
@@ -390,12 +361,12 @@ private:
     }
 
     /// Axis
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+    for (const RealController::Axis &id: RealController::axis_ids) {
       axis_values[id] = parser.get_axis_status(id);
     }
 
     /// dpad
-    for (const ProInputParser::DPAD &id: ProInputParser::dpad_ids) {
+    for (const RealController::Dpad &id: RealController::dpad_ids) {
       /// Store last state
       dpad_last[id] = dpad_pressed[id];
       /// Update value
@@ -403,21 +374,21 @@ private:
     }
 
     if (config.swap_ab || config.swap_buttons) {
-      buttons_pressed[ProInputParser::A] = parser.is_button_pressed(ProInputParser::B);
-      buttons_pressed[ProInputParser::B] = parser.is_button_pressed(ProInputParser::A);
+      buttons_pressed[RealController::Buttons::A] = parser.is_button_pressed(RealController::Buttons::B);
+      buttons_pressed[RealController::Buttons::B] = parser.is_button_pressed(RealController::Buttons::A);
     }
     if (config.swap_xy || config.swap_buttons) {
-      buttons_pressed[ProInputParser::X] = parser.is_button_pressed(ProInputParser::Y);
-      buttons_pressed[ProInputParser::Y] = parser.is_button_pressed(ProInputParser::X);
+      buttons_pressed[RealController::Buttons::X] = parser.is_button_pressed(RealController::Buttons::Y);
+      buttons_pressed[RealController::Buttons::Y] = parser.is_button_pressed(RealController::Buttons::X);
     }
 
     if (config.invert_dx) {
-      dpad_pressed[ProInputParser::d_left]  = parser.is_dpad_pressed(ProInputParser::d_right);
-      dpad_pressed[ProInputParser::d_right] = parser.is_dpad_pressed(ProInputParser::d_left);
+      dpad_pressed[RealController::Dpad::d_left]  = parser.is_dpad_pressed(RealController::Dpad::d_right);
+      dpad_pressed[RealController::Dpad::d_right] = parser.is_dpad_pressed(RealController::Dpad::d_left);
     }
     if (config.invert_dy) {
-      dpad_pressed[ProInputParser::d_up]    = parser.is_dpad_pressed(ProInputParser::d_down);
-      dpad_pressed[ProInputParser::d_down]  = parser.is_dpad_pressed(ProInputParser::d_up);
+      dpad_pressed[RealController::Dpad::d_up]    = parser.is_dpad_pressed(RealController::Dpad::d_down);
+      dpad_pressed[RealController::Dpad::d_down]  = parser.is_dpad_pressed(RealController::Dpad::d_up);
     }
 
     if (calibrated) {
@@ -425,14 +396,14 @@ private:
     }
 
     // Invert axis
-    if (config.invert_lx) axis_values[ProInputParser::axis_lx] = 0xFFF - axis_values[ProInputParser::axis_lx];
-    if (config.invert_ly) axis_values[ProInputParser::axis_ly] = 0xFFF - axis_values[ProInputParser::axis_ly];
-    if (config.invert_rx) axis_values[ProInputParser::axis_rx] = 0xFFF - axis_values[ProInputParser::axis_rx];
-    if (config.invert_ry) axis_values[ProInputParser::axis_ry] = 0xFFF - axis_values[ProInputParser::axis_ry];
+    if (config.invert_lx) axis_values[RealController::Axis::axis_lx] = 0xFFF - axis_values[RealController::Axis::axis_lx];
+    if (config.invert_ly) axis_values[RealController::Axis::axis_ly] = 0xFFF - axis_values[RealController::Axis::axis_ly];
+    if (config.invert_rx) axis_values[RealController::Axis::axis_rx] = 0xFFF - axis_values[RealController::Axis::axis_rx];
+    if (config.invert_ry) axis_values[RealController::Axis::axis_ry] = 0xFFF - axis_values[RealController::Axis::axis_ry];
   }
 
   void map_sticks() {
-    for (const ProInputParser::AXIS &id: ProInputParser::axis_ids) {
+    for (const RealController::Axis &id: RealController::axis_ids) {
       long double val;
       if (axis_values[id] < axis_cen[id]) {
         val = (long double)(axis_values[id] - axis_min[id]) /
@@ -470,50 +441,45 @@ private:
   std::array<int, 14> make_button_map() const {
     std::array<int, 14> map {0};
 
-    map[ProInputParser::A] = BTN_EAST;
-    map[ProInputParser::B] = BTN_SOUTH;
-    map[ProInputParser::X] = BTN_WEST;
-    map[ProInputParser::Y] = BTN_NORTH;
+    map[RealController::Buttons::A] = BTN_EAST;
+    map[RealController::Buttons::B] = BTN_SOUTH;
+    map[RealController::Buttons::X] = BTN_WEST;
+    map[RealController::Buttons::Y] = BTN_NORTH;
 
-    map[ProInputParser::plus]  = BTN_START;
-    map[ProInputParser::minus] = BTN_SELECT;
-    map[ProInputParser::home]  = BTN_MODE;
-    // map[ProInputParser::share] = ;
+    map[RealController::Buttons::plus]  = BTN_START;
+    map[RealController::Buttons::minus] = BTN_SELECT;
+    map[RealController::Buttons::home]  = BTN_MODE;
+    // map[RealController::Buttons::share] = ;
 
-    map[ProInputParser::L1] = BTN_TL;
-    map[ProInputParser::L2] = BTN_TL2;
-    map[ProInputParser::L3] = BTN_THUMBL;
-    map[ProInputParser::R1] = BTN_TR;
-    map[ProInputParser::R2] = BTN_TR2;
-    map[ProInputParser::R3] = BTN_THUMBR;
+    map[RealController::Buttons::L1] = BTN_TL;
+    map[RealController::Buttons::L2] = BTN_TL2;
+    map[RealController::Buttons::L3] = BTN_THUMBL;
+    map[RealController::Buttons::R1] = BTN_TR;
+    map[RealController::Buttons::R2] = BTN_TR2;
+    map[RealController::Buttons::R3] = BTN_THUMBR;
 
     return map;
   }
 
   std::array<int, 4> make_axis_map() const {
     std::array<int, 4> map {0};
-    map[ProInputParser::axis_lx] = ABS_X;
-    map[ProInputParser::axis_ly] = ABS_Y;
-    map[ProInputParser::axis_rx] = ABS_RX;
-    map[ProInputParser::axis_ry] = ABS_RY;
+    map[RealController::Axis::axis_lx] = ABS_X;
+    map[RealController::Axis::axis_ly] = ABS_Y;
+    map[RealController::Axis::axis_rx] = ABS_RX;
+    map[RealController::Axis::axis_ry] = ABS_RY;
     return map;
   }
 
   std::array<int, 4> make_dpad_map() const {
     std::array<int, 4> map {0};
-    map[ProInputParser::d_left]  = BTN_DPAD_LEFT;
-    map[ProInputParser::d_right] = BTN_DPAD_RIGHT;
-    map[ProInputParser::d_up]    = BTN_DPAD_UP;
-    map[ProInputParser::d_down]  = BTN_DPAD_DOWN;
+    map[RealController::Dpad::d_left]  = BTN_DPAD_LEFT;
+    map[RealController::Dpad::d_right] = BTN_DPAD_RIGHT;
+    map[RealController::Dpad::d_up]    = BTN_DPAD_UP;
+    map[RealController::Dpad::d_down]  = BTN_DPAD_DOWN;
     return map;
   }
 
   const std::string calibration_filename = "procon_calibration_data";
-
-  uint n_print_cycle = 1000;
-  uint print_cycle_counter = 0;
-  uint n_bad_data_zero = 0;
-  uint n_bad_data_thirty = 0;
 
   bool calibrated = false;
   bool read_calibration_from_file =
@@ -529,13 +495,13 @@ private:
   std::array<uint16_t, 4> axis_values{center};
 
   std::array<int, 14> btns_map = make_button_map();
-  const std::array<ProInputParser::BUTTONS, 12> xbox_btns_ids{
-    ProInputParser::A, ProInputParser::B,
-    ProInputParser::X, ProInputParser::Y,
-    ProInputParser::plus, ProInputParser::minus, ProInputParser::home, 
-    ProInputParser::share, /// Allow it to be used for dribble mode.
-    ProInputParser::L1, /*ProInputParser::L2,*/ ProInputParser::L3,
-    ProInputParser::R1, /*ProInputParser::R2,*/ ProInputParser::R3,
+  const std::array<RealController::Buttons, 12> xbox_btns_ids{
+    RealController::Buttons::A, RealController::Buttons::B,
+    RealController::Buttons::X, RealController::Buttons::Y,
+    RealController::Buttons::plus, RealController::Buttons::minus, RealController::Buttons::home, 
+    RealController::Buttons::share, /// Allow it to be used for dribble mode.
+    RealController::Buttons::L1, /*RealController::Buttons::L2,*/ RealController::Buttons::L3,
+    RealController::Buttons::R1, /*RealController::Buttons::R2,*/ RealController::Buttons::R3,
   };
   std::array<bool, 14> buttons_pressed{false};
   std::array<bool, 14> last_pressed{false};
@@ -547,7 +513,7 @@ private:
   bool dribble_mode = false;
 
   Config config;
-  HidController *hid_ctrl = nullptr;
+  RealController::Controller *hid_ctrl = nullptr;
   UInputController *uinput_ctrl = nullptr;
 };
 

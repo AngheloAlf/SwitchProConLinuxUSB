@@ -11,10 +11,10 @@
 
 namespace HidApi{
   template <size_t length>
-  using generic_packet = std::array<uint8_t, length>;
+  using GenericPacket = std::array<uint8_t, length>;
 
   static constexpr size_t default_length{0x400};
-  using default_packet = generic_packet<default_length>;
+  using DefaultPacket = GenericPacket<default_length>;
 
   class HidApiError: public std::runtime_error {
   public:
@@ -66,10 +66,15 @@ namespace HidApi{
   class Enumerate{
   public:
     Enumerate(uint16_t vendor_id, uint16_t product_id);
+    Enumerate(const Enumerate &other) = delete;
+    Enumerate(Enumerate &&other) noexcept;
 
-    ~Enumerate();
+    ~Enumerate() noexcept;
 
-    const struct hid_device_info *device_info() const;
+    Enumerate &operator=(const Enumerate &other) = delete;
+    Enumerate &operator=(Enumerate &&other) noexcept;
+
+    const struct hid_device_info *device_info() const noexcept;
 
     static constexpr uint16_t any_vendor{0};
     static constexpr uint16_t any_product{0};
@@ -81,15 +86,20 @@ namespace HidApi{
   class Device {
   public:
     Device(const struct hid_device_info *device_info);
-    Device(const HidApi::Enumerate &info);
+    Device(const Enumerate &info);
     Device(unsigned short vendor_id, unsigned short product_id, const wchar_t *serial_number);
+    Device(const Device &other) = delete;
+    Device(Device &&other) noexcept;
 
     ~Device();
+
+    Device &operator=(const Device &other) = delete;
+    Device &operator=(Device &&other) noexcept;
 
     size_t write(size_t len, const uint8_t *data);
 
     template <size_t len>
-    size_t write(const generic_packet<len> &data) {
+    size_t write(const GenericPacket<len> &data) {
       return write(len, data.data());
     }
 
@@ -97,30 +107,30 @@ namespace HidApi{
     size_t read(size_t len, uint8_t *data, int milliseconds=-1);
 
     template <size_t len>
-    size_t read(generic_packet<len> &data, int milliseconds=-1) {
+    size_t read(GenericPacket<len> &data, int milliseconds=-1) {
       return read(len, data.data(), milliseconds);
     }
 
-    default_packet read(int milliseconds=-1);
+    DefaultPacket read(int milliseconds=-1);
 
 
     size_t exchange(size_t read_len, uint8_t *buf, size_t write_len, const uint8_t *data_to_write, int milliseconds=-1);
 
     template <size_t read_len, size_t write_len>
-    size_t exchange(generic_packet<read_len> &buf, const generic_packet<write_len> &data_to_write, int milliseconds=-1) {
+    size_t exchange(GenericPacket<read_len> &buf, const GenericPacket<write_len> &data_to_write, int milliseconds=-1) {
       return exchange(read_len, buf.data(), write_len, data_to_write.data(), milliseconds);
     }
 
-    default_packet exchange(size_t write_len, const uint8_t *data_to_write, int milliseconds=-1);
+    DefaultPacket exchange(size_t write_len, const uint8_t *data_to_write, int milliseconds=-1);
 
     template <size_t len>
-    default_packet exchange(const generic_packet<len> &data_to_write, int milliseconds=-1) {
+    DefaultPacket exchange(const GenericPacket<len> &data_to_write, int milliseconds=-1) {
       return exchange(len, data_to_write.data(), milliseconds);
     }
 
     void set_non_blocking();
     void set_blocking();
-
+    bool IsBlocking() const noexcept;
 
     std::string get_manufacturer() const;
     std::string get_product() const;
