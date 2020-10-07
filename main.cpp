@@ -3,21 +3,29 @@
 #include "utils.hpp"
 
 #include <chrono>
+#include <thread>
 #include <signal.h>
 
 //#define DEBUG
 
-int64_t current_time_micro() {
-  return std::chrono::steady_clock::now().time_since_epoch() / std::chrono::microseconds(1);
-}
-
 bool controller_loop = true;
 void exit_handler(int ignored){
+  if (controller_loop == false) {
+    fflush(stdout);
+    Utils::PrintColor::red();
+    printf("\n\nHard exit.\n");
+    Utils::PrintColor::normal();
+    fflush(stdout);
+    signal(SIGINT, SIG_DFL);
+    raise(SIGINT);
+    return;
+  }
   (void)ignored;
   controller_loop = false;
   Utils::PrintColor::magenta();
   printf("\nExiting...\n");
   Utils::PrintColor::normal();
+  fflush(stdout);
 }
 
 void print_help() {
@@ -71,7 +79,7 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
   if (!controller.needs_first_calibration()) {
     controller.calibrate_from_file();
     Utils::PrintColor::green();
-    printf("Read calibration data from file!");
+    printf("Read calibration data from file! ");
     Utils::PrintColor::cyan();
     printf("Press 'share' and 'home' to calibrate again or start with "
            "--calibrate or -c.\n");
@@ -82,7 +90,7 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
 
   printf("\n");
 
-  int64_t last = current_time_micro();
+  auto last = std::chrono::steady_clock::now();
   long double delta_milis = 16;
   while (controller_loop) {
     if (!controller.is_calibrated()) {
@@ -131,18 +139,19 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
       printf("\r\e[K");
     }
 
-    int64_t now = current_time_micro();
-    delta_milis = (now-last)/1000.L;
-    //printf("%02.2Lf ms", delta_milis);
-    //fflush(stdout);
-    //printf("\r\e[K");
+    std::this_thread::sleep_until(last + std::chrono::microseconds((1000 * 1000 / 80)));
+
+    auto now = std::chrono::steady_clock::now();
+    delta_milis = ((now-last) / std::chrono::microseconds(1)) / 1000.L;
+    /*printf("%05.2Lf ms", delta_milis);
+    fflush(stdout);
+    printf("\r\e[K");*/
     last = now;
   }
 }
 
 
 int main(int argc, char *argv[]) {
-
   Config config(argc, argv);
 
   if (config.help) {

@@ -470,7 +470,7 @@ size_t ProInputParser::dpad_data_address(DPAD dpad, PacketType packet) {
 }
 
 
-void ProInputParser::print_exchange_array(size_t packet_len, HidApi::default_packet arr) {
+void ProInputParser::print_exchange_array(size_t packet_len, uint8_t *arr) {
   bool redcol = false;
   if (arr[0] != 0x30) {
     Utils::PrintColor::yellow();
@@ -496,8 +496,11 @@ void ProInputParser::print_exchange_array(size_t packet_len, HidApi::default_pac
   fflush(stdout);
 }
 
+void ProInputParser::print_exchange_array(size_t packet_len, HidApi::DefaultPacket arr) {
+  print_exchange_array(packet_len, arr.data());
+}
 
-Parser::Parser(size_t packet_len, HidApi::default_packet data): len(packet_len), dat(data) {
+Parser::Parser(size_t packet_len, HidApi::DefaultPacket data): len(packet_len), dat(data) {
   type = PacketType::unknown;
 
   if (packet_len == 0) {
@@ -618,12 +621,6 @@ bool Parser::is_dpad_pressed(DPAD dpad) const {
   return byte & dpad_byte_value(dpad);
 }
 
-
-/* Hackishly detects when the controller is trapped in a bad loop.
-Nothing to do here, need to reopen device :(*/
-bool Parser::detect_bad_data() const {
-  return dat[1] == 0x01 && dat[0] == 0x81;
-}
 
 bool Parser::has_button_and_axis_data() const {
   switch (type) {

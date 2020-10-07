@@ -140,23 +140,21 @@ namespace ProInputParser {
   uint8_t dpad_byte_value(DPAD dpads, PacketType packet);
   size_t dpad_data_address(DPAD dpad, PacketType packet);
 
-  void print_exchange_array(size_t packet_len, HidApi::default_packet arr);
+  void print_exchange_array(size_t packet_len, uint8_t *arr);
+  void print_exchange_array(size_t packet_len, HidApi::DefaultPacket arr);
 
+  struct ControllerMAC {
+    uint8_t controller_type;
+    std::array<uint8_t, 6> mac;
+  };
 
   class Parser {
   public:
-    Parser(size_t packet_len, HidApi::default_packet data);
+    Parser(size_t packet_len, HidApi::DefaultPacket data);
 
     bool is_button_pressed(BUTTONS button) const;
-
     uint16_t get_axis_status(AXIS axis) const;
-
     bool is_dpad_pressed(DPAD dpad) const;
-
-
-    /* Hackishly detects when the controller is trapped in a bad loop.
-    Nothing to do here, need to reopen device :(*/
-    bool detect_bad_data() const;
 
     bool has_button_and_axis_data() const;
 
@@ -174,7 +172,7 @@ namespace ProInputParser {
     size_t  dpad_data_address(DPAD dpad) const;
   private:
     size_t len = 0;
-    HidApi::default_packet dat;
+    HidApi::DefaultPacket dat;
     PacketType type = PacketType::packet_none;
   };
 };

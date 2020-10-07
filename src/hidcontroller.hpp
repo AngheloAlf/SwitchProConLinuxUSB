@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <unistd.h>
 
-#include "hidapi_wrapper.hpp"
+#include "real_controller_connection.hpp"
 #include "proinputparser.hpp"
 
 #define TEST_BAD_DATA_CYCLES 10
@@ -14,90 +14,103 @@
 class HidController{
 public:
   HidController(const HidApi::Enumerate &device_info, unsigned short n_controll)
-                : hid(device_info), n_controller(n_controll) {
-    printf("serial number: %s\n", hid.get_serial_number().c_str());
-    if (hid.get_serial_number() != "000000000001") {
-      printf("Bluetooth!\n");
-      bluetooth = true;
-    }
-    hid.set_blocking();
+                : connection(device_info), n_controller(n_controll) {
+    closed = false;
+    connection.setBlocking();
 
-    if (!bluetooth) {
-      HidApi::default_packet stus = send_uart(Uart::status, 100);
-      if (!bluetooth && stus[0x00] != 0x81) {
-        send_uart(Uart::reset);
-        throw std::runtime_error("USB connection wasn't closed properly.");
+    if (!connection.Bluetooth()) {
+      ProInputParser::ControllerMAC mac = connection.request_mac();
+      printf("controller_type: %02x\n", mac.controller_type);
+      printf("mac: %02x", mac.mac[0]);
+      for (size_t i = 1; i < 6; ++i) {
+        printf(":%02x", mac.mac[i]);
       }
-      if (stus[0x03] == 0x03) {
-        // mac address
-      }
+      printf("\n");
 
-      send_uart(Uart::handshake);
-      send_uart(Uart::inc_baudrate);
-      send_uart(Uart::handshake);
+      connection.do_handshake();
+      connection.increment_baudrate();
+      connection.do_handshake();
 
-      // the next part will sometimes fail, then need to reopen device via hidapi
-      send_uart(Uart::hid_only);
+      connection.enable_hid_only_mode();
     }
 
-    led();
+    connection.toggle_rumble(true);
+    connection.toggle_imu(true);
 
-    send_subcommand(SubCmd::en_rumble, enable);
-    send_subcommand(SubCmd::en_imu, enable);
+    // connection.set_imu_sensitivity(0x03, 0x00, 0x00, 0x01);
 
-    HidApi::generic_packet<0x04> imu_args {0x03, 0x00, 0x00, 0x01};
-    send_subcommand(SubCmd::set_imu, imu_args);
-
-    HidApi::generic_packet<0x01> report_mode {0x30};
-    send_subcommand(SubCmd::set_in_report, report_mode);
+    connection.set_input_report_mode(0x30);
 
     #if 0
-    if (bluetooth) {
-      HidApi::generic_packet<1> msg_increase_datarate_bt{{0x31}};
-      send_subcommand(SubCmd::set_in_report, msg_increase_datarate_bt);
+    if (connection.Bluetooth()) {
+      //HidApi::GenericPacket<1> msg_increase_datarate_bt{{0x31}};
+      //send_subcommand(SubCmd::set_in_report, msg_increase_datarate_bt);
+      connection.set_input_report_mode(0x31);
+      receive_input().print();
     }
     #endif
-    hid.set_non_blocking();
+
+    connection.setNonBlocking();
     usleep(100 * 1000);
 
-    // TEST FOR BAD DATA
-    /*for (size_t i = 0; i < TEST_BAD_DATA_CYCLES; ++i) {
-      if (try_read_bad_data()) {
-        throw std::runtime_error("Detected bad data stream. Trying again...");
-      }
-    }*/
+    led();
+  }
+  HidController(const HidController &other) = delete;
+  HidController(HidController &&other) noexcept: 
+    connection(std::move(other.connection)), n_controller(std::move(other.n_controller)), 
+    blink_position(std::move(other.blink_position)), blink_counter(std::move(other.blink_counter)), 
+    closed(std::move(other.closed)) {
   }
 
-  ~HidController(){
+  ~HidController() noexcept {
+    if (closed) {
+      return;
+    }
+
     try {
       close();
+      // Wait for controller to receive the close packet.
+      usleep(1000 * 1000);
     }
     catch (const HidApi::HidApiError &e) {
     }
+  }
 
-    // Wait for controller to receive the close packet.
-    usleep(1000 * 1000);
+  HidController &operator=(const HidController &other) = delete;
+  HidController &operator=(HidController &&other) noexcept {
+    std::swap(connection, other.connection);
+    std::swap(n_controller, other.n_controller);
+    std::swap(closed, other.closed);
+    std::swap(blink_position, other.blink_position);
+    std::swap(blink_counter, other.blink_counter);
+    return *this;
+  }
+
+  ProInputParser::Parser receive_input() {
+    /// TODO: do a waiting loop if a zero packet is received or something.
+    HidApi::DefaultPacket buff;
+    size_t len;
+    do {
+      len = connection.receive_input(buff, 16);
+    } while (len == 0);
+    return ProInputParser::Parser(len, buff);
   }
 
   ProInputParser::Parser request_input() {
-    /*if (bluetooth) {
-      return send_subcommand(SubCmd::zero, empty);
-    }*/
-    //return send_command(Cmd::get_input, empty);
-    
-    HidApi::default_packet input;
-    input.fill(0);
-    size_t len = hid.read(input, 5);
-    return ProInputParser::Parser(len, input);
+    HidApi::DefaultPacket buff;
+    size_t len = connection.request_input(buff);
+    return ProInputParser::Parser(len, buff);
   }
 
+
   void led(int number = -1){
-    HidApi::generic_packet<1> value {
-      number < 0 ?
-      player_led[n_controller] : 
-      static_cast<uint8_t>(number)};
-    
-    send_subcommand(SubCmd::set_leds, value);
+    uint8_t bitwise = player_led[n_controller];
+    if (number >= 0) {
+      bitwise = static_cast<uint8_t>(number);
+    }
+
+    connection.set_player_leds(bitwise);
+    // connection.set_player_leds(bitwise);
   }
 
   void blink() {
@@ -107,38 +120,28 @@ public:
         blink_position = 0;
       }
     }
-    HidApi::generic_packet<1> blink_command{{blink_array[blink_position]}};
-    send_subcommand(SubCmd::set_leds, blink_command);
+
+    connection.set_player_leds(blink_array[blink_position]);
   }
 
-  ProInputParser::Parser send_rumble(uint8_t large_motor, uint8_t small_motor) {
-    HidApi::generic_packet<9> buf{
-      static_cast<uint8_t>(rumble_counter++ & 0xF),
-      0x80, 0x00, 0x40, 0x40, 0x80, 0x00, 0x40, 0x40};
+  void send_rumble(uint8_t large_motor, uint8_t small_motor) {
+    HidApi::GenericPacket<4> left {0x80, 0x00, 0x40, 0x40};
+    HidApi::GenericPacket<4> right{0x80, 0x00, 0x40, 0x40};
 
     if (large_motor != 0) {
-      buf[1] = buf[5] = 0x08;
-      buf[2] = buf[6] = large_motor;
+      left[1] = right[1] = 0x08;
+      left[2] = right[2] = large_motor;
     } else if (small_motor != 0) {
-      buf[1] = buf[5] = 0x10;
-      buf[2] = buf[6] = small_motor;
+      left[1] = right[1] = 0x10;
+      left[2] = right[2] = small_motor;
     }
-    ProInputParser::Parser ret = send_command(Cmd::rumble_only, buf);
-    ret.print();
-    return ret;
+
+    connection.send_rumble(left, right);
   }
 
-  ProInputParser::Parser rumble(/*int frequency, int intensity*/) {
-    HidApi::generic_packet<8> buf;
-
-    buf[0] = buf[0+4] = 0x00;
-    buf[1] = buf[1+4] = 0x01;
-    buf[2] = buf[2+4] = 0x40;
-    buf[3] = buf[3+4] = 0x40;
-
-    ProInputParser::Parser ret = send_command(Cmd::rumble_only, buf);
-    //ret.print();
-    return ret;
+  void rumble(/*int frequency, int intensity*/) {
+    HidApi::GenericPacket<4> default_rumble{0x00, 0x01, 0x40, 0x40};
+    connection.send_rumble(default_rumble, default_rumble);
   }
 
   void close() {
@@ -146,140 +149,30 @@ public:
       return;
     }
     closed = true;
-    hid.set_blocking();
-    send_subcommand(SubCmd::en_imu, disable);
-    // send_subcommand(SubCmd::en_rumble, disable);
+    connection.setBlocking();
+    connection.toggle_rumble(false);
+    connection.toggle_imu(false);
 
-    if (!bluetooth) {
-      send_uart(Uart::turn_off_hid);
-      send_uart(Uart::reset);
+    if (!connection.Bluetooth()) {
+      connection.disable_hid_only_mode();
+      connection.send_reset();
     }
   }
 
 private:
-  enum Protocols {
-    zero_one      = 0x01,
-    one_zero      = 0x10,
-    nintendo      = 0x80,
-  };
-
-  enum Uart {
-    status        = 0x01,
-    handshake     = 0x02,
-    inc_baudrate  = 0x03,
-    hid_only      = 0x04,
-    turn_off_hid  = 0x05,
-    reset         = 0x06,
-    //prehand_cmd   = 0x91,
-    uart_cmd      = 0x92,
-  };
-
-  enum Cmd {
-    sub_command   = 0x01,
-    rumble_only   = 0x10,
-    //nfc_ir_req    = 0x11,
-    get_input     = 0x1f, // ?
-  };
-
-  enum SubCmd {
-    zero          = 0x00, // ??
-    //req_dev_info  = 0x02,
-    set_in_report = 0x03, /// Set input report mode
-    set_leds      = 0x30,
-    get_leds      = 0x31,
-    //set_home_led  = 0x38,
-    en_imu        = 0x40,
-    set_imu       = 0x41,
-    en_rumble     = 0x48,
-    //get_voltage   = 0x50, /// Get regullated voltage.
-  };
-
-  HidApi::default_packet send_uart(Uart uart, int milliseconds=-1){
-    HidApi::generic_packet<0x02> packet {Protocols::nintendo, uart};
-    return hid.exchange(packet, milliseconds);
-  }
-
-  template <size_t input_len, size_t output_len>
-  size_t 
-  send_uart(HidApi::generic_packet<input_len> &input, const HidApi::generic_packet<output_len> &data){
-    HidApi::generic_packet<output_len + 0x08> packet;
-    packet.fill(0);
-    packet[0x00] = Protocols::nintendo;
-    packet[0x01] = Uart::uart_cmd;
-    packet[0x02] = 0x00; // length?
-    packet[0x03] = 0x31; // length?
-    if (output_len > 0) {
-      memcpy(packet.data() + 0x8, data.data(), output_len);
-    }
-    return hid.exchange(input, packet);
-  }
-
-  template <size_t length>
-  ProInputParser::Parser send_command(Cmd command,
-                              HidApi::generic_packet<length> const &data) {
-    HidApi::generic_packet<length + 0x01> buffer;
-    buffer.fill(0);
-    buffer[0x00] = command;
-    if (length > 0) {
-      memcpy(buffer.data() + 0x01, data.data(), length);
-    }
-
-    HidApi::default_packet input;
-    input.fill(0);
-    size_t len;
-
-    if (bluetooth) {
-      len = hid.exchange(input, buffer);
-      return ProInputParser::Parser(len, input);
-    }
-    len = send_uart(input, buffer);
-    return ProInputParser::Parser(len, input);
-  }
-
-  template <size_t length>
-  ProInputParser::Parser send_subcommand(SubCmd subcommand,
-                                 HidApi::generic_packet<length> const &data) {
-    HidApi::generic_packet<length + 10> buffer{
-      static_cast<uint8_t>(rumble_counter++ & 0xF),
-      0x00, 0x01, 0x40, 0x40, 0x00, 0x01, 0x40, 0x40,
-      subcommand};
-
-    if (length > 0) {
-      memcpy(buffer.data() + 10, data.data(), length);
-    }
-    return send_command(Cmd::sub_command, buffer);
-  }
-
-  bool try_read_bad_data() {
-    ProInputParser::Parser dat = request_input();
-
-    if (dat.detect_bad_data()) {
-      // print_exchange_array(dat);
-      return true;
-    }
-
-    return false;
-  }
-
-  HidApi::Device hid;
-  bool bluetooth = false;
-
+  RealController::ControllerConnection connection;
   unsigned short n_controller;
-  bool closed = false;
-
-  uint8_t rumble_counter{0};
-  const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
-
-  const HidApi::generic_packet<0> empty{{}};
-  const HidApi::generic_packet<1> disable{{0x00}};
-  const HidApi::generic_packet<1> enable {{0x01}};
-
-  // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
-  const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
 
   uint blink_position = 0;
   size_t blink_counter = 0;
   const size_t blink_length = 8;
+
+  bool closed = true;
+
+  const std::array<uint8_t, 8> player_led{0x01, 0x03, 0x07, 0x0f, 0x09, 0x05, 0x0d, 0x06};
+
+  // const std::array<uint8_t, 4> blink_array{{0x05, 0x10, 0x04, 0x08}};
+  const std::array<uint8_t, 4> blink_array{{0x01, 0x02, 0x04, 0x08}};
 };
 
 #endif
