@@ -19,24 +19,24 @@ namespace RealController {
   public:
     Parser(size_t packet_len, HidApi::DefaultPacket data);
 
-    bool is_button_pressed(BUTTONS button) const;
-    uint16_t get_axis_status(AXIS axis) const;
-    bool is_dpad_pressed(DPAD dpad) const;
+    bool is_button_pressed(Buttons button) const;
+    uint16_t get_axis_status(Axis axis) const;
+    bool is_dpad_pressed(Dpad dpad) const;
 
     bool has_button_and_axis_data() const;
 
     void print() const;
 
-    uint8_t buttons_bit_position(BUTTONS button) const;
-    uint8_t buttons_byte_button_value(BUTTONS button) const;
-    size_t  buttons_data_address(BUTTONS button) const;
+    uint8_t buttons_bit_position(Buttons button) const;
+    uint8_t buttons_byte_button_value(Buttons button) const;
+    size_t  buttons_data_address(Buttons button) const;
 
-    size_t axis_data_address_high(AXIS axis) const;
-    size_t axis_data_address_low(AXIS axis) const;
+    size_t axis_data_address_high(Axis axis) const;
+    size_t axis_data_address_low(Axis axis) const;
 
-    uint8_t dpad_bit_position(DPAD dpads) const;
-    uint8_t dpad_byte_value(DPAD dpads) const;
-    size_t  dpad_data_address(DPAD dpad) const;
+    uint8_t dpad_bit_position(Dpad dpad) const;
+    uint8_t dpad_byte_value(Dpad dpad) const;
+    size_t  dpad_data_address(Dpad dpad) const;
   private:
     size_t len = 0;
     HidApi::DefaultPacket dat;

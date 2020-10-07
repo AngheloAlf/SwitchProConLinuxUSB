@@ -6,7 +6,7 @@
 #include "real_controller_packets.hpp"
 
 namespace RealController {
-  enum BUTTONS {
+  enum Buttons {
     A,
     B,
     X,
@@ -23,56 +23,56 @@ namespace RealController {
     R3,
     None
   };
-  static const std::array<BUTTONS, 14> btns_ids = {
-    BUTTONS::A, BUTTONS::B, BUTTONS::X, BUTTONS::Y,
-    BUTTONS::plus, BUTTONS::minus, 
-    BUTTONS::home, BUTTONS::share,
-    BUTTONS::L1, BUTTONS::L2, BUTTONS::L3,
-    BUTTONS::R1, BUTTONS::R2, BUTTONS::R3,
+  static const std::array<Buttons, 14> btns_ids = {
+    Buttons::A, Buttons::B, Buttons::X, Buttons::Y,
+    Buttons::plus, Buttons::minus, 
+    Buttons::home, Buttons::share,
+    Buttons::L1, Buttons::L2, Buttons::L3,
+    Buttons::R1, Buttons::R2, Buttons::R3,
   };
 
-  const char *button_name(BUTTONS button);
+  const char *button_name(Buttons button);
 
-  uint8_t buttons_bit_position(BUTTONS button, PacketType packet);
-  uint8_t buttons_byte_button_value(BUTTONS button, PacketType packet);
-  size_t  buttons_data_address(BUTTONS button, PacketType packet);
+  uint8_t buttons_bit_position(Buttons button, PacketType packet);
+  uint8_t buttons_byte_button_value(Buttons button, PacketType packet);
+  size_t  buttons_data_address(Buttons button, PacketType packet);
 
 
-  enum AXIS {
+  enum Axis {
     axis_lx,
     axis_ly,
     axis_rx,
     axis_ry,
     axis_none
   };
-  const std::array<AXIS, 4> axis_ids = {
-    AXIS::axis_lx, AXIS::axis_ly, 
-    AXIS::axis_rx, AXIS::axis_ry,
+  const std::array<Axis, 4> axis_ids = {
+    Axis::axis_lx, Axis::axis_ly, 
+    Axis::axis_rx, Axis::axis_ry,
   };
 
-  const char *axis_name(AXIS axis);
+  const char *axis_name(Axis axis);
 
-  size_t axis_data_address_high(AXIS axis, PacketType packet);
-  size_t axis_data_address_low(AXIS axis, PacketType packet);
+  size_t axis_data_address_high(Axis axis, PacketType packet);
+  size_t axis_data_address_low(Axis axis, PacketType packet);
 
 
-  enum DPAD {
+  enum Dpad {
     d_left,
     d_right,
     d_up,
     d_down,
     d_none
   };
-  static const std::array<DPAD, 4> dpad_ids = {
-    DPAD::d_left, DPAD::d_right, 
-    DPAD::d_up, DPAD::d_down,
+  static const std::array<Dpad, 4> dpad_ids = {
+    Dpad::d_left, Dpad::d_right, 
+    Dpad::d_up, Dpad::d_down,
   };
 
-  const char *dpad_name(DPAD dpad);
+  const char *dpad_name(Dpad dpad);
 
-  uint8_t dpad_bit_position(DPAD dpads, PacketType packet);
-  uint8_t dpad_byte_value(DPAD dpads, PacketType packet);
-  size_t dpad_data_address(DPAD dpad, PacketType packet);
+  uint8_t dpad_bit_position(Dpad dpads, PacketType packet);
+  uint8_t dpad_byte_value(Dpad dpads, PacketType packet);
+  size_t dpad_data_address(Dpad dpad, PacketType packet);
 };
 
 #endif

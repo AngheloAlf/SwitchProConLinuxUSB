@@ -76,12 +76,12 @@ Parser::Parser(size_t packet_len, HidApi::DefaultPacket data): len(packet_len), 
   }
 }
 
-bool Parser::is_button_pressed(BUTTONS button) const {
+bool Parser::is_button_pressed(Buttons button) const {
   uint8_t pos = buttons_data_address(button);
   return dat[pos] & buttons_byte_button_value(button);
 }
 
-uint16_t Parser::get_axis_status(AXIS axis) const {
+uint16_t Parser::get_axis_status(Axis axis) const {
   size_t high, low;
   high = axis_data_address_high(axis);
   low  = axis_data_address_low(axis);
@@ -92,23 +92,23 @@ uint16_t Parser::get_axis_status(AXIS axis) const {
     return value >> 4;
   }
   switch (axis) {
-  case axis_lx:
-  case axis_rx:
+  case Axis::axis_lx:
+  case Axis::axis_rx:
     return value & 0x0FFF;
-  case axis_ly:
-  case axis_ry:
+  case Axis::axis_ly:
+  case Axis::axis_ry:
     return value >> 4;
   default:
     return 0x07FF;
   }
 }
 
-bool Parser::is_dpad_pressed(DPAD dpad) const {
+bool Parser::is_dpad_pressed(Dpad dpad) const {
   size_t pos = dpad_data_address(dpad);
   uint8_t byte = dat[pos];
   if (type == PacketType::normal_ctrl_report) {
     switch (dpad) {
-    case DPAD::d_down:
+    case Dpad::d_down:
       switch (byte) {
       case 5:
       case 4:
@@ -118,7 +118,7 @@ bool Parser::is_dpad_pressed(DPAD dpad) const {
         return false;
       }
 
-    case DPAD::d_up:
+    case Dpad::d_up:
       switch (byte) {
       case 7:
       case 0:
@@ -128,7 +128,7 @@ bool Parser::is_dpad_pressed(DPAD dpad) const {
         return false;
       }
 
-    case DPAD::d_right:
+    case Dpad::d_right:
       switch (byte) {
       case 1:
       case 2:
@@ -138,7 +138,7 @@ bool Parser::is_dpad_pressed(DPAD dpad) const {
         return false;
       }
 
-    case DPAD::d_left:
+    case Dpad::d_left:
       switch (byte) {
       case 7:
       case 6:
@@ -172,30 +172,30 @@ void Parser::print() const {
   printPacket(len, dat);
 }
 
-uint8_t Parser::buttons_bit_position(BUTTONS button) const {
+uint8_t Parser::buttons_bit_position(Buttons button) const {
   return RealController::buttons_bit_position(button, type);
 }
-uint8_t Parser::buttons_byte_button_value(BUTTONS button) const {
+uint8_t Parser::buttons_byte_button_value(Buttons button) const {
   return RealController::buttons_byte_button_value(button, type);
 }
-size_t  Parser::buttons_data_address(BUTTONS button) const {
+size_t  Parser::buttons_data_address(Buttons button) const {
   return RealController::buttons_data_address(button, type);
 }
 
-size_t Parser::axis_data_address_high(AXIS axis) const {
+size_t Parser::axis_data_address_high(Axis axis) const {
   return RealController::axis_data_address_high(axis, type);
 }
-size_t Parser::axis_data_address_low(AXIS axis) const {
+size_t Parser::axis_data_address_low(Axis axis) const {
   return RealController::axis_data_address_low(axis, type);
 }
 
 
-uint8_t Parser::dpad_bit_position(DPAD dpad) const {
+uint8_t Parser::dpad_bit_position(Dpad dpad) const {
   return RealController::dpad_bit_position(dpad, type);
 }
-uint8_t Parser::dpad_byte_value(DPAD dpad) const {
+uint8_t Parser::dpad_byte_value(Dpad dpad) const {
   return RealController::dpad_byte_value(dpad, type);
 }
-size_t  Parser::dpad_data_address(DPAD dpad) const {
+size_t  Parser::dpad_data_address(Dpad dpad) const {
   return RealController::dpad_data_address(dpad, type);
 }
