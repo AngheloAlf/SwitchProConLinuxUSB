@@ -1,5 +1,5 @@
-#include "proinputparser.hpp"
-using namespace ProInputParser;
+#include "real_controller_parser.hpp"
+using namespace RealController;
 
 #include "utils.hpp"
 
@@ -39,7 +39,7 @@ const char *ParserError::what() const noexcept {
   return str;
 }
 
-const char *ProInputParser::button_name(BUTTONS button) {
+const char *RealController::button_name(BUTTONS button) {
   switch (button) {
   case A:
     return "A";
@@ -74,7 +74,7 @@ const char *ProInputParser::button_name(BUTTONS button) {
   }
 }
 
-uint8_t ProInputParser::buttons_bit_position(BUTTONS button, PacketType packet) {
+uint8_t RealController::buttons_bit_position(BUTTONS button, PacketType packet) {
   /// Joycons layout
   /*if (packet == PacketType::normal_ctrl_report) {
     switch (button) {
@@ -146,7 +146,7 @@ uint8_t ProInputParser::buttons_bit_position(BUTTONS button, PacketType packet) 
   }
 }
 
-uint8_t ProInputParser::buttons_byte_button_value(BUTTONS button, PacketType packet) {
+uint8_t RealController::buttons_byte_button_value(BUTTONS button, PacketType packet) {
   /// Joycons layout
   /*if (packet == PacketType::normal_ctrl_report) {
     switch (button) {
@@ -218,7 +218,7 @@ uint8_t ProInputParser::buttons_byte_button_value(BUTTONS button, PacketType pac
   }
 }
 
-size_t  ProInputParser::buttons_data_address(BUTTONS button, PacketType packet) {
+size_t  RealController::buttons_data_address(BUTTONS button, PacketType packet) {
   /// Joycons layout
   /*if (packet == PacketType::normal_ctrl_report) {
     switch (button) {
@@ -301,7 +301,7 @@ size_t  ProInputParser::buttons_data_address(BUTTONS button, PacketType packet) 
 }
 
 
-const char *ProInputParser::axis_name(AXIS axis) {
+const char *RealController::axis_name(AXIS axis) {
   switch (axis) {
   case axis_lx:
     return "axis_lx";
@@ -316,7 +316,7 @@ const char *ProInputParser::axis_name(AXIS axis) {
   }
 }
 
-size_t ProInputParser::axis_data_address_high(AXIS axis, PacketType packet) {
+size_t RealController::axis_data_address_high(AXIS axis, PacketType packet) {
   std::array<size_t, 4> address;
   switch (packet) {
   case PacketType::standard_input_report:
@@ -353,7 +353,7 @@ size_t ProInputParser::axis_data_address_high(AXIS axis, PacketType packet) {
     throw AxisError("AxisError: Tried to find address of unknown axis.");
   }
 }
-size_t ProInputParser::axis_data_address_low(AXIS axis, PacketType packet) {
+size_t RealController::axis_data_address_low(AXIS axis, PacketType packet) {
   std::array<size_t, 4> address;
   switch (packet) {
   case PacketType::standard_input_report:
@@ -392,7 +392,7 @@ size_t ProInputParser::axis_data_address_low(AXIS axis, PacketType packet) {
 }
 
 
-const char *ProInputParser::dpad_name(DPAD dpad) {
+const char *RealController::dpad_name(DPAD dpad) {
   switch (dpad) {
   case d_left:
     return "d_left";
@@ -407,7 +407,7 @@ const char *ProInputParser::dpad_name(DPAD dpad) {
   }
 }
 
-uint8_t ProInputParser::dpad_bit_position(DPAD dpad, PacketType packet) {
+uint8_t RealController::dpad_bit_position(DPAD dpad, PacketType packet) {
   if (packet != PacketType::standard_input_report && packet != PacketType::packet_req) {
     throw DpadError("AxisError: This packet type (" + std::to_string(packet) + ") does not map dpad to specific bits.");
   }
@@ -425,7 +425,7 @@ uint8_t ProInputParser::dpad_bit_position(DPAD dpad, PacketType packet) {
   }
 }
 
-uint8_t ProInputParser::dpad_byte_value(DPAD dpad, PacketType packet) {
+uint8_t RealController::dpad_byte_value(DPAD dpad, PacketType packet) {
   if (packet != PacketType::standard_input_report && packet != PacketType::packet_req) {
     throw DpadError("AxisError: This packet type (" + std::to_string(packet) + ") does not map dpad to specific bits.");
   }
@@ -443,7 +443,7 @@ uint8_t ProInputParser::dpad_byte_value(DPAD dpad, PacketType packet) {
   }
 }
 
-size_t ProInputParser::dpad_data_address(DPAD dpad, PacketType packet) {
+size_t RealController::dpad_data_address(DPAD dpad, PacketType packet) {
   std::array<size_t, 1> address;
   switch (packet) {
   case PacketType::standard_input_report:
@@ -470,7 +470,7 @@ size_t ProInputParser::dpad_data_address(DPAD dpad, PacketType packet) {
 }
 
 
-void ProInputParser::print_exchange_array(size_t packet_len, uint8_t *arr) {
+void RealController::printPacket(size_t packet_len, uint8_t *arr) {
   bool redcol = false;
   if (arr[0] != 0x30) {
     Utils::PrintColor::yellow();
@@ -496,8 +496,8 @@ void ProInputParser::print_exchange_array(size_t packet_len, uint8_t *arr) {
   fflush(stdout);
 }
 
-void ProInputParser::print_exchange_array(size_t packet_len, HidApi::DefaultPacket arr) {
-  print_exchange_array(packet_len, arr.data());
+void RealController::printPacket(size_t packet_len, HidApi::DefaultPacket arr) {
+  printPacket(packet_len, arr.data());
 }
 
 Parser::Parser(size_t packet_len, HidApi::DefaultPacket data): len(packet_len), dat(data) {
@@ -635,33 +635,33 @@ bool Parser::has_button_and_axis_data() const {
 }
 
 void Parser::print() const {
-  print_exchange_array(len, dat);
+  printPacket(len, dat);
 }
 
 uint8_t Parser::buttons_bit_position(BUTTONS button) const {
-  return ProInputParser::buttons_bit_position(button, type);
+  return RealController::buttons_bit_position(button, type);
 }
 uint8_t Parser::buttons_byte_button_value(BUTTONS button) const {
-  return ProInputParser::buttons_byte_button_value(button, type);
+  return RealController::buttons_byte_button_value(button, type);
 }
 size_t  Parser::buttons_data_address(BUTTONS button) const {
-  return ProInputParser::buttons_data_address(button, type);
+  return RealController::buttons_data_address(button, type);
 }
 
 size_t Parser::axis_data_address_high(AXIS axis) const {
-  return ProInputParser::axis_data_address_high(axis, type);
+  return RealController::axis_data_address_high(axis, type);
 }
 size_t Parser::axis_data_address_low(AXIS axis) const {
-  return ProInputParser::axis_data_address_low(axis, type);
+  return RealController::axis_data_address_low(axis, type);
 }
 
 
 uint8_t Parser::dpad_bit_position(DPAD dpad) const {
-  return ProInputParser::dpad_bit_position(dpad, type);
+  return RealController::dpad_bit_position(dpad, type);
 }
 uint8_t Parser::dpad_byte_value(DPAD dpad) const {
-  return ProInputParser::dpad_byte_value(dpad, type);
+  return RealController::dpad_byte_value(dpad, type);
 }
 size_t  Parser::dpad_data_address(DPAD dpad) const {
-  return ProInputParser::dpad_data_address(dpad, type);
+  return RealController::dpad_data_address(dpad, type);
 }

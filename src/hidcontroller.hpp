@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #include "real_controller_connection.hpp"
-#include "proinputparser.hpp"
+#include "real_controller_parser.hpp"
 
 #define TEST_BAD_DATA_CYCLES 10
 
@@ -19,7 +19,7 @@ public:
     connection.setBlocking();
 
     if (!connection.Bluetooth()) {
-      ProInputParser::ControllerMAC mac = connection.request_mac();
+      RealController::ControllerMAC mac = connection.request_mac();
       printf("controller_type: %02x\n", mac.controller_type);
       printf("mac: %02x", mac.mac[0]);
       for (size_t i = 1; i < 6; ++i) {
@@ -86,20 +86,20 @@ public:
     return *this;
   }
 
-  ProInputParser::Parser receive_input() {
+  RealController::Parser receive_input() {
     /// TODO: do a waiting loop if a zero packet is received or something.
     HidApi::DefaultPacket buff;
     size_t len;
     do {
       len = connection.receive_input(buff, 16);
     } while (len == 0);
-    return ProInputParser::Parser(len, buff);
+    return RealController::Parser(len, buff);
   }
 
-  ProInputParser::Parser request_input() {
+  RealController::Parser request_input() {
     HidApi::DefaultPacket buff;
     size_t len = connection.request_input(buff);
-    return ProInputParser::Parser(len, buff);
+    return RealController::Parser(len, buff);
   }
 
 

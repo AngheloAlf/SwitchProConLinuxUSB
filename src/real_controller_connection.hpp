@@ -4,7 +4,7 @@
 
 #include <cstring>
 #include "hidapi_wrapper.hpp"
-#include "proinputparser.hpp"
+#include "real_controller_parser.hpp"
 
 
 namespace RealController {
@@ -70,7 +70,7 @@ namespace RealController {
     void setBlocking();
     void setNonBlocking();
 
-    ProInputParser::ControllerMAC request_mac(int milliseconds=100);
+    RealController::ControllerMAC request_mac(int milliseconds=100);
     void do_handshake();
     void increment_baudrate();
     void enable_hid_only_mode();
@@ -142,7 +142,7 @@ namespace RealController {
         memcpy(buffer.data() + 1, data.data(), length);
       }
 
-      // ProInputParser::print_exchange_array(length + 1, buffer.data());
+      // ProInputParser::printPacket(length + 1, buffer.data());
       if (bluetooth) {
         return hidw.write(buffer);
       }

@@ -8,7 +8,7 @@
 #include "hidapi_wrapper.hpp"
 
 
-namespace ProInputParser {
+namespace RealController {
   class ParserError: public std::runtime_error {
   public:
     ParserError();
@@ -90,11 +90,11 @@ namespace ProInputParser {
     None
   };
   static const std::array<BUTTONS, 14> btns_ids = {
-    ProInputParser::A, ProInputParser::B, ProInputParser::X, ProInputParser::Y,
-    ProInputParser::plus, ProInputParser::minus, 
-    ProInputParser::home, ProInputParser::share,
-    ProInputParser::L1, ProInputParser::L2, ProInputParser::L3,
-    ProInputParser::R1, ProInputParser::R2, ProInputParser::R3,
+    BUTTONS::A, BUTTONS::B, BUTTONS::X, BUTTONS::Y,
+    BUTTONS::plus, BUTTONS::minus, 
+    BUTTONS::home, BUTTONS::share,
+    BUTTONS::L1, BUTTONS::L2, BUTTONS::L3,
+    BUTTONS::R1, BUTTONS::R2, BUTTONS::R3,
   };
 
   const char *button_name(BUTTONS button);
@@ -112,8 +112,8 @@ namespace ProInputParser {
     axis_none
   };
   const std::array<AXIS, 4> axis_ids = {
-    ProInputParser::axis_lx, ProInputParser::axis_ly, 
-    ProInputParser::axis_rx, ProInputParser::axis_ry,
+    AXIS::axis_lx, AXIS::axis_ly, 
+    AXIS::axis_rx, AXIS::axis_ry,
   };
 
   const char *axis_name(AXIS axis);
@@ -130,8 +130,8 @@ namespace ProInputParser {
     d_none
   };
   static const std::array<DPAD, 4> dpad_ids = {
-    ProInputParser::d_left, ProInputParser::d_right, 
-    ProInputParser::d_up, ProInputParser::d_down,
+    DPAD::d_left, DPAD::d_right, 
+    DPAD::d_up, DPAD::d_down,
   };
 
   const char *dpad_name(DPAD dpad);
@@ -140,8 +140,8 @@ namespace ProInputParser {
   uint8_t dpad_byte_value(DPAD dpads, PacketType packet);
   size_t dpad_data_address(DPAD dpad, PacketType packet);
 
-  void print_exchange_array(size_t packet_len, uint8_t *arr);
-  void print_exchange_array(size_t packet_len, HidApi::DefaultPacket arr);
+  void printPacket(size_t packet_len, uint8_t *arr);
+  void printPacket(size_t packet_len, HidApi::DefaultPacket arr);
 
   struct ControllerMAC {
     uint8_t controller_type;

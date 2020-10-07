@@ -42,7 +42,7 @@ void ControllerConnection::setNonBlocking() {
   }
 }
 
-ProInputParser::ControllerMAC ControllerConnection::request_mac(int milliseconds) {
+RealController::ControllerMAC ControllerConnection::request_mac(int milliseconds) {
   HidApi::DefaultPacket response;
   size_t len = send_uart(Uart::status);
   if (len != 2) {
@@ -55,12 +55,12 @@ ProInputParser::ControllerMAC ControllerConnection::request_mac(int milliseconds
   }
   if (response[0] != Protocols::nin_response || response[1] != Uart::status
       || response[2] != 0) {
-    // ProInputParser::print_exchange_array(len, response);
+    // RealController::printPacket(len, response);
     send_reset();
     throw std::runtime_error("USB connection wasn't closed properly.");
   }
 
-  ProInputParser::ControllerMAC data;
+  RealController::ControllerMAC data;
   data.controller_type = response[3];
   for (size_t i = 0; i < 6; ++i) {
     data.mac[i] = response[9-i];
