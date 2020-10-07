@@ -133,7 +133,7 @@ public:
       if (remaining > 0) {
         //printf("%04i ms\n", remaining);
         //printf("%04i ms  %12.2Lf ms\n", remaining, delta_milis);
-        hid_ctrl->rumble();
+        hid_ctrl->rumble(0, 320, 160);
       }
     }
 

@@ -10,7 +10,7 @@
 
 namespace Utils {
 
-  namespace PrintColor{
+  namespace PrintColor {
     void normal(FILE *f);
     void normal();
 
@@ -36,7 +36,7 @@ namespace Utils {
     void white();
   };
 
-  namespace Str{
+  namespace Str {
     std::string wide_to_string(const wchar_t *wide);
 
     void copy_string_to_char(char *&dst, const char *src);
@@ -53,6 +53,14 @@ namespace Utils {
     }
   };
 
+  namespace Number {
+    /**
+     * @brief Forces @param value to not being less than @param lower_limit,
+     * or greater than @param upper_limit.
+     */
+    long   clamp(long value, long lower_limit, long upper_limit);
+    double clamp(double value, double lower_limit, double upper_limit);
+  }
 };
 
 #endif

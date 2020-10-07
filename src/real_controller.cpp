@@ -1,6 +1,7 @@
 #include "real_controller.hpp"
 using namespace RealController;
 
+#include "real_controller_rumble.hpp"
 
 Controller::Controller(const HidApi::Enumerate &device_info, unsigned short n_controll)
               : connection(device_info), n_controller(n_controll) {
@@ -127,9 +128,11 @@ void Controller::send_rumble(uint8_t large_motor, uint8_t small_motor) {
   connection.send_rumble(left, right);
 }
 
-void Controller::rumble(/*int frequency, int intensity*/) {
-  HidApi::GenericPacket<4> default_rumble{0x00, 0x01, 0x40, 0x40};
-  connection.send_rumble(default_rumble, default_rumble);
+void Controller::rumble(double amplitude, double high_freq, double low_freq) {
+  //HidApi::GenericPacket<4> default_rumble{0x00, 0x01, 0x40, 0x40};
+  //connection.send_rumble(default_rumble, default_rumble);
+  HidApi::GenericPacket<4> data = Rumble::rumble(amplitude, high_freq, low_freq);
+  connection.send_rumble(data, data);
 }
 
 void Controller::close() {
