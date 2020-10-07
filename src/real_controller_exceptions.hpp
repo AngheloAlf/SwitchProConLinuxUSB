@@ -5,18 +5,31 @@
 #include <stdexcept>
 
 namespace RealController {
-  class ParserError: public std::runtime_error {
+  class RealControllerError: public std::runtime_error {
   public:
-    ParserError();
-    ParserError(const std::string& what_arg);
-    ParserError(const char* what_arg);
+    RealControllerError();
+    RealControllerError(const std::string& what_arg);
+    RealControllerError(const char* what_arg);
 
-    ~ParserError();
+    RealControllerError(const RealControllerError &other);
+    RealControllerError(RealControllerError &&other) noexcept;
+
+    ~RealControllerError() noexcept ;
+
+    RealControllerError &operator=(const RealControllerError &other);
+    RealControllerError &operator=(RealControllerError &&other) noexcept;
 
     const char *what() const noexcept;
   
   protected:
+    void exit() noexcept ;
+
     char *str = nullptr;
+  };
+
+
+  class ParserError: public RealControllerError {
+    using RealControllerError::RealControllerError;
   };
 
 

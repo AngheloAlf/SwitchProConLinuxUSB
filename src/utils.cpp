@@ -94,12 +94,15 @@ std::string Str::wide_to_string(const wchar_t *wide) {
   return std::string(&mbstr[0]);
 }
 
-void Str::copy_string_to_char(char *&dst, const std::string &src) {
-  size_t sz = src.size() + 1;
+void Str::copy_string_to_char(char *&dst, const char *src) {
+  size_t sz = strlen(src) + 1;
   dst = (char *)malloc(sz);
   if (dst == nullptr) {
     throw std::bad_alloc();
   }
-  strncpy(dst, src.c_str(), sz);
+  strncpy(dst, src, sz);
+}
+void Str::copy_string_to_char(char *&dst, const std::string &src) {
+  copy_string_to_char(dst, src.c_str());
 }
 
