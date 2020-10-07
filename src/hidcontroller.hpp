@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <unistd.h>
 
-#include "output_sender.hpp"
+#include "real_controller_connection.hpp"
 #include "proinputparser.hpp"
 
 #define TEST_BAD_DATA_CYCLES 10
@@ -14,12 +14,12 @@
 class HidController{
 public:
   HidController(const HidApi::Enumerate &device_info, unsigned short n_controll)
-                : sender(device_info), n_controller(n_controll) {
+                : connection(device_info), n_controller(n_controll) {
     closed = false;
-    sender.setBlocking();
+    connection.setBlocking();
 
-    if (!sender.Bluetooth()) {
-      ProInputParser::ControllerMAC mac = sender.request_mac();
+    if (!connection.Bluetooth()) {
+      ProInputParser::ControllerMAC mac = connection.request_mac();
       printf("controller_type: %02x\n", mac.controller_type);
       printf("mac: %02x", mac.mac[0]);
       for (size_t i = 1; i < 6; ++i) {
@@ -27,37 +27,37 @@ public:
       }
       printf("\n");
 
-      sender.do_handshake();
-      sender.increment_baudrate();
-      sender.do_handshake();
+      connection.do_handshake();
+      connection.increment_baudrate();
+      connection.do_handshake();
 
-      sender.enable_hid_only_mode();
+      connection.enable_hid_only_mode();
     }
 
-    sender.toggle_rumble(true);
-    sender.toggle_imu(true);
+    connection.toggle_rumble(true);
+    connection.toggle_imu(true);
 
-    // sender.set_imu_sensitivity(0x03, 0x00, 0x00, 0x01);
+    // connection.set_imu_sensitivity(0x03, 0x00, 0x00, 0x01);
 
-    sender.set_input_report_mode(0x30);
+    connection.set_input_report_mode(0x30);
 
     #if 0
-    if (sender.Bluetooth()) {
+    if (connection.Bluetooth()) {
       //HidApi::GenericPacket<1> msg_increase_datarate_bt{{0x31}};
       //send_subcommand(SubCmd::set_in_report, msg_increase_datarate_bt);
-      sender.set_input_report_mode(0x31);
+      connection.set_input_report_mode(0x31);
       receive_input().print();
     }
     #endif
 
-    sender.setNonBlocking();
+    connection.setNonBlocking();
     usleep(100 * 1000);
 
     led();
   }
   HidController(const HidController &other) = delete;
   HidController(HidController &&other) noexcept: 
-    sender(std::move(other.sender)), n_controller(std::move(other.n_controller)), 
+    connection(std::move(other.connection)), n_controller(std::move(other.n_controller)), 
     blink_position(std::move(other.blink_position)), blink_counter(std::move(other.blink_counter)), 
     closed(std::move(other.closed)) {
   }
@@ -78,7 +78,7 @@ public:
 
   HidController &operator=(const HidController &other) = delete;
   HidController &operator=(HidController &&other) noexcept {
-    std::swap(sender, other.sender);
+    std::swap(connection, other.connection);
     std::swap(n_controller, other.n_controller);
     std::swap(closed, other.closed);
     std::swap(blink_position, other.blink_position);
@@ -91,14 +91,14 @@ public:
     HidApi::DefaultPacket buff;
     size_t len;
     do {
-      len = sender.receive_input(buff, 16);
+      len = connection.receive_input(buff, 16);
     } while (len == 0);
     return ProInputParser::Parser(len, buff);
   }
 
   ProInputParser::Parser request_input() {
     HidApi::DefaultPacket buff;
-    size_t len = sender.request_input(buff);
+    size_t len = connection.request_input(buff);
     return ProInputParser::Parser(len, buff);
   }
 
@@ -109,8 +109,8 @@ public:
       bitwise = static_cast<uint8_t>(number);
     }
 
-    sender.set_player_leds(bitwise);
-    // sender.set_player_leds(bitwise);
+    connection.set_player_leds(bitwise);
+    // connection.set_player_leds(bitwise);
   }
 
   void blink() {
@@ -121,7 +121,7 @@ public:
       }
     }
 
-    sender.set_player_leds(blink_array[blink_position]);
+    connection.set_player_leds(blink_array[blink_position]);
   }
 
   void send_rumble(uint8_t large_motor, uint8_t small_motor) {
@@ -136,12 +136,12 @@ public:
       left[2] = right[2] = small_motor;
     }
 
-    sender.send_rumble(left, right);
+    connection.send_rumble(left, right);
   }
 
   void rumble(/*int frequency, int intensity*/) {
     HidApi::GenericPacket<4> default_rumble{0x00, 0x01, 0x40, 0x40};
-    sender.send_rumble(default_rumble, default_rumble);
+    connection.send_rumble(default_rumble, default_rumble);
   }
 
   void close() {
@@ -149,18 +149,18 @@ public:
       return;
     }
     closed = true;
-    sender.setBlocking();
-    sender.toggle_rumble(false);
-    sender.toggle_imu(false);
+    connection.setBlocking();
+    connection.toggle_rumble(false);
+    connection.toggle_imu(false);
 
-    if (!sender.Bluetooth()) {
-      sender.disable_hid_only_mode();
-      sender.send_reset();
+    if (!connection.Bluetooth()) {
+      connection.disable_hid_only_mode();
+      connection.send_reset();
     }
   }
 
 private:
-  OutputSender::Sender sender;
+  RealController::ControllerConnection connection;
   unsigned short n_controller;
 
   uint blink_position = 0;

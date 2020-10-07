@@ -7,7 +7,7 @@
 #include "proinputparser.hpp"
 
 
-namespace OutputSender {
+namespace RealController {
   enum Protocols {
     zero_one      = 0x01,
     one_zero      = 0x10,
@@ -53,16 +53,16 @@ namespace OutputSender {
 
   const HidApi::GenericPacket<4> no_rumble{0x00, 0x01, 0x40, 0x40};
 
-  class Sender {
+  class ControllerConnection {
   public:
-    Sender(const HidApi::Enumerate &device_info);
-    Sender(const Sender &other) = delete;
-    Sender(Sender &&other) noexcept;
+    ControllerConnection(const HidApi::Enumerate &device_info);
+    ControllerConnection(const ControllerConnection &other) = delete;
+    ControllerConnection(ControllerConnection &&other) noexcept;
 
-    ~Sender() noexcept;
+    ~ControllerConnection() noexcept;
 
-    Sender &operator=(const Sender &other) = delete;
-    Sender &operator=(Sender &&other) noexcept;
+    ControllerConnection &operator=(const ControllerConnection &other) = delete;
+    ControllerConnection &operator=(ControllerConnection &&other) noexcept;
 
     bool Bluetooth() const;
     bool Usb() const;
