@@ -17,7 +17,7 @@
 #include <unistd.h>
 
 #include "config.hpp"
-#include "hidcontroller.hpp"
+#include "real_controller.hpp"
 #include "uinputcontroller.hpp"
 #include "utils.hpp"
 
@@ -41,7 +41,7 @@ public:
     int retries = 0;
     while(!opened){
       try {
-        hid_ctrl = new HidController(device_info, n_controller);
+        hid_ctrl = new RealController::Controller(device_info, n_controller);
         opened = true;
       } catch (const HidApi::OpenError &e) {
         throw;
@@ -512,7 +512,7 @@ private:
   bool dribble_mode = false;
 
   Config config;
-  HidController *hid_ctrl = nullptr;
+  RealController::Controller *hid_ctrl = nullptr;
   UInputController *uinput_ctrl = nullptr;
 };
 
