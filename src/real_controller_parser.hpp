@@ -1,69 +1,11 @@
 #pragma once
-#ifndef PRO_INPUT_PARSER_HPP
-#define PRO_INPUT_PARSER_HPP
+#ifndef PRO__REAL_CONTROLLER_PARSER_HPP
+#define PRO__REAL_CONTROLLER_PARSER_HPP
 
 #include <array>
-#include <stdexcept>
-
 #include "hidapi_wrapper.hpp"
 
-
 namespace RealController {
-  class ParserError: public std::runtime_error {
-  public:
-    ParserError();
-    ParserError(const std::string& what_arg);
-    ParserError(const char* what_arg);
-
-    ~ParserError();
-
-    const char *what() const noexcept;
-  
-  protected:
-    char *str = nullptr;
-  };
-
-
-  class PacketTypeError: public ParserError {
-    using ParserError::ParserError;
-  };
-
-  class PacketLengthError: public PacketTypeError {
-  public:
-    PacketLengthError();
-    PacketLengthError(const std::string& what_arg);
-    PacketLengthError(const char* what_arg);
-
-    using PacketTypeError::what;
-  };
-
-
-  class InputError: public ParserError {
-    using ParserError::ParserError;
-  };
-
-
-  class ButtonError: public InputError {
-    using InputError::InputError;
-  };
-
-  class AxisError: public InputError {
-    using InputError::InputError;
-  };
-
-  class DpadError: public InputError {
-    using InputError::InputError;
-  };
-
-  class MotionSensorError: public InputError {
-    using InputError::InputError;
-  };
-
-  class NFCError: public InputError {
-    using InputError::InputError;
-  };
-
-
   enum PacketType {
     unknown = -1,           /// For unrecognized packets.
     standard_input_report,  /// Standard input report format. [0] == x21 || x30 || x31

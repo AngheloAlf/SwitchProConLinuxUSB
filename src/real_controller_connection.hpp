@@ -1,6 +1,6 @@
 #pragma once
-#ifndef OUTPUT_PARSER_HPP
-#define OUTPUT_PARSER_HPP
+#ifndef PRO__REAL_CONTROLLER_CONNECTION_HPP
+#define PRO__REAL_CONTROLLER_CONNECTION_HPP
 
 #include <cstring>
 #include "hidapi_wrapper.hpp"

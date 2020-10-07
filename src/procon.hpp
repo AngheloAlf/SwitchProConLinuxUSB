@@ -18,6 +18,7 @@
 
 #include "config.hpp"
 #include "real_controller.hpp"
+#include "real_controller_exceptions.hpp"
 #include "uinputcontroller.hpp"
 #include "utils.hpp"
 
