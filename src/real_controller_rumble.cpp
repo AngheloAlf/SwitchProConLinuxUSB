@@ -22,7 +22,7 @@ std::array<uint8_t, 4> Rumble::rumble(double ampl, double high_freq, double low_
 
   data[2] = (0xFF & (amp_low >> 8)) + freq_low;
   data[3] =  0xFF &  amp_low;
-  
+
   return data;
 }
 
@@ -50,7 +50,7 @@ uint8_t Rumble::highAmplitude(double amplitude) {
 
 uint16_t Rumble::lowAmplitude(double amplitude) {
   uint16_t high = highAmplitude(amplitude);
-  return (high << 6) + 0x4000;
+  return 0x40 + (high >> 2) + ((high&0x02) << 14);
 }
 
 uint16_t Rumble::highFrequency(double freq) {
