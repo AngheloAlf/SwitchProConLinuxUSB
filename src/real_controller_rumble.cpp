@@ -30,7 +30,7 @@ std::array<uint8_t, 4> Rumble::rumble(double _high_freq, double _low_freq, doubl
 }
 
 std::array<uint8_t, 4> Rumble::rumble(double high_freq, double low_freq, double ampl) {
-  return rumble(ampl, ampl, high_freq, low_freq);
+  return rumble(high_freq, low_freq, ampl, ampl);
 }
 
 
@@ -62,10 +62,10 @@ uint16_t Rumble::lowAmplitude(double amp) {
 }
 
 uint16_t Rumble::highFrequency(double freq) {
-  return round((log2(freq * 0.0125L) * 128) / 4)*4;
+  return round((log2(freq / 80) * 128) / 4)*4;
 }
 uint8_t   Rumble::lowFrequency(double freq) {
-  return round((log2(freq * 0.025L) * 32));
+  return round((log2(freq / 40) * 32));
 }
 
 
@@ -98,9 +98,9 @@ double Rumble::decodeLowAmplitude(uint16_t _amp) {
 
 double Rumble::decodeHighFrequency(uint16_t _freq) {
   double freq = _freq;
-  return pow(2, freq/128) / 0.0125L;
+  return pow(2, freq / 128) * 80;
 }
 double  Rumble::decodeLowFrequency(uint8_t _freq) {
   double freq = _freq;
-  return pow(2, freq/32) / 0.025L;
+  return pow(2, freq / 32) * 40;
 }
