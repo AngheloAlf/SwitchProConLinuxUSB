@@ -113,24 +113,7 @@ void Controller::blink() {
   connection.set_player_leds(blink_array[blink_position]);
 }
 
-void Controller::send_rumble(uint8_t large_motor, uint8_t small_motor) {
-  HidApi::GenericPacket<4> left {0x80, 0x00, 0x40, 0x40};
-  HidApi::GenericPacket<4> right{0x80, 0x00, 0x40, 0x40};
-
-  if (large_motor != 0) {
-    left[1] = right[1] = 0x08;
-    left[2] = right[2] = large_motor;
-  } else if (small_motor != 0) {
-    left[1] = right[1] = 0x10;
-    left[2] = right[2] = small_motor;
-  }
-
-  connection.send_rumble(left, right);
-}
-
 void Controller::rumble(double amplitude, double high_freq, double low_freq) {
-  //HidApi::GenericPacket<4> default_rumble{0x00, 0x01, 0x40, 0x40};
-  //connection.send_rumble(default_rumble, default_rumble);
   HidApi::GenericPacket<4> data = Rumble::rumble(amplitude, high_freq, low_freq);
   connection.send_rumble(data, data);
 }

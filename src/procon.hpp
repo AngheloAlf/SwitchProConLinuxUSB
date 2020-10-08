@@ -104,6 +104,10 @@ public:
     }
   }
 
+  double amp = 0.5;
+  double high = 320;
+  double low = 160;
+
   void poll_input(long double delta_milis) {
     auto remaining_arr = uinput_ctrl->update_time(delta_milis);
 
@@ -133,7 +137,7 @@ public:
       if (remaining > 0) {
         //printf("%04i ms\n", remaining);
         //printf("%04i ms  %12.2Lf ms\n", remaining, delta_milis);
-        hid_ctrl->rumble(0, 320, 160);
+        hid_ctrl->rumble(0.5, 320, 160);
       }
     }
 

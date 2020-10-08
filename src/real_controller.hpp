@@ -24,7 +24,6 @@ namespace RealController {
     void led(int number = -1);
     void blink();
 
-    void send_rumble(uint8_t large_motor, uint8_t small_motor);
     void rumble(double amplitude, double high_freq, double low_freq);
 
     void close();

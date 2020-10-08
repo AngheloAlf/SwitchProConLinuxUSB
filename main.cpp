@@ -90,9 +90,15 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
 
   printf("\n");
 
-  auto last = std::chrono::steady_clock::now();
+  auto last_start = std::chrono::steady_clock::now();
   long double delta_milis = 16;
   while (controller_loop) {
+    auto frame_start = std::chrono::steady_clock::now();
+    delta_milis = ((frame_start-last_start) / std::chrono::microseconds(1000));
+    /*printf("%05.2Lf ms", delta_milis);
+    fflush(stdout);
+    printf("\r\e[K");*/
+
     if (!controller.is_calibrated()) {
       fflush(stdout);
       Utils::PrintColor::blue();
@@ -139,14 +145,10 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
       printf("\r\e[K");
     }
 
-    std::this_thread::sleep_until(last + std::chrono::microseconds((1000 * 1000 / 80)));
+    auto frame_end = std::chrono::steady_clock::now();
+    std::this_thread::sleep_for(std::chrono::microseconds((1000 * 1000 / 120)) - (frame_end-frame_start));
 
-    auto now = std::chrono::steady_clock::now();
-    delta_milis = ((now-last) / std::chrono::microseconds(1)) / 1000.L;
-    /*printf("%05.2Lf ms", delta_milis);
-    fflush(stdout);
-    printf("\r\e[K");*/
-    last = now;
+    last_start = frame_start;
   }
 }
 
