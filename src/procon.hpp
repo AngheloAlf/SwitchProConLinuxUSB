@@ -104,12 +104,8 @@ public:
     }
   }
 
-  double amp = 0.5;
-  double high = 320;
-  double low = 160;
-
   void poll_input(long double delta_milis) {
-    auto remaining_arr = uinput_ctrl->update_time(delta_milis);
+    uinput_ctrl->update_time(delta_milis);
 
     try {
       RealController::Parser parser = hid_ctrl->receive_input();
@@ -133,11 +129,15 @@ public:
       return;
     }
 
-    for(const int32_t &remaining: remaining_arr) {
-      if (remaining > 0) {
-        //printf("%04i ms\n", remaining);
-        //printf("%04i ms  %12.2Lf ms\n", remaining, delta_milis);
-        hid_ctrl->rumble(0.5, 320, 160);
+    for(const auto &effect: uinput_ctrl->getRumbleEffects()) {
+      if (effect->get_remaining() > 0) {
+        auto data = effect->get_data();
+        if (data.strong) {
+          hid_ctrl->rumble(data.strong/(double)0x10000, 320, 160);
+        }
+        else if(data.weak) {
+          hid_ctrl->rumble(data.weak/(double)0x10000, 120, 80);
+        }
       }
     }
 

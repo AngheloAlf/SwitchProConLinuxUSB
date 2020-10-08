@@ -96,7 +96,7 @@ public:
 
     if (write(uinput_fd, &uinput_device, sizeof(uinput_device)) < 0) {
       close(uinput_fd);
-      throw std::system_error(errno, std::generic_category(), "Failed to set axis data!");
+      throw std::system_error(errno, std::generic_category(), "Failed to set axis and rumble data!");
     }
 
     if (ioctl(uinput_fd, UI_DEV_CREATE) < 0) {
@@ -165,15 +165,18 @@ public:
     }
   }
 
-  std::array<int32_t, max_effects> update_time(long double delta_milis) {
-    std::array<int32_t, max_effects> remaining_arr;
-    size_t i = 0;
+  void update_time(long double delta_milis) {
     for(RumbleData &rum: rumble_effects) {
       rum.update_time(delta_milis);
-      remaining_arr[i] = rum.get_remaining();
-      ++i;
     }
-    return remaining_arr;
+  }
+
+  std::array<const RumbleData *, max_effects> getRumbleEffects() {
+    std::array<const RumbleData *, max_effects> arr;
+    for (size_t i = 0; i < max_effects; ++i) {
+      arr[i] = &rumble_effects[i];
+    }
+    return arr;
   }
 
 private:

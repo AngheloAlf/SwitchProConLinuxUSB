@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - This message is sended only in USB mode.
 - Improve axis precision from 8 bits to 12 bits.
 - Bluetooth compatibility.
+- Add simple rumble support.
+  - It can handle 'weak' and 'strong' rumbles.
 - Exceptions.
 - A changelog.
 
