@@ -34,11 +34,18 @@ namespace RealController {
     /// Equal to the other rumble, but uses the same amplitude for both frequencies.
     std::array<uint8_t, 4> rumble(double high_frequency, double low_frequency, double amplitude);
 
-    uint8_t highAmplitude(double amplitude);
-    uint16_t lowAmplitude(double amplitude);
+    uint8_t highAmplitude(double amp);
+    uint16_t lowAmplitude(double amp);
 
     uint16_t highFrequency(double freq);
     uint8_t   lowFrequency(double freq);
+
+
+    double decodeHighAmplitude(uint8_t amp);
+    double  decodeLowAmplitude(uint16_t amp);
+
+    double decodeHighFrequency(uint16_t freq);
+    double  decodeLowFrequency(uint8_t freq);
   };
 };
 
