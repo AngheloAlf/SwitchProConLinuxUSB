@@ -58,8 +58,12 @@ namespace Utils {
      * @brief Forces @param value to not being less than @param lower_limit,
      * or greater than @param upper_limit.
      */
-    long   clamp(long value, long lower_limit, long upper_limit);
-    double clamp(double value, double lower_limit, double upper_limit);
+    template<typename ReturnType, typename NumberType0, typename NumberType1, typename NumberType2>
+    ReturnType clamp(NumberType0 value, NumberType1 lower_limit, NumberType2 upper_limit) {
+      if (value < lower_limit) return lower_limit;
+      if (value > upper_limit) return upper_limit;
+      return value;
+    }
   }
 };
 

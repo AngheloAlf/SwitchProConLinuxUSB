@@ -4,16 +4,19 @@ using namespace RealController;
 #include <cmath>
 #include "utils.hpp"
 
-std::array<uint8_t, 4> Rumble::rumble(double ampl, double high_freq, double low_freq) {
-  ampl = Utils::Number::clamp(ampl, 0.L, 1.L);
-  high_freq = Utils::Number::clamp(high_freq, 81.75177L, 1252.572266L);
-  low_freq = Utils::Number::clamp(low_freq, 40.875885L, 626.286133L);
+std::array<uint8_t, 4> Rumble::rumble(double _high_ampl, double _low_ampl, double _high_freq, double _low_freq) {
+  _high_ampl = Utils::Number::clamp<double>(_high_ampl, Rumble::Constants::amplitude_min, Rumble::Constants::amplitude_max);
+  _low_ampl  = Utils::Number::clamp<double>(_low_ampl,  Rumble::Constants::amplitude_min, Rumble::Constants::amplitude_max);
 
-  uint8_t amp_high = highAmplitude(ampl);
-  uint16_t amp_low =  lowAmplitude(ampl);
+  _high_freq = Utils::Number::clamp<double>(_high_freq, Rumble::Constants::highFreq_min, Rumble::Constants::highFreq_max);
+  _low_freq  = Utils::Number::clamp<double>(_low_freq,  Rumble::Constants::lowFreq_min,  Rumble::Constants::lowFreq_max);
 
-  uint16_t freq_high = highFrequency(high_freq);
-  uint8_t  freq_low  =  lowFrequency(low_freq);
+
+  uint8_t amp_high = highAmplitude(_high_ampl);
+  uint16_t amp_low =  lowAmplitude(_low_ampl);
+
+  uint16_t freq_high = highFrequency(_high_freq);
+  uint8_t  freq_low  =  lowFrequency(_low_freq);
 
   std::array<uint8_t, 4> data {0};
 
@@ -25,6 +28,11 @@ std::array<uint8_t, 4> Rumble::rumble(double ampl, double high_freq, double low_
 
   return data;
 }
+
+std::array<uint8_t, 4> Rumble::rumble(double ampl, double high_freq, double low_freq) {
+  return rumble(ampl, ampl, high_freq, low_freq);
+}
+
 
 // https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md
 // https://docs.google.com/spreadsheets/d/1Sg12Sv8iFP4C8pbEmW-e58YEuU3hD_Yo6_yhG3xk5LM/edit?usp=sharing

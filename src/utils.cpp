@@ -105,14 +105,3 @@ void Str::copy_string_to_char(char *&dst, const char *src) {
 void Str::copy_string_to_char(char *&dst, const std::string &src) {
   copy_string_to_char(dst, src.c_str());
 }
-
-long   Number::clamp(long value, long lower_limit, long upper_limit) {
-  if (value < lower_limit) return lower_limit;
-  if (value > upper_limit) return upper_limit;
-  return value;
-}
-double Number::clamp(double value, double lower_limit, double upper_limit){
-  if (value < lower_limit) return lower_limit;
-  if (value > upper_limit) return upper_limit;
-  return value;
-}
