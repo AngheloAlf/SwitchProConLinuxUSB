@@ -21,18 +21,18 @@ namespace RealController {
     };
 
     /**
-     * @brief Encodes amplitude and frequency to controller byte format. The parameters will be clamped to theirs own limits.
+     * @brief Encodes frequency and amplitude to controller byte format. The parameters will be clamped to theirs own limits.
      * 
-     * @param high_amplitude Between 0 and 1.
-     * @param low_amplitude Between 0 and 1.
      * @param high_frequency Between 81.75177 and 1252.572266 [Hz].
      * @param low_frequency Between 40.875885 and 626.286133 [Hz].
+     * @param high_amplitude Between 0 and 1.
+     * @param low_amplitude Between 0 and 1.
      * 
      * @return The encoded 4 byte array.
      */
-    std::array<uint8_t, 4> rumble(double high_amplitude, double low_amplitude, double high_frequency, double low_frequency);
+    std::array<uint8_t, 4> rumble(double high_frequency, double low_frequency, double high_amplitude, double low_amplitude);
     /// Equal to the other rumble, but uses the same amplitude for both frequencies.
-    std::array<uint8_t, 4> rumble(double amplitude, double high_frequency, double low_frequency);
+    std::array<uint8_t, 4> rumble(double high_frequency, double low_frequency, double amplitude);
 
     uint8_t highAmplitude(double amplitude);
     uint16_t lowAmplitude(double amplitude);

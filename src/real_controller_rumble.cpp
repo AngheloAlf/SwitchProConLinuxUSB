@@ -4,7 +4,7 @@ using namespace RealController;
 #include <cmath>
 #include "utils.hpp"
 
-std::array<uint8_t, 4> Rumble::rumble(double _high_ampl, double _low_ampl, double _high_freq, double _low_freq) {
+std::array<uint8_t, 4> Rumble::rumble(double _high_freq, double _low_freq, double _high_ampl, double _low_ampl) {
   _high_ampl = Utils::Number::clamp<double>(_high_ampl, Rumble::Constants::amplitude_min, Rumble::Constants::amplitude_max);
   _low_ampl  = Utils::Number::clamp<double>(_low_ampl,  Rumble::Constants::amplitude_min, Rumble::Constants::amplitude_max);
 
@@ -29,7 +29,7 @@ std::array<uint8_t, 4> Rumble::rumble(double _high_ampl, double _low_ampl, doubl
   return data;
 }
 
-std::array<uint8_t, 4> Rumble::rumble(double ampl, double high_freq, double low_freq) {
+std::array<uint8_t, 4> Rumble::rumble(double high_freq, double low_freq, double ampl) {
   return rumble(ampl, ampl, high_freq, low_freq);
 }
 

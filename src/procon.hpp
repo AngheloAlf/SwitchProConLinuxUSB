@@ -133,10 +133,10 @@ public:
       if (effect->get_remaining() > 0) {
         auto data = effect->get_data();
         if (data.strong) {
-          hid_ctrl->rumble(data.strong/(double)0x10000, 320, 160);
+          hid_ctrl->rumble(320, 160, data.strong/(double)0x10000);
         }
         else if(data.weak) {
-          hid_ctrl->rumble(data.weak/(double)0x10000, 120, 80);
+          hid_ctrl->rumble(120, 80, data.weak/(double)0x10000);
         }
       }
     }

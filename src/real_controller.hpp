@@ -24,7 +24,7 @@ namespace RealController {
     void led(int number = -1);
     void blink();
 
-    void rumble(double amplitude, double high_freq, double low_freq);
+    void rumble(double high_freq, double low_freq, double amplitude);
 
     void close();
 
