@@ -33,7 +33,6 @@
 
 
 build/
-.vscode/
-procon_calibration_data
+
 *.elf
 *.pyc

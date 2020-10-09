@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <filesystem>
 
 #include "config.hpp"
 #include "real_controller.hpp"
@@ -38,6 +39,8 @@ public:
       read_calibration_from_file = false;
     }
 
+    const char* home = getenv("HOME");
+    calibration_path = std::string(home) + calibration_path___;
   }
 
   void print_sticks() const {
@@ -144,7 +147,7 @@ public:
   }
 
   bool calibration_file_exists() const {
-    std::ifstream conf(calibration_filename);
+    std::ifstream conf(calibration_path + calibration_filename);
     return conf.good();
   }
 
@@ -170,7 +173,7 @@ private:
   bool read_calibration_file() {
     bool file_readed = false;
     std::ifstream myReadFile;
-    myReadFile.open(calibration_filename,
+    myReadFile.open(calibration_path + calibration_filename,
                     std::ios::in | std::ios::binary);
     if (myReadFile) {
       for (const RealController::Axis &id: RealController::axis_ids) {
@@ -186,8 +189,9 @@ private:
   }
 
   void write_calibration_to_file() {
+    std::filesystem::create_directories(calibration_path);
     std::ofstream calibration_file;
-    calibration_file.open(calibration_filename,
+    calibration_file.open(calibration_path + calibration_filename,
                           std::ios::out | std::ios::binary);
     for (const RealController::Axis &id: RealController::axis_ids) {
       calibration_file.write((char *)&axis_min[id], sizeof(uint16_t));
@@ -409,7 +413,9 @@ private:
     return map;
   }
 
-  const std::string calibration_filename = "procon_calibration_data";
+  std::string calibration_path;
+  const std::string calibration_path___ = "/.config/procon_driver/";
+  const std::string calibration_filename = "procon_calibration_data.bin";
 
   bool calibrated = false;
   bool read_calibration_from_file =
