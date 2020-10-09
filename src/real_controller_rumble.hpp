@@ -20,6 +20,8 @@ namespace RealController {
       constexpr double lowFreq_neutral   { 160 };
     };
 
+    using RumbleArray = std::array<uint8_t, 4>;
+
     /**
      * @brief Encodes frequency and amplitude to controller byte format. The parameters will be clamped to theirs own limits.
      * 
@@ -30,9 +32,9 @@ namespace RealController {
      * 
      * @return The encoded 4 byte array.
      */
-    std::array<uint8_t, 4> rumble(double high_frequency, double low_frequency, double high_amplitude, double low_amplitude);
+    RumbleArray rumble(double high_frequency, double low_frequency, double high_amplitude, double low_amplitude);
     /// Equal to the other rumble, but uses the same amplitude for both frequencies.
-    std::array<uint8_t, 4> rumble(double high_frequency, double low_frequency, double amplitude);
+    RumbleArray rumble(double high_frequency, double low_frequency, double amplitude);
 
     uint8_t highAmplitude(double amp);
     uint16_t lowAmplitude(double amp);

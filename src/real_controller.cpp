@@ -113,9 +113,15 @@ void Controller::blink() {
   connection.set_player_leds(blink_array[blink_position]);
 }
 
+void Controller::rumble(const Rumble::RumbleArray &left, const Rumble::RumbleArray &right) {
+  connection.send_rumble(left, right);
+}
+void Controller::rumble(double high_freq, double low_freq, double high_amp, double low_amp) {
+  Rumble::RumbleArray data = Rumble::rumble(high_freq, low_freq, high_amp, low_amp);
+  rumble(data, data);
+}
 void Controller::rumble(double high_freq, double low_freq, double amplitude) {
-  HidApi::GenericPacket<4> data = Rumble::rumble(high_freq, low_freq, amplitude);
-  connection.send_rumble(data, data);
+  rumble(high_freq, low_freq, amplitude, amplitude);
 }
 
 void Controller::close() {
