@@ -104,7 +104,6 @@ namespace RealController {
         memcpy(buffer.data() + 1, data.data(), length);
       }
 
-      // ProInputParser::printPacket(length + 1, buffer.data());
       if (bluetooth) {
         return hidw.write(buffer);
       }

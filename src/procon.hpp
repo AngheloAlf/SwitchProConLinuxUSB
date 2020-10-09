@@ -33,48 +33,12 @@
 class ProController {
 public:
   ProController(unsigned short n_controller, const HidApi::Enumerate &device_info, 
-                Config &cfg): config(cfg){
+                Config &cfg): config(cfg), hid_ctrl(device_info, n_controller), uinput_ctrl() {
     if (config.force_calibration) {
       read_calibration_from_file = false;
     }
 
-    bool opened = false;
-    int retries = 0;
-    while(!opened){
-      try {
-        hid_ctrl = new RealController::Controller(device_info, n_controller);
-        opened = true;
-      } catch (const HidApi::OpenError &e) {
-        throw;
-      } catch (const std::runtime_error &e) {
-        ++retries;
-        if (retries > 10) {
-          throw;
-        }
-        usleep(1000 * 1000);
-        Utils::PrintColor::red();
-        printf("%s\nRetrying... (%i/%i)\n\n", e.what(), retries, 10);
-        Utils::PrintColor::normal();
-      }
-    }
-    
-    uinput_ctrl = new UInputController();
   }
-  ProController(const ProController &other) = delete;
-  // ProController(ProController &&other) noexcept ;
-
-  ~ProController() noexcept {
-    if (hid_ctrl != nullptr) {
-      delete hid_ctrl;
-    }
-    if (uinput_ctrl != nullptr) {
-      delete uinput_ctrl;
-    }
-  }
-
-  ProController &operator=(const ProController &other) = delete;
-  // ProController &operator=(ProController &&other) noexcept;
-
 
   void print_sticks() const {
     for (const RealController::Axis &id: RealController::axis_ids) {
@@ -105,23 +69,13 @@ public:
   }
 
   void poll_input(long double delta_milis) {
-    uinput_ctrl->update_time(delta_milis);
+    uinput_ctrl.update_time(delta_milis);
 
-    try {
-      RealController::Parser parser = hid_ctrl->receive_input();
-      // parser.print();
-      if (!parser.has_button_and_axis_data()) {
-        return;
-      }
-      update_input_state(parser);
+    RealController::Parser parser = hid_ctrl.receive_input();
+    if (!parser.has_button_and_axis_data()) {
+      return;
     }
-    catch (const RealController::PacketTypeError &e) {
-      /*Utils::PrintColor::magenta();
-      printf("%s\n", e.what());
-      Utils::PrintColor::normal();
-      return;*/
-      throw;
-    }
+    update_input_state(parser);
 
     if (buttons_pressed[RealController::Buttons::home] &&
         buttons_pressed[RealController::Buttons::share]) {
@@ -129,25 +83,12 @@ public:
       return;
     }
 
-    for(const auto &effect: uinput_ctrl->getRumbleEffects()) {
-      if (effect->get_remaining() > 0) {
-        auto data = effect->get_data();
-        if (data.strong) {
-          hid_ctrl->rumble(320, 160, data.strong/(double)0x10000);
-        }
-        else if(data.weak) {
-          hid_ctrl->rumble(120, 80, data.weak/(double)0x10000);
-        }
-      }
-    }
-
-    uinput_ctrl->update_state();
+    manage_rumble();
 
     manage_buttons();
     manage_joysticks();
     manage_dpad();
 
-    // parser.print();
     return;
   }
 
@@ -155,45 +96,30 @@ public:
     if (read_calibration_from_file) {
       if (read_calibration_file()) {
         calibrated = true;
-        // send_rumble(0,255);
-        // hid_ctrl->led();
       }
     }
   }
 
   void calibrate() {
-    try {
-      hid_ctrl->blink();
+    hid_ctrl.blink();
 
-      RealController::Parser parser = hid_ctrl->receive_input();
-      if (!parser.has_button_and_axis_data()) {
-        return;
-      }
-      update_input_state(parser);
-      // parser.print();
-
-      if (!share_button_free) {
-        if (!buttons_pressed[RealController::Buttons::share]) {
-          share_button_free = true;
-        }
-        return;
-      }
-
-      if (perform_calibration(parser)) {
-        // send_rumble(0,255);
-        calibrated = true;
-        write_calibration_to_file();
-        hid_ctrl->led();
-        // print_calibration_values();
-        // printf("\n");
-      }
+    RealController::Parser parser = hid_ctrl.receive_input();
+    if (!parser.has_button_and_axis_data()) {
+      return;
     }
-    catch (const RealController::PacketTypeError &e) {
-      /*Utils::PrintColor::magenta();
-      printf("%s\n", e.what());
-      Utils::PrintColor::normal();
-      return;*/
-      throw;
+    update_input_state(parser);
+
+    if (!share_button_free) {
+      if (!buttons_pressed[RealController::Buttons::share]) {
+        share_button_free = true;
+      }
+      return;
+    }
+
+    if (perform_calibration(parser)) {
+      calibrated = true;
+      write_calibration_to_file();
+      hid_ctrl.led();
     }
   }
 
@@ -271,6 +197,23 @@ private:
     calibration_file.close();
   }
 
+
+  void manage_rumble() {
+    for(const auto &effect: uinput_ctrl.getRumbleEffects()) {
+      if (effect->get_remaining() > 0) {
+        auto data = effect->get_data();
+        if (data.strong) {
+          hid_ctrl.rumble(320, 160, data.strong/(double)0x10000);
+        }
+        else if(data.weak) {
+          hid_ctrl.rumble(120, 80, data.weak/(double)0x10000);
+        }
+      }
+    }
+
+    uinput_ctrl.update_state();
+  }
+
   //-------------------------
   //         UINPUT
   //-------------------------
@@ -288,9 +231,9 @@ private:
       y = 1;
     }
 
-    uinput_ctrl->write_single_joystick(y, ABS_HAT0Y);
-    uinput_ctrl->write_single_joystick(x, ABS_HAT0X);
-    uinput_ctrl->send_report();
+    uinput_ctrl.write_single_joystick(y, ABS_HAT0Y);
+    uinput_ctrl.write_single_joystick(x, ABS_HAT0X);
+    uinput_ctrl.send_report();
   }
 
   void manage_buttons() {
@@ -299,21 +242,21 @@ private:
         if (config.found_dribble_cam_value) {
           switch (id) {
           case RealController::Buttons::X:
-            uinput_ctrl->button_press(btns_map[RealController::Buttons::X]);
+            uinput_ctrl.button_press(btns_map[RealController::Buttons::X]);
             if (dribble_mode) toggle_dribble_mode(); // toggle off dribble mode
             continue;
           case RealController::Buttons::Y:
             toggle_dribble_mode();
             continue;
           case RealController::Buttons::share:
-            uinput_ctrl->button_press(btns_map[RealController::Buttons::Y]);
+            uinput_ctrl.button_press(btns_map[RealController::Buttons::Y]);
             continue;
           default:
             break;
           }
         }
 
-        uinput_ctrl->button_press(btns_map[id]);
+        uinput_ctrl.button_press(btns_map[id]);
       }
     }
 
@@ -322,25 +265,25 @@ private:
         if (config.found_dribble_cam_value) {
           switch (id) {
           case RealController::Buttons::Y:
-            uinput_ctrl->button_release(btns_map[RealController::Buttons::X]);
+            uinput_ctrl.button_release(btns_map[RealController::Buttons::X]);
             continue;
           case RealController::Buttons::share:
-            uinput_ctrl->button_release(btns_map[RealController::Buttons::Y]);
+            uinput_ctrl.button_release(btns_map[RealController::Buttons::Y]);
             continue;
           default:
             break;
           }
         }
 
-        uinput_ctrl->button_release(btns_map[id]);
+        uinput_ctrl.button_release(btns_map[id]);
       }
     }
 
     // do triggers here as well
-    uinput_ctrl->write_single_joystick(buttons_pressed[RealController::Buttons::L2]*0xFFF, ABS_Z);
-    uinput_ctrl->write_single_joystick(buttons_pressed[RealController::Buttons::R2]*0xFFF, ABS_RZ);
+    uinput_ctrl.write_single_joystick(buttons_pressed[RealController::Buttons::L2]*0xFFF, ABS_Z);
+    uinput_ctrl.write_single_joystick(buttons_pressed[RealController::Buttons::R2]*0xFFF, ABS_RZ);
 
-    uinput_ctrl->send_report();
+    uinput_ctrl.send_report();
   }
 
   void manage_joysticks() {
@@ -349,10 +292,10 @@ private:
     }
 
     for (const RealController::Axis &id: RealController::axis_ids) {
-      uinput_ctrl->write_single_joystick(axis_values[id], axis_map[id]);
+      uinput_ctrl.write_single_joystick(axis_values[id], axis_map[id]);
     }
 
-    uinput_ctrl->send_report();
+    uinput_ctrl.send_report();
   }
 
   void update_input_state(const RealController::Parser &parser) {
@@ -500,8 +443,8 @@ private:
   bool dribble_mode = false;
 
   Config config;
-  RealController::Controller *hid_ctrl = nullptr;
-  UInputController *uinput_ctrl = nullptr;
+  RealController::Controller hid_ctrl;
+  UInputController uinput_ctrl;
 };
 
 #endif

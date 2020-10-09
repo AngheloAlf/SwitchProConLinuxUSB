@@ -11,13 +11,13 @@ Controller::Controller(const HidApi::Enumerate &device_info, unsigned short n_co
   connection.setBlocking();
 
   if (!connection.Bluetooth()) {
-    RealController::ControllerMAC mac = connection.request_mac();
+    /*RealController::ControllerMAC mac = */connection.request_mac();
     //printf("controller_type: %02x\n", mac.controller_type);
     //printf("mac: %02x", mac.mac[0]);
-    for (size_t i = 1; i < 6; ++i) {
-      printf(":%02x", mac.mac[i]);
-    }
-    printf("\n");
+    //for (size_t i = 1; i < 6; ++i) {
+      //printf(":%02x", mac.mac[i]);
+    //}
+    //printf("\n");
 
     connection.do_handshake();
     connection.increment_baudrate();

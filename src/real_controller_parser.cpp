@@ -49,8 +49,8 @@ Parser::Parser(size_t packet_len, HidApi::DefaultPacket data,  bool no_packet): 
   case 0x31: // ?
     if (len < 13) {
       type = PacketType::unknown;
-      printf("invalid_packet\n");
-      print();
+      //printf("invalid_packet\n");
+      //print();
       break;
     }
     type = PacketType::standard_input_report;
@@ -72,8 +72,8 @@ Parser::Parser(size_t packet_len, HidApi::DefaultPacket data,  bool no_packet): 
 
   if (type == PacketType::unknown) {
     type = PacketType::unknown;
-    printf("unknown packet\n");
-    print();
+    //printf("unknown packet\n");
+    //print();
     throw PacketTypeError("PacketTypeError: Unrecognized packet (" + Utils::Str::to_hexstr(dat[0x00]) + ")." );
   }
 }

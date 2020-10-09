@@ -68,16 +68,42 @@ void print_header(){
 }
 
 
+ProController *create_ctrl(unsigned short n_controller, const HidApi::Enumerate &iter, Config &config) {
+  ProController *controller = nullptr;
+
+  bool opened = false;
+  int retries = 0;
+  while(!opened){
+    try {
+      controller = new ProController(n_controller, iter, config);
+      opened = true;
+    } catch (const HidApi::OpenError &e) {
+      throw;
+    } catch (const std::runtime_error &e) {
+      ++retries;
+      if (retries > 10) {
+        throw;
+      }
+      usleep(1000 * 1000);
+      Utils::PrintColor::red();
+      printf("%s\nRetrying... (%i/%i)\n\n", e.what(), retries, 10);
+      Utils::PrintColor::normal();
+    }
+  }
+
+  return controller;
+}
+
 void handle_controller(const HidApi::Enumerate &iter, Config &config) {
   unsigned short n_controller = 0;
 
-  ProController controller(n_controller, iter, config);
+  ProController *controller = create_ctrl(n_controller, iter, config);
 
   Utils::PrintColor::green();
   printf("Opened controller!\n");
 
-  if (!controller.needs_first_calibration()) {
-    controller.calibrate_from_file();
+  if (!controller->needs_first_calibration()) {
+    controller->calibrate_from_file();
     Utils::PrintColor::green();
     printf("Read calibration data from file! ");
     Utils::PrintColor::cyan();
@@ -99,7 +125,7 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
     fflush(stdout);
     printf("\r\e[K");*/
 
-    if (!controller.is_calibrated()) {
+    if (!controller->is_calibrated()) {
       fflush(stdout);
       Utils::PrintColor::blue();
       printf("Starting calibration mode.\n");
@@ -110,14 +136,14 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
             "square 'share' button!\n");
       Utils::PrintColor::normal();
       fflush(stdout);
-      while (!controller.is_calibrated()) {
+      while (!controller->is_calibrated()) {
         if (!controller_loop) {
           return;
         }
-        controller.calibrate();
+        controller->calibrate();
 
         if (config.print_axis) {
-          controller.print_sticks();
+          controller->print_sticks();
           fflush(stdout);
           printf("\r\e[K");
         }
@@ -128,17 +154,17 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
       Utils::PrintColor::normal();
     }
 
-    controller.poll_input(delta_milis);
+    controller->poll_input(delta_milis);
 
     if (config.print_axis) {
-      controller.print_sticks();
+      controller->print_sticks();
       printf("\t");
     }
     if (config.print_buttons) {
-      controller.print_buttons();
+      controller->print_buttons();
     }
     if (config.print_dpad) {
-      controller.print_dpad();
+      controller->print_dpad();
     }
     if (config.print_axis || config.print_buttons || config.print_dpad) {
       fflush(stdout);
@@ -150,6 +176,8 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
 
     last_start = frame_start;
   }
+
+  delete controller;
 }
 
 
