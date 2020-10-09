@@ -5,6 +5,7 @@
 #include <array>
 #include "real_controller_connection.hpp"
 #include "real_controller_parser.hpp"
+#include "real_controller_rumble.hpp"
 
 namespace RealController {
   class Controller {

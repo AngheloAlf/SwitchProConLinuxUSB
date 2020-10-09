@@ -12,19 +12,19 @@ Rumble::RumbleArray Rumble::rumble(double _high_freq, double _low_freq, double _
   _low_freq  = Utils::Number::clamp<double>(_low_freq,  Rumble::Constants::lowFreq_min,  Rumble::Constants::lowFreq_max);
 
 
-  uint8_t amp_high = highAmplitude(_high_ampl);
-  uint16_t amp_low =  lowAmplitude(_low_ampl);
+  uint8_t amp_high = amplitude(_high_ampl);
+  uint8_t amp_low  = amplitude(_low_ampl);
 
-  uint16_t freq_high = highFrequency(_high_freq);
-  uint8_t  freq_low  =  lowFrequency(_low_freq);
+  uint8_t freq_high = highFrequency(_high_freq);
+  uint8_t freq_low  =  lowFrequency(_low_freq);
 
   Rumble::RumbleArray data {0};
 
-  data[0] =  0xFF &  freq_high;
-  data[1] = (0xFF & (freq_high >> 8)) + amp_high;
+  data[0] = freq_high << 2;
+  data[1] = ((freq_high >> 6) & 0x01) + (amp_high << 1);
 
-  data[2] = (0xFF & (amp_low >> 8)) + freq_low;
-  data[3] =  0xFF &  amp_low;
+  data[2] = ((amp_low & 0x01) << 7) + freq_low;
+  data[3] = 0x40 + (amp_low >> 1);
 
   return data;
 }
@@ -36,7 +36,7 @@ Rumble::RumbleArray Rumble::rumble(double high_freq, double low_freq, double amp
 
 // https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md
 // https://docs.google.com/spreadsheets/d/1Sg12Sv8iFP4C8pbEmW-e58YEuU3hD_Yo6_yhG3xk5LM/edit?usp=sharing
-uint8_t Rumble::highAmplitude(double amp) {
+uint8_t Rumble::amplitude(double amp) {
   if (amp < 0.007666L) {
     return 0;
   }
@@ -46,23 +46,18 @@ uint8_t Rumble::highAmplitude(double amp) {
   }
 
   if (amp <= 0.112491L) {
-    return round((log2(amp * 119.6128L) * 8) / 2)*2;
+    return round((log2(amp * 119.6128L) * 4));
   }
 
   if (amp <= 0.224982L) {
-    return round((log2(amp * 17.0256L) * 32) / 2)*2;
+    return round((log2(amp * 17.0256L) * 16));
   }
 
-  return round((log2(amp * 8.699L) * 64) / 2)*2;
+  return round((log2(amp * 8.699L) * 32));
 }
 
-uint16_t Rumble::lowAmplitude(double amp) {
-  uint16_t high = highAmplitude(amp);
-  return 0x40 + (high >> 2) + ((high&0x02) << 14);
-}
-
-uint16_t Rumble::highFrequency(double freq) {
-  return round((log2(freq / 80) * 128) / 4)*4;
+uint8_t Rumble::highFrequency(double freq) {
+  return round((log2(freq / 80) * 32));
 }
 uint8_t   Rumble::lowFrequency(double freq) {
   return round((log2(freq / 40) * 32));
@@ -98,7 +93,7 @@ double Rumble::decodeLowAmplitude(uint16_t _amp) {
 
 double Rumble::decodeHighFrequency(uint16_t _freq) {
   double freq = _freq;
-  return pow(2, freq / 128) * 80;
+  return pow(2, freq / 32) * 80;
 }
 double  Rumble::decodeLowFrequency(uint8_t _freq) {
   double freq = _freq;
