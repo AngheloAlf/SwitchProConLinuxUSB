@@ -1,6 +1,7 @@
 #include "real_controller.hpp"
 using namespace RealController;
 
+#include "real_controller_rumble.hpp"
 
 Controller::Controller(const HidApi::Enumerate &device_info, unsigned short n_controll)
               : connection(device_info), n_controller(n_controll) {
@@ -112,24 +113,15 @@ void Controller::blink() {
   connection.set_player_leds(blink_array[blink_position]);
 }
 
-void Controller::send_rumble(uint8_t large_motor, uint8_t small_motor) {
-  HidApi::GenericPacket<4> left {0x80, 0x00, 0x40, 0x40};
-  HidApi::GenericPacket<4> right{0x80, 0x00, 0x40, 0x40};
-
-  if (large_motor != 0) {
-    left[1] = right[1] = 0x08;
-    left[2] = right[2] = large_motor;
-  } else if (small_motor != 0) {
-    left[1] = right[1] = 0x10;
-    left[2] = right[2] = small_motor;
-  }
-
+void Controller::rumble(const Rumble::RumbleArray &left, const Rumble::RumbleArray &right) {
   connection.send_rumble(left, right);
 }
-
-void Controller::rumble(/*int frequency, int intensity*/) {
-  HidApi::GenericPacket<4> default_rumble{0x00, 0x01, 0x40, 0x40};
-  connection.send_rumble(default_rumble, default_rumble);
+void Controller::rumble(double high_freq, double low_freq, double high_amp, double low_amp) {
+  Rumble::RumbleArray data = Rumble::rumble(high_freq, low_freq, high_amp, low_amp);
+  rumble(data, data);
+}
+void Controller::rumble(double high_freq, double low_freq, double amplitude) {
+  rumble(high_freq, low_freq, amplitude, amplitude);
 }
 
 void Controller::close() {

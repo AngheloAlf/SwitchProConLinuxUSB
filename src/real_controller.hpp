@@ -5,6 +5,7 @@
 #include <array>
 #include "real_controller_connection.hpp"
 #include "real_controller_parser.hpp"
+#include "real_controller_rumble.hpp"
 
 namespace RealController {
   class Controller {
@@ -24,8 +25,9 @@ namespace RealController {
     void led(int number = -1);
     void blink();
 
-    void send_rumble(uint8_t large_motor, uint8_t small_motor);
-    void rumble(/*int frequency, int intensity*/);
+    void rumble(const Rumble::RumbleArray &left, const Rumble::RumbleArray &right);
+    void rumble(double high_freq, double low_freq, double high_amp, double low_amp);
+    void rumble(double high_freq, double low_freq, double amplitude);
 
     void close();
 

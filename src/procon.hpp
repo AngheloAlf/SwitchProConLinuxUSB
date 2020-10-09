@@ -105,7 +105,7 @@ public:
   }
 
   void poll_input(long double delta_milis) {
-    auto remaining_arr = uinput_ctrl->update_time(delta_milis);
+    uinput_ctrl->update_time(delta_milis);
 
     try {
       RealController::Parser parser = hid_ctrl->receive_input();
@@ -129,11 +129,15 @@ public:
       return;
     }
 
-    for(const int32_t &remaining: remaining_arr) {
-      if (remaining > 0) {
-        //printf("%04i ms\n", remaining);
-        //printf("%04i ms  %12.2Lf ms\n", remaining, delta_milis);
-        hid_ctrl->rumble();
+    for(const auto &effect: uinput_ctrl->getRumbleEffects()) {
+      if (effect->get_remaining() > 0) {
+        auto data = effect->get_data();
+        if (data.strong) {
+          hid_ctrl->rumble(320, 160, data.strong/(double)0x10000);
+        }
+        else if(data.weak) {
+          hid_ctrl->rumble(120, 80, data.weak/(double)0x10000);
+        }
       }
     }
 
@@ -341,7 +345,7 @@ private:
 
   void manage_joysticks() {
     if (dribble_mode) {
-      axis_values[RealController::Axis::axis_ry] = clamp_int(axis_values[RealController::Axis::axis_ry] + config.dribble_cam_value - 0x7FF);
+      axis_values[RealController::Axis::axis_ry] = Utils::Number::clamp<uint16_t>(axis_values[RealController::Axis::axis_ry] + config.dribble_cam_value - 0x7FF, 0x000, 0xFFF);
     }
 
     for (const RealController::Axis &id: RealController::axis_ids) {
@@ -413,25 +417,8 @@ private:
               (long double)(axis_max[id] - axis_cen[id]) / 2.L;
         val += 0.5L;
       }
-      axis_values[id] = clamp(val * 0xFFF);
+      axis_values[id] = Utils::Number::clamp<uint16_t>(val * 0xFFF, 0x000, 0xFFF);
     }
-  }
-
-  static uint16_t clamp(long double inp) {
-    if (inp < 0.5f)
-      return 0;
-    if (inp > 4094.5f) {
-      return 0xFFF;
-    }
-    return inp;
-  }
-  static int clamp_int(int inp) {
-    if (inp < 0)
-      return 0;
-    if (inp > 0xFFF) {
-      return 0xFFF;
-    }
-    return inp;
   }
 
   void toggle_dribble_mode() {

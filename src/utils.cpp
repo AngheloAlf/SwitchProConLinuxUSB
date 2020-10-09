@@ -105,4 +105,3 @@ void Str::copy_string_to_char(char *&dst, const char *src) {
 void Str::copy_string_to_char(char *&dst, const std::string &src) {
   copy_string_to_char(dst, src.c_str());
 }
-

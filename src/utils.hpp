@@ -10,7 +10,7 @@
 
 namespace Utils {
 
-  namespace PrintColor{
+  namespace PrintColor {
     void normal(FILE *f);
     void normal();
 
@@ -36,7 +36,7 @@ namespace Utils {
     void white();
   };
 
-  namespace Str{
+  namespace Str {
     std::string wide_to_string(const wchar_t *wide);
 
     void copy_string_to_char(char *&dst, const char *src);
@@ -53,6 +53,18 @@ namespace Utils {
     }
   };
 
+  namespace Number {
+    /**
+     * @brief Forces @param value to not being less than @param lower_limit,
+     * or greater than @param upper_limit.
+     */
+    template<typename ReturnType, typename NumberType0, typename NumberType1, typename NumberType2>
+    ReturnType clamp(NumberType0 value, NumberType1 lower_limit, NumberType2 upper_limit) {
+      if (value < lower_limit) return lower_limit;
+      if (value > upper_limit) return upper_limit;
+      return value;
+    }
+  }
 };
 
 #endif
