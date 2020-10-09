@@ -186,6 +186,7 @@ int main(int argc, char *argv[]) {
   }
 
   signal(SIGINT, exit_handler);
+  signal(SIGHUP, exit_handler);
 
   try {
     // Don't trust hidapi, returns non-matching devices sometimes

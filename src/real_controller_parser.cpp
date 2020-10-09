@@ -34,7 +34,9 @@ void RealController::printPacket(size_t packet_len, HidApi::DefaultPacket arr) {
   printPacket(packet_len, arr.data());
 }
 
-Parser::Parser(size_t packet_len, HidApi::DefaultPacket data): len(packet_len), dat(data) {
+Parser::Parser(size_t packet_len, HidApi::DefaultPacket data,  bool no_packet): len(packet_len), dat(data), nopacket(no_packet) {
+  if (no_packet) return;
+
   type = PacketType::unknown;
 
   if (packet_len == 0) {
@@ -157,6 +159,7 @@ bool Parser::is_dpad_pressed(Dpad dpad) const {
 
 
 bool Parser::has_button_and_axis_data() const {
+  if (nopacket) return false;
   switch (type) {
   case PacketType::standard_input_report:
   case PacketType::normal_ctrl_report:

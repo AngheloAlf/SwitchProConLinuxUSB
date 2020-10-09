@@ -17,7 +17,7 @@ namespace RealController {
 
   class Parser {
   public:
-    Parser(size_t packet_len, HidApi::DefaultPacket data);
+    Parser(size_t packet_len, HidApi::DefaultPacket data, bool no_packet=false);
 
     bool is_button_pressed(Buttons button) const;
     uint16_t get_axis_status(Axis axis) const;
@@ -41,6 +41,7 @@ namespace RealController {
     size_t len = 0;
     HidApi::DefaultPacket dat;
     PacketType type = PacketType::packet_none;
+    bool nopacket = false;
   };
 };
 

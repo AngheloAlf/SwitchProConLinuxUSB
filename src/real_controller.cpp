@@ -3,6 +3,8 @@ using namespace RealController;
 
 #include "real_controller_rumble.hpp"
 
+extern bool controller_loop;
+
 Controller::Controller(const HidApi::Enumerate &device_info, unsigned short n_controll)
               : connection(device_info), n_controller(n_controll) {
   closed = false;
@@ -10,8 +12,8 @@ Controller::Controller(const HidApi::Enumerate &device_info, unsigned short n_co
 
   if (!connection.Bluetooth()) {
     RealController::ControllerMAC mac = connection.request_mac();
-    printf("controller_type: %02x\n", mac.controller_type);
-    printf("mac: %02x", mac.mac[0]);
+    //printf("controller_type: %02x\n", mac.controller_type);
+    //printf("mac: %02x", mac.mac[0]);
     for (size_t i = 1; i < 6; ++i) {
       printf(":%02x", mac.mac[i]);
     }
@@ -77,12 +79,23 @@ Controller &Controller::operator=(Controller &&other) noexcept {
 
 RealController::Parser Controller::receive_input() {
   /// TODO: do a waiting loop if a zero packet is received or something.
+  bool no_packet = false;
   HidApi::DefaultPacket buff;
   size_t len;
-  do {
-    len = connection.receive_input(buff, 16);
-  } while (len == 0);
-  return RealController::Parser(len, buff);
+  try {
+    do {
+      len = connection.receive_input(buff, 15);
+    } while (len == 0);
+  }
+  catch (const HidApi::IOError &e) {
+    if (!controller_loop) {
+      no_packet = true;
+    }
+    else {
+      throw;
+    }
+  }
+  return RealController::Parser(len, buff, no_packet);
 }
 
 RealController::Parser Controller::request_input() {
