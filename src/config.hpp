@@ -14,11 +14,11 @@ public:
   bool force_calibration = false;
   bool show_version = false;
   bool invert_lx = false;
-  bool invert_ly = false;
+  bool invert_ly = true;
   bool invert_rx = false;
-  bool invert_ry = false;
+  bool invert_ry = true;
   bool invert_dx = false;
-  bool invert_dy = false;
+  bool invert_dy = true;
   bool swap_buttons = false;
   bool swap_ab = false;
   bool swap_xy = false;
@@ -46,25 +46,21 @@ public:
         }
         bool valid_axis_name;
         do {
-          valid_axis_name = false;
+          valid_axis_name = true;
           if (!strcmp(argv[i+1], "lx")) {
             invert_lx = true;
-            valid_axis_name = true;
           } else if (!strcmp(argv[i+1], "ly")) {
-            invert_ly = true;
-            valid_axis_name = true;
+            invert_ly = false;
           } else if (!strcmp(argv[i+1], "rx")) {
             invert_rx = true;
-            valid_axis_name = true;
           } else if (!strcmp(argv[i+1], "ry")) {
-            invert_ry = true;
-            valid_axis_name = true;
+            invert_ry = false;
           } else if (!strcmp(argv[i+1], "dx")) {
             invert_dx = true;
-            valid_axis_name = true;
           } else if (!strcmp(argv[i+1], "dy")) {
-            invert_dy = true;
-            valid_axis_name = true;
+            invert_dy = false;
+          } else {
+            valid_axis_name = false;
           }
 
           if (valid_axis_name) {
