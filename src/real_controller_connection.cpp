@@ -10,7 +10,7 @@ ControllerConnection::ControllerConnection(const HidApi::Enumerate &device_info)
   }
 }
 ControllerConnection::ControllerConnection(ControllerConnection &&other) noexcept: hidw(std::move(other.hidw)),
-  timing_counter(std::move(other.timing_counter)), bluetooth(std::move(bluetooth)) {
+  timing_counter(std::move(other.timing_counter)), bluetooth(std::move(other.bluetooth)) {
 }
 
 ControllerConnection::~ControllerConnection() noexcept {
@@ -178,6 +178,6 @@ void ControllerConnection::send_rumble(const HidApi::GenericPacket<4> &left_rumb
 
 
 size_t ControllerConnection::send_uart(Uart uart) {
-  HidApi::GenericPacket<2> packet {Protocols::nintendo, uart};
+  HidApi::GenericPacket<2> packet {Protocols::nintendo, (uint8_t)uart};
   return hidw.write(packet);
 }

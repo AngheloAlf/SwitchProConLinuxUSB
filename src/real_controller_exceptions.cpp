@@ -24,7 +24,7 @@ RealControllerError::RealControllerError(RealControllerError &&other) noexcept: 
   std::swap(str, other.str);
 }
 
-RealControllerError::~RealControllerError() {
+RealControllerError::~RealControllerError() noexcept {
   exit();
 }
 
