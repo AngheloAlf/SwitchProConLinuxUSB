@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - This way the led turns off at exit.
   - This message is sended only in USB mode.
 - Improve axis precision from 8 bits to 12 bits.
-- Bluetooth compatibility.
+- Experimental bluetooth compatibility.
+  - The driver needs to be recompiled with `hidapi-hidraw` instead of `hidapi-libusb`.
 - Add simple rumble support.
   - It can handle 'weak' and 'strong' rumbles.
 - Exceptions.
@@ -28,10 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A _lot_ of code cleanup.
 - The calibration process now stores the center position of the axis.
+- Calibration data file is saved to `~/.config/procon_driver` instead of the current working directory.
 - `--swap_buttons` to `--swap-buttons`.
-- Improved the comunication protocol to the pro controller.
-- Lowered avareage response time from 15ms to 5ms.
-- Hidapi backend, from libusb to hidraw.
+- Improved the controller' comunication protocol.
+- Improved response times.
+- `udev` rules.
+  - Based on [game-devices-udev](https://gitlab.com/fabis_cafe/game-devices-udev).
+- C++ compiler, from `g++` to `clang++`.
 - Error handling.
 
 ### Fixed
