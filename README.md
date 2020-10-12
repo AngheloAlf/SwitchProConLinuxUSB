@@ -23,6 +23,18 @@ This repository aims to provide a uinput driver for the Nintendo Switch Pro Cont
 
 // TODO
 
+### Dependencies
+
+The driver needs the following to run:
+
+- hidapi
+
+On a Debian-based distro (Ubuntu, Pop!_Os, etc) you can install these in a terminal with:
+
+```bash
+sudo apt-get install libhidapi-libusb0 libhidapi-hidraw0
+```
+
 ### Invert axis and swap buttons
 
 If you're having trouble with inverted axis, use `./procon_driver --help` to see how to invert the axis.
@@ -31,30 +43,26 @@ There's also an option to run with A and B as well as X and Y buttons switched, 
 
 ## Building from source
 
-### Dependencies
-
-(TODO: check if those are really needed.)
+### Build dependencies
 
 The following is needed to build the driver:
 
-- libudev
-- autotools, autoconf and libtool
 - cmake
+- clang++
 - hidapi
 
 On a Debian-based distro (Ubuntu, Pop!_Os, etc) you can install these in a terminal with:
 
 ```bash
-sudo apt install libudev-dev libusb-1.0-0-dev libfox-1.6-dev
-sudo apt install autotools-dev autoconf automake libtool
 sudo apt install cmake
+sudo apt install clang
 sudo apt install libhidapi-dev
 ```
 
 As a one liner:
 
 ```bash
-sudo apt install libudev-dev libusb-1.0-0-dev libfox-1.6-dev autotools-dev autoconf automake libtool cmake libhidapi-dev
+sudo apt install cmake clang libhidapi-dev
 ```
 
 ### Build the driver
