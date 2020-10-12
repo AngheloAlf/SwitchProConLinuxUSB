@@ -9,29 +9,35 @@
 
 
 namespace Utils {
-
   namespace PrintColor {
     void normal(FILE *f);
     void normal();
 
+    void red(FILE *f, const char *msg);
     void red(FILE *f);
     void red();
 
+    void green(FILE *f, const char *msg);
     void green(FILE *f);
     void green();
 
+    void yellow(FILE *f, const char *msg);
     void yellow(FILE *f);
     void yellow();
 
+    void blue(FILE *f, const char *msg);
     void blue(FILE *f);
     void blue();
 
+    void magenta(FILE *f, const char *msg);
     void magenta(FILE *f);
     void magenta();
 
+    void cyan(FILE *f, const char *msg);
     void cyan(FILE *f);
     void cyan();
 
+    void white(FILE *f, const char *msg);
     void white(FILE *f);
     void white();
   };

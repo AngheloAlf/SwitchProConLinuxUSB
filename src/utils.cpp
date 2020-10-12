@@ -24,6 +24,9 @@ void PrintColor::normal() {
   PrintColor::normal(stdout);
 }
 
+void PrintColor::red(FILE *f, const char *msg) {
+  fprintf(f, "%s%s%s", KRED, msg, KNRM);
+}
 void PrintColor::red(FILE *f) {
   fprintf(f, "%s", KRED);
 }
@@ -31,6 +34,9 @@ void PrintColor::red() {
   PrintColor::red(stdout);
 }
 
+void PrintColor::green(FILE *f, const char *msg) {
+  fprintf(f, "%s%s%s", KGRN, msg, KNRM);
+}
 void PrintColor::green(FILE *f) {
   fprintf(f, "%s", KGRN);
 }
@@ -38,6 +44,9 @@ void PrintColor::green() {
   PrintColor::green(stdout);
 }
 
+void PrintColor::yellow(FILE *f, const char *msg) {
+  fprintf(f, "%s%s%s", KYEL, msg, KNRM);
+}
 void PrintColor::yellow(FILE *f) {
   fprintf(f, "%s", KYEL);
 }
@@ -45,6 +54,9 @@ void PrintColor::yellow() {
   PrintColor::yellow(stdout);
 }
 
+void PrintColor::blue(FILE *f, const char *msg) {
+  fprintf(f, "%s%s%s", KBLU, msg, KNRM);
+}
 void PrintColor::blue(FILE *f) {
   fprintf(f, "%s", KBLU);
 }
@@ -52,6 +64,9 @@ void PrintColor::blue() {
   PrintColor::blue(stdout);
 }
 
+void PrintColor::magenta(FILE *f, const char *msg) {
+  fprintf(f, "%s%s%s", KMAG, msg, KNRM);
+}
 void PrintColor::magenta(FILE *f) {
   fprintf(f, "%s", KMAG);
 }
@@ -59,6 +74,9 @@ void PrintColor::magenta() {
   PrintColor::magenta(stdout);
 }
 
+void PrintColor::cyan(FILE *f, const char *msg) {
+  fprintf(f, "%s%s%s", KCYN, msg, KNRM);
+}
 void PrintColor::cyan(FILE *f) {
   fprintf(f, "%s", KCYN);
 }
@@ -66,6 +84,9 @@ void PrintColor::cyan() {
   PrintColor::cyan(stdout);
 }
 
+void PrintColor::white(FILE *f, const char *msg) {
+  fprintf(f, "%s%s%s", KWHT, msg, KNRM);
+}
 void PrintColor::white(FILE *f) {
   fprintf(f, "%s", KWHT);
 }

@@ -8,7 +8,6 @@
 #include <ctime>
 #include <fcntl.h>
 #include <fstream>
-#include <iostream>
 #include <linux/input.h>
 #include <ratio>
 #include <stdio.h>
@@ -23,7 +22,7 @@
 #include "uinputcontroller.hpp"
 #include "utils.hpp"
 
-#define PROCON_DRIVER_VERSION "1.0 alpha2"
+#define PROCON_DRIVER_VERSION "2.0"
 
 
 #define PROCON_ID 0x2009

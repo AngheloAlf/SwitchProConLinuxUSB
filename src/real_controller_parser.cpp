@@ -6,22 +6,16 @@ using namespace RealController;
 
 void RealController::printPacket(size_t packet_len, uint8_t *arr) {
   bool redcol = false;
-  if (arr[0] != 0x30) {
-    Utils::PrintColor::yellow();
-  }
-  else {
-    Utils::PrintColor::red();
+  if (arr[0] == 0x30) {
     redcol = true;
   }
   for (size_t i = 0; i < packet_len; ++i) {
     if (arr[i] == 0x00) {
       Utils::PrintColor::blue();
+    } else if (redcol) {
+      Utils::PrintColor::red();
     } else {
-      if (redcol) {
-        Utils::PrintColor::red();
-      } else {
-        Utils::PrintColor::yellow();
-      }
+      Utils::PrintColor::yellow();
     }
     printf("%02X ", arr[i]);
   }

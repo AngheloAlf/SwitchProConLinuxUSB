@@ -12,19 +12,16 @@ bool controller_loop = true;
 void exit_handler(int ignored){
   if (controller_loop == false) {
     fflush(stdout);
-    Utils::PrintColor::red();
-    printf("\n\nHard exit.\n");
-    Utils::PrintColor::normal();
+    Utils::PrintColor::red(stdout, "\n\nHard exit.\n");
     fflush(stdout);
     signal(SIGINT, SIG_DFL);
+    signal(SIGHUP, SIG_DFL);
     raise(SIGINT);
     return;
   }
   (void)ignored;
   controller_loop = false;
-  Utils::PrintColor::magenta();
-  printf("\nExiting...\n");
-  Utils::PrintColor::normal();
+  Utils::PrintColor::magenta(stdout, "\nExiting...\n");
   fflush(stdout);
 }
 
@@ -54,17 +51,11 @@ void print_header(){
   printf("\n--------------------------------------------------------------------"
          "------\n");
   printf("| ");
-  Utils::PrintColor::cyan();
-  printf("Nintendo Switch Pro-Controller USB uinput driver. ");
-  Utils::PrintColor::cyan();
-  printf("Version: ");
-  printf(PROCON_DRIVER_VERSION);
-  Utils::PrintColor::normal();
-
+  Utils::PrintColor::cyan(stdout, "Nintendo Switch Pro-Controller USB uinput driver. ");
+  Utils::PrintColor::blue(stdout, "Version: " PROCON_DRIVER_VERSION);
   printf("  |\n"
          "-------------------------------------------------------------------"
          "-------\n\n");
-  fflush(stdout);
 }
 
 
@@ -85,6 +76,7 @@ ProController *create_ctrl(unsigned short n_controller, const HidApi::Enumerate 
         throw;
       }
       usleep(1000 * 1000);
+      Utils::PrintColor::red(stderr, e.what());
       Utils::PrintColor::red();
       printf("%s\nRetrying... (%i/%i)\n\n", e.what(), retries, 10);
       Utils::PrintColor::normal();
@@ -104,14 +96,9 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
 
   if (!controller->needs_first_calibration()) {
     controller->calibrate_from_file();
-    Utils::PrintColor::green();
-    printf("Read calibration data from file! ");
-    Utils::PrintColor::cyan();
-    printf("Press 'share' and 'home' to calibrate again or start with "
-           "--calibrate or -c.\n");
-    Utils::PrintColor::green();
-    printf("Now entering input mode!\n");
-    Utils::PrintColor::normal();
+    Utils::PrintColor::green(stdout, "Read calibration data from file! ");
+    Utils::PrintColor::cyan(stdout, "Press 'share' and 'home' to calibrate again or start with --calibrate or -c.\n");
+    Utils::PrintColor::green(stdout, "Now entering input mode!\n");
   }
 
   printf("\n");
@@ -126,16 +113,11 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
     printf("\r\e[K");*/
 
     if (!controller->is_calibrated()) {
-      fflush(stdout);
-      Utils::PrintColor::blue();
-      printf("Starting calibration mode.\n");
-      Utils::PrintColor::cyan();
-      printf("Move both control sticks to their maximum positions "
+      Utils::PrintColor::blue(stdout, "Starting calibration mode.\n");
+      Utils::PrintColor::cyan(stdout, "Move both control sticks to their maximum positions "
             "(i.e. turn them in a circle once slowly.).\n"
             "Then leave both control sticks at their center and press the " 
             "square 'share' button!\n");
-      Utils::PrintColor::normal();
-      fflush(stdout);
       while (!controller->is_calibrated()) {
         if (!controller_loop) {
           return;
@@ -148,10 +130,8 @@ void handle_controller(const HidApi::Enumerate &iter, Config &config) {
           printf("\r\e[K");
         }
       }
-      Utils::PrintColor::green();
-      printf("Wrote calibration data to file!\n");
-      printf("Calibrated Controller! Now entering input mode!\n");
-      Utils::PrintColor::normal();
+      Utils::PrintColor::green(stdout, "Wrote calibration data to file!\n"
+                                       "Calibrated Controller! Now entering input mode!\n");
     }
 
     controller->poll_input(delta_milis);
@@ -190,7 +170,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (config.show_version) {
-    std::cout << "Version is " << PROCON_DRIVER_VERSION << std::endl;
+    printf("procon_driver %s\n", PROCON_DRIVER_VERSION);
     return 0;
   }
 
@@ -207,9 +187,8 @@ int main(int argc, char *argv[]) {
     HidApi::init();
   }
   catch (const HidApi::InitError &e) {
-    Utils::PrintColor::red();
-    printf("%s\n", e.what());
-    Utils::PrintColor::normal();
+    Utils::PrintColor::red(stdout, "Can't init hidapi\n");
+    Utils::PrintColor::red(stderr,  ("  " + std::string(e.what()) + "\n").c_str());
     return -1;
   }
 
@@ -222,44 +201,32 @@ int main(int argc, char *argv[]) {
     handle_controller(iter, config);
   }
   catch (const HidApi::EnumerateError &e) {
-    Utils::PrintColor::red();
-    printf("No controller found:\n  %s\n", e.what());
-    Utils::PrintColor::normal();
+    Utils::PrintColor::red(stdout, "No controller found.\nTry plugging/connecting the controller again.\n");
+    Utils::PrintColor::red(stderr, ("  " + std::string(e.what()) + "\n").c_str());
   }
   catch (const std::ios_base::failure &e) {
-    Utils::PrintColor::red();
-    printf("%s\n", e.what());
-
-    Utils::PrintColor::magenta();
-    printf("\nTry unplugging and plugging again the usb to the controller.\n");
-
-    Utils::PrintColor::yellow();
-    printf("Exiting...\n");
-    Utils::PrintColor::normal();
+    Utils::PrintColor::magenta(stdout, "Try unplugging and plugging again the usb to the controller.\n");
+    Utils::PrintColor::red(stderr, ("  " + std::string(e.what()) + "\n").c_str());
   } 
   catch (const HidApi::OpenError &e) {
-    Utils::PrintColor::red();
-    printf("%s\n", e.what());
-    Utils::PrintColor::yellow();
-    printf("Unable to create a connection with controller.\n");
-    printf("You could try running with sudo.\n");
-    Utils::PrintColor::normal();
+    Utils::PrintColor::yellow(stdout, "Unable to create a connection with controller.\n");
+    Utils::PrintColor::yellow(stdout, "You could try running with sudo.\n");
+    Utils::PrintColor::red(stderr, ("  " + std::string(e.what()) + "\n").c_str());
   }
   catch (const std::exception &e) {
-    Utils::PrintColor::red();
-    printf("%s\n", e.what());
-    Utils::PrintColor::normal();
+    Utils::PrintColor::red(stdout, "Unexpected error.\n");
+    Utils::PrintColor::red(stderr, ("  " + std::string(e.what()) + "\n").c_str());
   }
 
   try {
     HidApi::exit();
   }
   catch (const HidApi::ExitError &e) {
-    Utils::PrintColor::red();
-    printf("%s\n", e.what());
+    Utils::PrintColor::red(stderr, ("  " + std::string(e.what()) + "\n").c_str());
     return -1;
   }
 
+  Utils::PrintColor::yellow(stdout, "Exiting...\n");
   printf("\n");
   return 0;
 }
