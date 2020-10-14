@@ -19,7 +19,7 @@
 #include "config.hpp"
 #include "real_controller.hpp"
 #include "real_controller_exceptions.hpp"
-#include "uinputcontroller.hpp"
+#include "virtual_controller.hpp"
 #include "utils.hpp"
 
 #define PROCON_DRIVER_VERSION "2.0"
@@ -449,7 +449,7 @@ private:
 
   Config &config;
   RealController::Controller hid_ctrl;
-  UInputController uinput_ctrl;
+  VirtualController::Controller uinput_ctrl;
 };
 
 #endif
