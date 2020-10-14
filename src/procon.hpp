@@ -447,7 +447,7 @@ private:
 
   bool dribble_mode = false;
 
-  Config config;
+  Config &config;
   RealController::Controller hid_ctrl;
   UInputController uinput_ctrl;
 };
