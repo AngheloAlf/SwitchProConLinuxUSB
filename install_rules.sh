@@ -19,6 +19,18 @@ echo ""
 if [ $retVal -ne 0 ]; then
   echo "Error."
   echo "You could try again as root (sudo ./install_rules.sh)"
+  exit $retVal
+fi
+
+# Trigger a rules reload.
+udevadm control --reload-rules && udevadm trigger
+
+
+retVal=$?
+echo ""
+if [ $retVal -ne 0 ]; then
+  echo "Error."
+  echo "You could try again as root (sudo ./install_rules.sh)"
 else
   echo "Successful."
 fi
