@@ -18,8 +18,8 @@ retVal=$?
 echo ""
 if [ $retVal -ne 0 ]; then
   echo "Error."
-  echo "You could try again as root (sudo ./install_rules.sh)"
+  echo "You could try again as root (sudo ./install_rules.sh)."
 else
-  echo "Successful."
+  echo "Success."
 fi
 exit $retVal
